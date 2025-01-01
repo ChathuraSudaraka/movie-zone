@@ -206,7 +206,7 @@ function Info() {
                 onClick={handlePlayClick}
                 className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
               >
-                <Clapperboard className="text-xl fill-white text-slate-500 sm:text-2xl group-hover:scale-110 transition duration-300" />
+                <Clapperboard className="text-xl fill-white text-neutral-800 sm:text-2xl group-hover:scale-110 transition duration-300" />
                 <span className="hidden sm:inline ml-2 font-semibold text-lg">
                   Watch {content.media_type === 'movie' ? 'Movie' : 'Show'}
                 </span>
