@@ -67,15 +67,6 @@ export const TorrentList: React.FC<TorrentListProps> = ({
     return normalizeQuality(torrent.quality) === normalizeQuality(qualityFilter);
   });
 
-  // Add debug logging (remove in production)
-  useEffect(() => {
-    console.log('Sorted torrents:', sortedTorrents.map(t => ({
-      quality: t.quality,
-      seeds: t.seeds,
-      normalizedQuality: normalizeQuality(t.quality)
-    })));
-  }, [sortBy, torrents]);
-
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
