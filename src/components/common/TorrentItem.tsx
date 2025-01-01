@@ -1,5 +1,5 @@
 import React from 'react';
-import { FaSeedling, FaFileDownload, FaMagnet, FaFilm, FaHdd, FaDownload, FaUsers, FaShieldAlt, FaServer } from "react-icons/fa";
+import { FaSeedling, FaFileDownload, FaMagnet, FaFilm, FaHdd, FaUsers, FaShieldAlt } from "react-icons/fa";
 import { TorrentInfo } from '../../types/torrent';
 
 interface TorrentItemProps {

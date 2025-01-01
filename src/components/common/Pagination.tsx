@@ -1,4 +1,5 @@
 import React from 'react';
+import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
 interface PaginationProps {
   currentPage: number;
@@ -67,74 +68,66 @@ const Pagination: React.FC<PaginationProps> = ({
   };
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-4">
-      {/* Previous Button */}
-      <button
-        onClick={() => onPageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-          currentPage === 1
-            ? 'text-gray-500 cursor-not-allowed'
-            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-        }`}
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15 19l-7-7 7-7"
-          />
-        </svg>
-      </button>
+    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 px-4 py-3
+                  bg-[#1a1a1a]/90 border border-gray-800/50 rounded-xl">
+      {/* Info */}
+      <div className="text-sm text-gray-400">
+        <span>Page {currentPage} of {totalPages}</span>
+        <span className="mx-2">•</span>
+        <span>{totalItems} Episodes</span>
+      </div>
 
-      {/* Page Numbers */}
-      {getPageNumbers().map((page, index) => (
+      {/* Navigation */}
+      <div className="flex items-center gap-1.5">
+        {/* Previous */}
         <button
-          key={index}
-          onClick={() => typeof page === 'number' ? onPageChange(page) : null}
-          disabled={page === '...'}
-          className={`min-w-[1.75rem] h-7 px-1 rounded text-xs font-medium transition-colors ${
-            page === currentPage
-              ? 'bg-blue-500 text-white'
-              : page === '...'
-              ? 'text-gray-500 cursor-default'
-              : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-          }`}
+          onClick={() => onPageChange(currentPage - 1)}
+          disabled={currentPage === 1}
+          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium
+            ${currentPage === 1
+              ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+              : 'bg-[#232323] hover:bg-red-500/20 hover:text-red-500 text-gray-400'
+            }`}
         >
-          {page}
+          <FaChevronLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Previous</span>
         </button>
-      ))}
 
-      {/* Next Button */}
-      <button
-        onClick={() => onPageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-        className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-          currentPage === totalPages
-            ? 'text-gray-500 cursor-not-allowed'
-            : 'text-gray-400 hover:text-gray-200 hover:bg-gray-700/50'
-        }`}
-      >
-        <svg
-          className="w-4 h-4"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
+        {/* Pages */}
+        <div className="flex items-center">
+          {getPageNumbers().map((page, index) => (
+            <button
+              key={index}
+              onClick={() => typeof page === 'number' ? onPageChange(page) : null}
+              disabled={page === '...'}
+              className={`min-w-[32px] h-8 flex items-center justify-center text-sm font-medium
+                         rounded-lg transition-colors
+                ${page === currentPage
+                  ? 'bg-red-500 text-white'
+                  : page === '...'
+                    ? 'text-gray-500 cursor-default px-1'
+                    : 'hover:bg-red-500/20 hover:text-red-500 text-gray-400'
+                }`}
+            >
+              {page}
+            </button>
+          ))}
+        </div>
+
+        {/* Next */}
+        <button
+          onClick={() => onPageChange(currentPage + 1)}
+          disabled={currentPage === totalPages}
+          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium
+            ${currentPage === totalPages
+              ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
+              : 'bg-[#232323] hover:bg-red-500/20 hover:text-red-500 text-gray-400'
+            }`}
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </button>
+          <span className="hidden sm:inline">Next</span>
+          <FaChevronRight className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 };

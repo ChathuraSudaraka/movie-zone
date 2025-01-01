@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
+import { FaChevronDown, FaSpinner } from 'react-icons/fa';
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
 import EpisodeList from "./EpisodeList";
@@ -42,6 +43,7 @@ export const TVProcess = ({
   }>({});
   const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
   const [loadingTorrents, setLoadingTorrents] = useState<number[]>([]);
+  const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
 
   // Fetch seasons only once
   useEffect(() => {
@@ -190,30 +192,75 @@ export const TVProcess = ({
   return (
     <div className="space-y-8">
       {/* Season Selector */}
-      <div className="flex flex-wrap gap-2 pb-4 border-b border-slate-800/50">
-        {seasons.map((season) => (
+      <div className="relative">
+        {/* Mobile Dropdown */}
+        <div className="md:hidden">
           <button
-            key={season.season_number}
-            onClick={() => setSelectedSeason(season.season_number)}
-            disabled={loadingSeasons.includes(season.season_number)}
-            className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-300 relative
-              ${
-                selectedSeason === season.season_number
-                  ? "bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/25 scale-105"
-                  : "bg-slate-800/50 text-slate-300 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-indigo-500/20 hover:text-white border border-violet-500/20"
-              } ${
-              loadingSeasons.includes(season.season_number) ? "opacity-50" : ""
-            }`}
+            onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
+            className="w-full flex items-center justify-between gap-2 px-4 py-3
+                       bg-[#1a1a1a]/90 hover:bg-[#232323]/90 
+                       border-2 border-red-500/30 rounded-xl"
           >
-            Season {season.season_number}
-            {loadingSeasons.includes(season.season_number) && (
-              <span className="absolute -top-1 -right-1 w-2 h-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-violet-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-violet-500"></span>
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-red-500">Season</span>
+              <span className="text-sm font-medium text-white">{selectedSeason || '1'}</span>
+            </div>
+            <FaChevronDown className={`w-4 h-4 text-red-500 transition-transform duration-200
+              ${isSeasonDropdownOpen ? 'rotate-180' : ''}`}
+            />
           </button>
-        ))}
+          
+          {isSeasonDropdownOpen && (
+            <div className="absolute z-50 w-full mt-2 py-2 
+                           bg-[#1a1a1a]/95 border border-gray-800/50 rounded-xl 
+                           backdrop-blur-sm shadow-xl max-h-[60vh] overflow-y-auto">
+              {seasons.map((season) => (
+                <button
+                  key={season.season_number}
+                  onClick={() => {
+                    setSelectedSeason(season.season_number);
+                    setIsSeasonDropdownOpen(false);
+                  }}
+                  disabled={loadingSeasons.includes(season.season_number)}
+                  className={`w-full flex items-center justify-between px-4 py-3
+                    ${selectedSeason === season.season_number 
+                      ? 'bg-red-500/20 text-red-500' 
+                      : 'text-gray-300 hover:bg-gray-800/50'
+                    }`}
+                >
+                  <span className="text-sm font-medium">Season {season.season_number}</span>
+                  {loadingSeasons.includes(season.season_number) && (
+                    <FaSpinner className="w-4 h-4 animate-spin text-blue-500" />
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Desktop Season List */}
+        <div className="hidden md:block overflow-x-auto">
+          <div className="flex flex-nowrap gap-2 pb-2">
+            {seasons.map((season) => (
+              <button
+                key={season.season_number}
+                onClick={() => setSelectedSeason(season.season_number)}
+                disabled={loadingSeasons.includes(season.season_number)}
+                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl 
+                           text-sm font-medium transition-all duration-300 relative
+                  ${selectedSeason === season.season_number
+                    ? "bg-red-500 text-white shadow-lg shadow-red-500/25"
+                    : "bg-red-500/10 hover:bg-red-500 border-2 border-red-500/30 text-red-500 hover:text-white"
+                  } ${loadingSeasons.includes(season.season_number) ? "opacity-50" : ""}`}
+              >
+                <span>Season {season.season_number}</span>
+                {loadingSeasons.includes(season.season_number) && (
+                  <FaSpinner className="w-4 h-4 animate-spin" />
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
       </div>
 
       {/* Episodes List */}

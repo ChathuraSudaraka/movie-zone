@@ -3,6 +3,7 @@ import EpisodeItem from './EpisodeItem';
 import Pagination from '../common/Pagination';
 import { TMDBEpisode } from '@/types/movie';
 import { TorrentInfo } from '@/types/torrent';
+import { FaInfoCircle } from 'react-icons/fa';
 
 interface EpisodeListProps {
   episodes: TMDBEpisode[];
@@ -68,38 +69,59 @@ const EpisodeList = ({
 
   return (
     <div className="space-y-6">
-      {/* Quality Filter */}
-      <div className="flex flex-wrap gap-2 p-1">
-        {qualities.map((quality) => (
-          <button
-            key={quality}
-            onClick={() => setSelectedQuality(quality)}
-            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300 
-            ${selectedQuality === quality
-              ? 'bg-gradient-to-r from-violet-500 to-indigo-500 text-white shadow-lg shadow-violet-500/25 scale-105'
-              : 'bg-slate-800/50 text-slate-300 hover:bg-gradient-to-r hover:from-violet-500/20 hover:to-indigo-500/20 hover:text-white border border-violet-500/20'
-            }`}
-          >
-            {quality}
-          </button>
-        ))}
+      {/* Quality Filter - Mobile Optimized */}
+      <div className="overflow-x-auto -mx-4 sm:mx-0">
+        <div className="flex flex-nowrap sm:flex-wrap gap-2 p-4 sm:p-1 min-w-min">
+          {qualities.map((quality) => (
+            <button
+              key={quality}
+              onClick={() => setSelectedQuality(quality)}
+              className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium 
+                         whitespace-nowrap transition-all duration-200 
+                ${selectedQuality === quality
+                  ? 'bg-emerald-500 text-white'
+                  : 'bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/30'
+                }`}
+            >
+              {quality}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Episodes Grid */}
-      <div className="grid gap-4 sm:grid-cols-1">
-        {currentEpisodes.map((episode) => (
-          <EpisodeItem
-            key={episode.id}
-            episode={episode}
-            onWatch={() => onWatch(episode)}
-            torrents={filterTorrents(torrents[`${episode.episode_number}`] || [])}
-            selectedQuality={selectedQuality}
-            imdbId={imdbId}
-            tmdbId={tmdbId}
-            isLoadingTorrents={loadingTorrents.includes(episode.episode_number)}
-          />
-        ))}
-      </div>
+      {!Array.isArray(episodes) || episodes.length === 0 ? (
+        <div className="flex items-center justify-center gap-3 p-6 
+                        bg-amber-500/10 border border-amber-500/30 rounded-xl">
+          <FaInfoCircle className="w-5 h-5 text-amber-500" />
+          <div className="space-y-1">
+            <p className="text-sm font-medium text-amber-500">
+              No Episodes Available
+            </p>
+            <p className="text-sm text-amber-500/80">
+              {selectedQuality === 'All'
+                ? "No episodes found for this season."
+                : `No episodes available with ${selectedQuality} quality. Try selecting a different quality option.`
+              }
+            </p>
+          </div>
+        </div>
+      ) : (
+        <div className="grid gap-4 sm:grid-cols-1">
+          {currentEpisodes.map((episode) => (
+            <EpisodeItem
+              key={episode.id}
+              episode={episode}
+              onWatch={() => onWatch(episode)}
+              torrents={filterTorrents(torrents[`${episode.episode_number}`] || [])}
+              selectedQuality={selectedQuality}
+              imdbId={imdbId}
+              tmdbId={tmdbId}
+              isLoadingTorrents={loadingTorrents.includes(episode.episode_number)}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {episodes.length > itemsPerPage && (
