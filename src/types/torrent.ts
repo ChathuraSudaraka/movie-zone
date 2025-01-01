@@ -1,3 +1,5 @@
+export type Quality = '4K' | '2160p' | '1080p' | '720p' | '480p' | 'all';
+
 export interface TorrentInfo {
   url: string;
   hash: string;

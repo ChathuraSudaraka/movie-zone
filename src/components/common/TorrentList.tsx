@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TorrentItem } from './TorrentItem';
-import { TorrentInfo } from '../../types/torrent';
+import { Quality, TorrentInfo } from '../../types/torrent';
 import { FaFilter, FaSort } from 'react-icons/fa';
 import Pagination from './Pagination';
+
+type QualityType = '4K' | '1080p' | '720p' | '480p' | 'all';
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -22,20 +24,57 @@ export const TorrentList: React.FC<TorrentListProps> = ({
   onMagnetDownload,
 }) => {
   const [sortBy, setSortBy] = useState<'seeds' | 'quality'>('seeds');
-  const [qualityFilter, setQualityFilter] = useState<string>('all');
+  const [qualityFilter, setQualityFilter] = useState<Quality>('all');
 
-  // Get unique quality values
-  const qualities = ['all', ...new Set(torrents.map(t => t.quality))];
+  const qualities: Quality[] = ['4K', '1080p', '720p', '480p', 'all'];
 
-  // Sort and filter torrents
+  // Normalize quality for comparison
+  const normalizeQuality = (quality: string): string => {
+    quality = quality.toLowerCase();
+    if (quality.includes('2160') || quality.includes('4k')) return '4K';
+    if (quality.includes('1080')) return '1080p';
+    if (quality.includes('720')) return '720p';
+    if (quality.includes('480')) return '480p';
+    return quality;
+  };
+
+  // Updated quality priority mapping
+  const qualityOrder: Record<string, number> = {
+    '4K': 5,
+    '2160p': 5,
+    '1080p': 4,
+    '720p': 3,
+    '480p': 2,
+    'all': 1,
+  };
+
+  // Updated sorting logic
   const sortedTorrents = [...torrents].sort((a, b) => {
-    if (sortBy === 'seeds') return b.seeds - a.seeds;
-    return b.quality.localeCompare(a.quality);
+    if (sortBy === 'seeds') {
+      const seedsA = Number(a.seeds) || 0;
+      const seedsB = Number(b.seeds) || 0;
+      return seedsB - seedsA;
+    } else {
+      const qualityA = normalizeQuality(a.quality);
+      const qualityB = normalizeQuality(b.quality);
+      return (qualityOrder[qualityB] || 0) - (qualityOrder[qualityA] || 0);
+    }
   });
 
-  const filteredTorrents = sortedTorrents.filter(torrent => 
-    qualityFilter === 'all' || torrent.quality === qualityFilter
-  );
+  // Updated filter logic
+  const filteredTorrents = sortedTorrents.filter(torrent => {
+    if (qualityFilter === 'all') return true;
+    return normalizeQuality(torrent.quality) === normalizeQuality(qualityFilter);
+  });
+
+  // Add debug logging (remove in production)
+  useEffect(() => {
+    console.log('Sorted torrents:', sortedTorrents.map(t => ({
+      quality: t.quality,
+      seeds: t.seeds,
+      normalizedQuality: normalizeQuality(t.quality)
+    })));
+  }, [sortBy, torrents]);
 
   // Calculate pagination
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -44,7 +83,7 @@ export const TorrentList: React.FC<TorrentListProps> = ({
 
   // Reset to first page when filter/sort changes
   const handleFilterChange = (quality: string) => {
-    setQualityFilter(quality);
+    setQualityFilter(quality as QualityType);
     onPageChange(1);
   };
 
