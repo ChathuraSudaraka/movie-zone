@@ -41,6 +41,7 @@ export const TVProcess = ({
     [key: string]: TMDBEpisode[];
   }>({});
   const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
+  const [loadingTorrents, setLoadingTorrents] = useState<number[]>([]);
 
   // Fetch seasons only once
   useEffect(() => {
@@ -133,6 +134,7 @@ export const TVProcess = ({
           // Fetch torrents for each episode
           const newTorrents: { [key: string]: TorrentInfo[] } = {};
           for (const episode of episodes) {
+            setLoadingTorrents(prev => [...prev, episode.episode_number]);
             await delay(300);
             const torrentData = await fetchTorrents(
               content.imdb_id,
@@ -142,6 +144,7 @@ export const TVProcess = ({
             if (torrentData?.length) {
               newTorrents[episode.episode_number] = torrentData;
             }
+            setLoadingTorrents(prev => prev.filter(id => id !== episode.episode_number));
           }
           setTorrents(newTorrents);
         }
@@ -229,6 +232,7 @@ export const TVProcess = ({
           itemsPerPage={itemsPerPage}
           imdbId={content?.imdb_id}
           tmdbId={content?.id?.toString()}
+          loadingTorrents={loadingTorrents}
         />
       )}
     </div>

@@ -10,6 +10,7 @@ import { LoadingSkeleton } from "../components/info/skeleton";
 import { MovieProcess } from "../components/info/MovieProcess";
 import { TVProcess } from "../components/info/TVProcess";
 import { useVideoModal } from '../context/VideoModalContext';
+import { Clapperboard } from "lucide-react";
 
 function Info() {
   const { type, id } = useParams();
@@ -205,7 +206,7 @@ function Info() {
                 onClick={handlePlayClick}
                 className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
               >
-                <FaPlay className="text-xl sm:text-2xl group-hover:scale-110 transition duration-300" />
+                <Clapperboard className="text-xl fill-white text-slate-500 sm:text-2xl group-hover:scale-110 transition duration-300" />
                 <span className="hidden sm:inline ml-2 font-semibold text-lg">
                   Watch {content.media_type === 'movie' ? 'Movie' : 'Show'}
                 </span>
@@ -262,6 +263,7 @@ function Info() {
       {/* Details Section */}
       <div className="px-4 py-12 md:px-8 lg:px-16 bg-[#141414]">
         <div className="max-w-6xl mx-auto">
+          {/* Download Section */}
           <div className="mt-12 mb-8">
             <h2 className="text-2xl font-semibold text-white mb-4">
               Download Options
