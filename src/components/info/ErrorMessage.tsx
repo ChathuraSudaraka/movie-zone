@@ -6,20 +6,36 @@ interface ErrorMessageProps {
 
 const ErrorMessage: React.FC<ErrorMessageProps> = ({ message }) => {
   return (
-    <div className="p-8 mx-auto max-w-2xl">
-      <div className="bg-gradient-to-r from-gray-900 to-gray-800 border-l-4 border-red-500 p-6 rounded-lg shadow-xl">
-        <div className="flex items-center space-x-4">
-          <div className="flex-shrink-0">
-            <div className="relative">
-              <svg className="h-8 w-8 text-red-500 animate-pulse" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <div className="absolute inset-0 bg-red-500 blur-xl opacity-20 animate-pulse"></div>
-            </div>
+    <div className="p-6 mx-auto max-w-2xl">
+      <div className="bg-black/40 backdrop-blur-sm border border-red-500/20 p-5 rounded-xl 
+                      transition-all duration-300 hover:bg-black/50 hover:border-red-500/40 
+                      shadow-lg hover:shadow-red-500/10">
+        <div className="flex items-start space-x-4">
+          <div className="flex-shrink-0 mt-1">
+            <svg 
+              className="h-6 w-6 text-red-500/90 transition-colors duration-300 
+                         hover:text-red-400 transform hover:scale-110" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                strokeWidth={2} 
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
           </div>
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-500 mb-1">Error</h3>
-            <p className="text-gray-300">{message}</p>
+          <div className="flex-1 space-y-1.5">
+            <p className="text-red-500/90 font-semibold tracking-wide text-sm uppercase 
+                         transition-colors duration-300 hover:text-red-400">
+              Unable to Process Request
+            </p>
+            <p className="text-gray-300/90 text-sm leading-relaxed 
+                         transition-colors duration-300 hover:text-gray-200/90">
+              {message}
+            </p>
           </div>
         </div>
       </div>

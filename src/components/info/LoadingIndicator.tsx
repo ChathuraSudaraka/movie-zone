@@ -6,11 +6,11 @@ const LoadingIndicator: React.FC = () => {
       <div className="flex flex-col items-center gap-4">
         <div className="relative">
           {/* Outer spinning ring */}
-          <div className="w-16 h-16 border-4 border-gray-700 border-t-indigo-500 rounded-full animate-spin"></div>
+          <div className="w-16 h-16 border-4 border-gray-700 border-t-red-500 rounded-full animate-spin"></div>
           {/* Inner spinning ring */}
-          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-blue-500 rounded-full animate-spin" style={{ animationDuration: '1s' }}></div>
+          <div className="absolute inset-0 w-16 h-16 border-4 border-transparent border-b-red-500 rounded-full animate-spin" style={{ animationDuration: '1s' }}></div>
           {/* Glow effect */}
-          <div className="absolute inset-0 w-16 h-16 bg-blue-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
+          <div className="absolute inset-0 w-16 h-16 bg-red-500 rounded-full blur-xl opacity-20 animate-pulse"></div>
         </div>
         <div className="text-center">
           <h3 className="text-lg font-semibold text-gray-200 mb-1">Loading</h3>
