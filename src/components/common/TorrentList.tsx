@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { TorrentItem } from './TorrentItem';
 import { Quality, TorrentInfo } from '../../types/torrent';
 import { FaFilter, FaSort } from 'react-icons/fa';
