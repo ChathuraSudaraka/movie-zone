@@ -186,7 +186,7 @@ function Info() {
             </div>
 
             {/* Overview */}
-            <p className="text-white/90 text-lg max-w-3xl mb-8 leading-relaxed line-clamp-3 md:line-clamp-none">
+            <p className="text-white/90 text-lg max-w-3xl mb-8 leading-relaxed line-clamp-2 md:line-clamp-5">
               {content.overview}
             </p>
 
@@ -195,18 +195,20 @@ function Info() {
               {trailer && (
                 <button
                   onClick={() => openModal(`https://www.youtube.com/embed/${trailer}`)}
-                  className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
+                  className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
                 >
-                  <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
-                  <span className="font-semibold text-lg">Watch Trailer</span>
+                  <FaPlay className="text-xl sm:text-2xl group-hover:scale-110 transition duration-300" />
+                  <span className="hidden sm:inline ml-2 font-semibold text-lg">Watch Trailer</span>
                 </button>
               )}
               <button
                 onClick={handlePlayClick}
-                className="flex items-center gap-2 px-8 py-3 bg-gray-500/30 hover:bg-gray-500/40 text-white rounded transition duration-300 group"
+                className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
               >
-                <FaPlay className="text-2xl group-hover:scale-110 transition duration-300" />
-                <span className="font-semibold text-lg">Watch {content.media_type === 'movie' ? 'Movie' : 'Show'}</span>
+                <FaPlay className="text-xl sm:text-2xl group-hover:scale-110 transition duration-300" />
+                <span className="hidden sm:inline ml-2 font-semibold text-lg">
+                  Watch {content.media_type === 'movie' ? 'Movie' : 'Show'}
+                </span>
               </button>
               <div className="flex items-center gap-2">
                 <button
