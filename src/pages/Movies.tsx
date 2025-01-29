@@ -7,6 +7,7 @@ import ViewMode from "../components/common/ViewMode";
 import Filter from "../components/common/Filter";
 import Pagination from "../components/common/Pagination";
 import { FiFilter } from "react-icons/fi";
+import FilterLayout from '../components/layout/FilterLayout';
 
 interface FilterOptions {
   genre: string;
@@ -29,7 +30,6 @@ function Movies() {
     sort: "popularity.desc",
     tag: "",
   });
-  const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -37,7 +37,7 @@ function Movies() {
 
     async function fetchMovies() {
       try {
-        setLoading(true);
+        setLoading(false);
         let endpoint = "/discover/movie";
 
         // Ensure page number is within valid range (TMDB typically limits to 500 pages)
@@ -342,71 +342,26 @@ function Movies() {
 
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
-      <div className="px-2 py-6 md:px-3 lg:px-4">
-        {/* Mobile Filter Button */}
-        <div className="md:hidden mb-4">
-          <button
-            onClick={() => setIsMobileFilterOpen(true)}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 
-                             bg-gray-800/50 rounded-xl border border-gray-700/50
-                             text-gray-200 hover:bg-gray-700/50 transition-all"
-          >
-            <FiFilter className="w-5 h-5" />
-            <span>Filters</span>
-          </button>
+      <FilterLayout onFilterChange={handleFilterChange}>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
+            All Movies
+          </h1>
+          <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
         </div>
 
-        <div className="relative flex flex-col md:flex-row gap-6">
-          {/* Desktop Filter */}
-          <div className="hidden md:block">
-            <div className="sticky top-[84px]">
-              <Filter onFilterChange={handleFilterChange} />
-            </div>
-          </div>
+        <MoviesGrid
+          movies={movies}
+          title={`Movies ${activeFilters.genre ? `- ${activeFilters.genre}` : ""}`}
+        />
 
-          {/* Mobile Filter Drawer */}
-          {isMobileFilterOpen && (
-            <div className="fixed inset-0 bg-black/60 z-50 md:hidden">
-              <div
-                className="absolute inset-0"
-                onClick={() => setIsMobileFilterOpen(false)}
-              />
-              <div className="absolute inset-y-0 right-0 w-[300px] bg-[#141414]">
-                <Filter
-                  onFilterChange={(filters) => {
-                    handleFilterChange(filters);
-                    setIsMobileFilterOpen(false);
-                  }}
-                  onClose={() => setIsMobileFilterOpen(false)}
-                />
-              </div>
-            </div>
-          )}
-
-          <div className="flex-1">
-            <div className="flex items-center justify-between mb-6">
-              <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
-                All Movies
-              </h1>
-              <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
-            </div>
-
-            <MoviesGrid
-              movies={movies}
-              title={`Movies ${
-                activeFilters.genre ? `- ${activeFilters.genre}` : ""
-              }`}
-            />
-
-            <Pagination
-              currentPage={currentPage}
-              totalItems={totalResults}
-              itemsPerPage={ITEMS_PER_PAGE}
-              onPageChange={handlePageChange}
-            />
-          </div>
-        </div>
-      </div>
+        <Pagination
+          currentPage={currentPage}
+          totalItems={totalResults}
+          itemsPerPage={ITEMS_PER_PAGE}
+          onPageChange={handlePageChange}
+        />
+      </FilterLayout>
     </div>
   );
 }
