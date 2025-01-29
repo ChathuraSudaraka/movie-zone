@@ -104,11 +104,6 @@ function MyList() {
     localStorage.setItem("netflix-mylist", JSON.stringify(updatedList));
   };
 
-  const handleItemClick = (item: Movie) => {
-    window.scrollTo(0, 0);
-    navigate(`/info/${item.media_type}/${item.id}`);
-  };
-
   if (isLoading) {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">

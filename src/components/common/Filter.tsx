@@ -292,14 +292,6 @@ export default function Filter({
           >
             Apply Filters
           </button>
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full py-3 px-4 bg-gray-800 hover:bg-gray-700
-                     text-gray-300 font-medium rounded-xl transition-colors"
-          >
-            Cancel
-          </button>
         </div>
       )}
     </div>

@@ -1,5 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
-import { FaChevronDown, FaSpinner } from 'react-icons/fa';
+import { useEffect, useState, useCallback, useRef } from "react"; // Add useRef
+import { FaChevronDown, FaSpinner, FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Add chevron icons
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
 import EpisodeList from "./EpisodeList";
@@ -44,6 +44,36 @@ export const TVProcess = ({
   const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
   const [loadingTorrents, setLoadingTorrents] = useState<number[]>([]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
+  const seasonListRef = useRef<HTMLDivElement>(null);
+  const [showNavigation, setShowNavigation] = useState(false);
+
+  const scrollSeasons = (direction: 'left' | 'right') => {
+    if (seasonListRef.current) {
+      const scrollAmount = 300; // Adjust scroll amount as needed
+      const currentScroll = seasonListRef.current.scrollLeft;
+      const newScroll = direction === 'left' 
+        ? currentScroll - scrollAmount 
+        : currentScroll + scrollAmount;
+      
+      seasonListRef.current.scrollTo({
+        left: newScroll,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const checkNavigationNeeded = useCallback(() => {
+    if (seasonListRef.current) {
+      const { scrollWidth, clientWidth } = seasonListRef.current;
+      setShowNavigation(scrollWidth > clientWidth);
+    }
+  }, []);
+
+  useEffect(() => {
+    checkNavigationNeeded();
+    window.addEventListener('resize', checkNavigationNeeded);
+    return () => window.removeEventListener('resize', checkNavigationNeeded);
+  }, [checkNavigationNeeded, seasons]);
 
   // Fetch seasons only once
   useEffect(() => {
@@ -239,26 +269,68 @@ export const TVProcess = ({
         </div>
 
         {/* Desktop Season List */}
-        <div className="hidden md:block overflow-x-auto">
-          <div className="flex flex-nowrap gap-2 pb-2">
-            {seasons.map((season) => (
-              <button
-                key={season.season_number}
-                onClick={() => setSelectedSeason(season.season_number)}
-                disabled={loadingSeasons.includes(season.season_number)}
-                className={`flex items-center gap-2 px-6 py-2.5 rounded-xl 
-                           text-sm font-medium transition-all duration-300 relative
-                  ${selectedSeason === season.season_number
-                    ? "bg-red-500 text-white shadow-lg shadow-red-500/25"
-                    : "bg-red-500/10 hover:bg-red-500 border-2 border-red-500/30 text-red-500 hover:text-white"
-                  } ${loadingSeasons.includes(season.season_number) ? "opacity-50" : ""}`}
+        <div className="hidden md:block">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl"></div>
+            
+            {/* Previous Button */}
+            {showNavigation && (
+              <button 
+                onClick={() => scrollSeasons('left')}
+                className="absolute left-0 top-1/2 -translate-y-1/2 z-10
+                           w-8 h-8 flex items-center justify-center
+                           bg-black/60 hover:bg-red-500/90 
+                           rounded-full shadow-lg transform transition-all
+                           text-white border border-red-500/30"
               >
-                <span>Season {season.season_number}</span>
-                {loadingSeasons.includes(season.season_number) && (
-                  <FaSpinner className="w-4 h-4 animate-spin" />
-                )}
+                <FaChevronLeft className="w-4 h-4" />
               </button>
-            ))}
+            )}
+
+            {/* Season List */}
+            <div 
+              ref={seasonListRef}
+              className={`flex flex-nowrap gap-3 p-4 overflow-x-auto scrollbar-none
+                         scroll-smooth ${showNavigation ? 'mx-10' : ''}`}
+            >
+              {seasons.map((season) => (
+                <button
+                  key={season.season_number}
+                  onClick={() => setSelectedSeason(season.season_number)}
+                  disabled={loadingSeasons.includes(season.season_number)}
+                  className={`flex-shrink-0 flex items-center gap-2.5 px-8 py-3 rounded-lg
+                             text-sm font-medium transition-all duration-300
+                             backdrop-blur-sm transform hover:scale-105
+                    ${selectedSeason === season.season_number
+                      ? "bg-red-500 text-white shadow-lg shadow-red-500/30 border-2 border-red-500"
+                      : "bg-black/40 hover:bg-red-500/90 border-2 border-red-500/20 text-red-500 hover:text-white hover:border-red-500/50"
+                    } ${loadingSeasons.includes(season.season_number) ? "opacity-50" : ""}`}
+                >
+                  {loadingSeasons.includes(season.season_number) ? (
+                    <div className="flex items-center gap-2">
+                      <FaSpinner className="w-4 h-4 animate-spin" />
+                      <span>Loading...</span>
+                    </div>
+                  ) : (
+                    <span>Season {season.season_number}</span>
+                  )}
+                </button>
+              ))}
+            </div>
+
+            {/* Next Button */}
+            {showNavigation && (
+              <button 
+                onClick={() => scrollSeasons('right')}
+                className="absolute right-0 top-1/2 -translate-y-1/2 z-10
+                           w-8 h-8 flex items-center justify-center
+                           bg-black/60 hover:bg-red-500/90 
+                           rounded-full shadow-lg transform transition-all
+                           text-white border border-red-500/30"
+              >
+                <FaChevronRight className="w-4 h-4" />
+              </button>
+            )}
           </div>
         </div>
       </div>
