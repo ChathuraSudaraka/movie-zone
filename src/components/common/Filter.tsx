@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { FiFilter, FiChevronDown, FiRefreshCw } from 'react-icons/fi';
-import { MdOutlineCategory, MdLocalFireDepartment } from 'react-icons/md';
-import { BsCalendar3, BsStarFill } from 'react-icons/bs';
-import { TbArrowsSort } from 'react-icons/tb';
+import React, { useState } from "react";
+import { FiFilter, FiChevronDown, FiRefreshCw } from "react-icons/fi";
+import { MdOutlineCategory, MdLocalFireDepartment } from "react-icons/md";
+import { BsCalendar3, BsStarFill } from "react-icons/bs";
+import { TbArrowsSort } from "react-icons/tb";
 
 interface FilterProps {
   onFilterChange: (filters: FilterOptions) => void;
@@ -39,7 +39,11 @@ interface FilterSectionProps {
   children: React.ReactNode;
 }
 
-const FilterSection: React.FC<FilterSectionProps> = ({ title, icon: Icon, children }) => {
+const FilterSection: React.FC<FilterSectionProps> = ({
+  title,
+  icon: Icon,
+  children,
+}) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
@@ -52,18 +56,20 @@ const FilterSection: React.FC<FilterSectionProps> = ({ title, icon: Icon, childr
       >
         <div className="flex items-center gap-3 text-gray-200">
           <Icon className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
-          <span className="font-medium group-hover:text-white transition-colors">{title}</span>
+          <span className="font-medium group-hover:text-white transition-colors">
+            {title}
+          </span>
         </div>
-        <FiChevronDown 
+        <FiChevronDown
           className={`w-5 h-5 text-gray-400 transition-all duration-300
-            group-hover:text-white ${isExpanded ? 'rotate-180' : 'rotate-0'}`}
+            group-hover:text-white ${isExpanded ? "rotate-180" : "rotate-0"}`}
         />
       </button>
-      <div className={`overflow-hidden transition-all duration-300 ease-in-out
-        ${isExpanded ? 'h-full opacity-100' : 'max-h-0 opacity-0'}`}>
-        <div className="p-3 sm:p-4 overflow-y-auto">
-          {children}
-        </div>
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-in-out
+        ${isExpanded ? "h-full opacity-100" : "max-h-0 opacity-0"}`}
+      >
+        <div className="p-3 sm:p-4 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -93,11 +99,15 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
   };
 
   return (
-    <div className="w-full h-screen md:h-auto flex flex-col bg-[#1a1a1a]/90 backdrop-blur-sm 
-                    md:rounded-xl border-l md:border border-gray-800/50 shadow-xl shadow-black/20">
+    <div
+      className="w-full h-screen md:h-auto flex flex-col bg-[#1a1a1a]/90 backdrop-blur-sm 
+                    md:rounded-xl border-l md:border border-gray-800/50 shadow-xl shadow-black/20"
+    >
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 p-3 sm:p-4 border-b border-gray-800/50 
-                    bg-[#1a1a1a] backdrop-blur-sm flex items-center justify-between">
+      <div
+        className="sticky top-0 z-20 p-3 sm:p-4 border-b border-gray-800/50 rounded-t-xl
+        bg-[#1a1a1a] backdrop-blur-sm flex items-center justify-between"
+      >
         <h3 className="text-lg font-semibold text-white flex items-center gap-3">
           <FiFilter className="w-5 h-5 text-red-500" />
           <span>Filters</span>
@@ -120,8 +130,18 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
               className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg
                        text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all"
             >
-              <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <svg
+                className="w-6 h-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
               </svg>
             </button>
           )}
@@ -136,16 +156,19 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(GENRE_CATEGORIES).map(([category, genres]) => (
                 <React.Fragment key={category}>
-                  {genres.map(genre => (
+                  {genres.map((genre) => (
                     <button
                       key={genre}
                       type="button"
-                      onClick={() => handleFilterChange("genre", genre.toLowerCase())}
+                      onClick={() =>
+                        handleFilterChange("genre", genre.toLowerCase())
+                      }
                       className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-200
                         hover:scale-[1.02] active:scale-[0.98]
-                        ${filters.genre === genre.toLowerCase()
-                          ? 'bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10'
-                          : 'bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
+                        ${
+                          filters.genre === genre.toLowerCase()
+                            ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
+                            : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
                         }`}
                     >
                       {genre}
@@ -170,9 +193,13 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
               />
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">{YEARS[YEARS.length - 1]}</span>
-                <span className="text-sm font-medium px-3 py-1 rounded-full
-                             bg-red-500/10 text-red-500">
+                <span className="text-sm text-gray-500">
+                  {YEARS[YEARS.length - 1]}
+                </span>
+                <span
+                  className="text-sm font-medium px-3 py-1 rounded-full
+                             bg-red-500/10 text-red-500"
+                >
                   {filters.year || "All Years"}
                 </span>
                 <span className="text-sm text-gray-500">{CURRENT_YEAR}</span>
@@ -190,9 +217,10 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
                   onClick={() => handleFilterChange("sort", value)}
                   className={`px-4 py-2.5 text-sm rounded-xl border flex items-center gap-2
                     transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
-                    ${filters.sort === value
-                      ? 'bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10'
-                      : 'bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
+                    ${
+                      filters.sort === value
+                        ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
+                        : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
                     }`}
                 >
                   <Icon className="w-4 h-4" />
