@@ -3,8 +3,10 @@ import { FiFilter, FiChevronDown, FiRefreshCw } from "react-icons/fi";
 import { MdOutlineCategory, MdLocalFireDepartment } from "react-icons/md";
 import { BsCalendar3, BsStarFill } from "react-icons/bs";
 import { TbArrowsSort } from "react-icons/tb";
+import { loadFilterState, saveFilterState } from "@/utils/filterState";
 
 interface FilterProps {
+  initialFilters?: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
   onClose?: () => void;
 }
@@ -75,12 +77,40 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   );
 };
 
-export default function Filter({ onFilterChange, onClose }: FilterProps) {
-  const [filters, setFilters] = React.useState<FilterOptions>({
-    genre: "",
-    year: "",
-    sort: "popularity.desc",
+export default function Filter({ initialFilters, onFilterChange, onClose }: FilterProps) {
+  const [filters, setFilters] = React.useState<FilterOptions>(() => {
+    // Try to load saved state first, then fall back to initialFilters or defaults
+    const savedState = loadFilterState(window.location.pathname);
+    return savedState || initialFilters || {
+      genre: "",
+      year: "",
+      sort: "popularity.desc",
+    };
   });
+
+  // Sync with initialFilters and save to localStorage when filters change
+  React.useEffect(() => {
+    if (initialFilters) {
+      setFilters(current => ({
+        ...current,
+        ...initialFilters
+      }));
+    }
+  }, [initialFilters]);
+
+  React.useEffect(() => {
+    saveFilterState(window.location.pathname, filters);
+  }, [filters]);
+
+  const handleFilterChange = (key: keyof FilterOptions, value: string) => {
+    const newFilters = {
+      ...filters,
+      [key]: value.toLowerCase()
+    };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+    saveFilterState(window.location.pathname, newFilters);
+  };
 
   const handleReset = () => {
     const defaultFilters = {
@@ -90,12 +120,12 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
     };
     setFilters(defaultFilters);
     onFilterChange(defaultFilters);
+    saveFilterState(window.location.pathname, defaultFilters);
   };
 
-  const handleFilterChange = (key: keyof FilterOptions, value: string) => {
-    const newFilters = { ...filters, [key]: value };
-    setFilters(newFilters);
-    onFilterChange(newFilters);
+  // Helper function to check if a filter is active
+  const isFilterActive = (key: keyof FilterOptions, value: string): boolean => {
+    return filters[key]?.toLowerCase() === value.toLowerCase();
   };
 
   return (
@@ -156,24 +186,25 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(GENRE_CATEGORIES).map(([category, genres]) => (
                 <React.Fragment key={category}>
-                  {genres.map((genre) => (
-                    <button
-                      key={genre}
-                      type="button"
-                      onClick={() =>
-                        handleFilterChange("genre", genre.toLowerCase())
-                      }
-                      className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-200
-                        hover:scale-[1.02] active:scale-[0.98]
-                        ${
-                          filters.genre === genre.toLowerCase()
+                  {genres.map((genre) => {
+                    const genreValue = genre.toLowerCase();
+                    const isActive = isFilterActive('genre', genreValue);
+                    return (
+                      <button
+                        key={genre}
+                        type="button"
+                        onClick={() => handleFilterChange("genre", genreValue)}
+                        className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-200
+                          hover:scale-[1.02] active:scale-[0.98]
+                          ${isActive
                             ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
                             : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
-                        }`}
-                    >
-                      {genre}
-                    </button>
-                  ))}
+                          }`}
+                      >
+                        {genre}
+                      </button>
+                    );
+                  })}
                 </React.Fragment>
               ))}
             </div>
@@ -190,7 +221,13 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
                 onChange={(e) => handleFilterChange("year", e.target.value)}
                 className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer
                          accent-red-500 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                         [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg"
+                         [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg
+                         focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                style={{
+                  background: filters.year 
+                    ? `linear-gradient(to right, #ef4444 ${((parseInt(filters.year) - YEARS[YEARS.length - 1]) / (CURRENT_YEAR - YEARS[YEARS.length - 1])) * 100}%, #374151 0%)`
+                    : '#374151'
+                }}
               />
               <div className="flex justify-between items-center">
                 <span className="text-sm text-gray-500">
@@ -210,23 +247,25 @@ export default function Filter({ onFilterChange, onClose }: FilterProps) {
           {/* Sort Section */}
           <FilterSection title="Sort By" icon={TbArrowsSort}>
             <div className="grid grid-cols-2 gap-2">
-              {SORT_OPTIONS.map(({ value, label, icon: Icon }) => (
-                <button
-                  key={value}
-                  type="button"
-                  onClick={() => handleFilterChange("sort", value)}
-                  className={`px-4 py-2.5 text-sm rounded-xl border flex items-center gap-2
-                    transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
-                    ${
-                      filters.sort === value
+              {SORT_OPTIONS.map(({ value, label, icon: Icon }) => {
+                const isActive = isFilterActive('sort', value);
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => handleFilterChange("sort", value)}
+                    className={`px-4 py-2.5 text-sm rounded-xl border flex items-center gap-2
+                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
+                      ${isActive
                         ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
                         : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
-                    }`}
-                >
-                  <Icon className="w-4 h-4" />
-                  {label}
-                </button>
-              ))}
+                      }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {label}
+                  </button>
+                );
+              })}
             </div>
           </FilterSection>
         </div>

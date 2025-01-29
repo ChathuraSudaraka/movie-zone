@@ -6,6 +6,8 @@ import { Skeleton } from "@mui/material";
 import ViewMode from "../components/common/ViewMode";
 import Pagination from "../components/common/Pagination";
 import FilterLayout from '../components/layout/FilterLayout';
+import { getUrlParams, updateUrlParams } from "../utils/urlParams";
+import { loadFilterState } from '../utils/filterState';
 
 interface FilterOptions {
   genre: string;
@@ -15,19 +17,16 @@ interface FilterOptions {
 }
 
 function Movies() {
+  const urlParams = getUrlParams();
+  const savedFilters = loadFilterState(window.location.pathname);
+  const [activeFilters, setActiveFilters] = useState(savedFilters || urlParams.filters);
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"grid" | "list">(urlParams.viewMode);
+  const [currentPage, setCurrentPage] = useState(urlParams.page);
   const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
-  const [activeFilters, setActiveFilters] = useState<FilterOptions>({
-    genre: "",
-    year: "",
-    sort: "popularity.desc",
-    tag: "",
-  });
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
@@ -142,6 +141,15 @@ function Movies() {
     fetchMovies();
   }, [currentPage, activeFilters, totalPages]);
 
+  // Update URL when state changes
+  useEffect(() => {
+    updateUrlParams({
+      page: currentPage,
+      viewMode,
+      filters: activeFilters
+    });
+  }, [currentPage, viewMode, activeFilters]);
+
   const getGenreId = (genreName: string): number => {
     const genreMap: { [key: string]: number } = {
       action: 28,
@@ -160,6 +168,10 @@ function Movies() {
       thriller: 53,
     };
     return genreMap[genreName.toLowerCase()] || 0;
+  };
+
+  const handleViewModeChange = (mode: "grid" | "list") => {
+    setViewMode(mode);
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
@@ -340,12 +352,12 @@ function Movies() {
 
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
-      <FilterLayout onFilterChange={handleFilterChange}>
+      <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
             All Movies
           </h1>
-          <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
+          <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
         </div>
 
         <MoviesGrid

@@ -3,15 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { Movie } from "../types/movie";
-import { BsPlayFill, BsStarFill } from 'react-icons/bs';
-import { BiTime } from 'react-icons/bi';
-import { HiPlus } from 'react-icons/hi';
+import { BsPlayFill, BsStarFill } from "react-icons/bs";
+import { BiTime } from "react-icons/bi";
+import { HiPlus } from "react-icons/hi";
+import { getGenreName } from "../utils/genreMap";
 
-const FALLBACK_IMAGE = 'https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available';
+const FALLBACK_IMAGE =
+  "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
 
 interface Props {
   movie: Movie;
-  viewMode: 'grid' | 'list';
+  viewMode: "grid" | "list";
 }
 
 function Thumbnail({ movie, viewMode }: Props) {
@@ -22,26 +24,27 @@ function Thumbnail({ movie, viewMode }: Props) {
 
   const handleClick = () => {
     window.scrollTo(0, 0);
-    const mediaType = movie.media_type || 'movie';
+    const mediaType = movie.media_type || "movie";
     navigate(`/info/${mediaType}/${movie.id}`);
   };
 
-  const imageUrl = imgError ? FALLBACK_IMAGE : 
-    movie.poster_path || movie.backdrop_path ? 
-    `${baseUrl}${movie.poster_path || movie.backdrop_path}` : 
-    FALLBACK_IMAGE;
+  const imageUrl = imgError
+    ? FALLBACK_IMAGE
+    : movie.poster_path || movie.backdrop_path
+      ? `${baseUrl}${movie.poster_path || movie.backdrop_path}`
+      : FALLBACK_IMAGE;
 
-  if (viewMode === 'list') {
+  if (viewMode === "list") {
     return (
-      <div 
+      <div
         className="group relative bg-gray-900/30 rounded-xl overflow-hidden transition-all duration-300
-                   hover:bg-gray-800/50 border border-gray-800/50 hover:border-gray-700/50 backdrop-blur-sm
+                   border border-gray-800/50 hover:border-gray-700/50 backdrop-blur-sm
                    hover:shadow-xl hover:shadow-black/20"
-        onClick={handleClick}
       >
-        <div className="flex gap-6 p-4">
+        <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4">
           {/* Movie Poster */}
-          <div className="relative h-[200px] w-[140px] rounded-lg overflow-hidden flex-shrink-0">
+          <div className="relative h-[300px] sm:h-[200px] w-full sm:w-[140px] 
+                         rounded-lg overflow-hidden sm:flex-shrink-0">
             <img
               src={imageUrl}
               alt={movie.title}
@@ -57,44 +60,33 @@ function Thumbnail({ movie, viewMode }: Props) {
           </div>
 
           {/* Movie Details */}
-          <div className="flex-1 py-2">
+          <div className="flex-1">
             <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-white group-hover:text-red-500 
+              <div className="flex-1">
+                <h2 className="text-lg sm:text-xl font-bold text-white group-hover:text-red-500 
                              transition-colors line-clamp-1">
                   {movie.title}
                 </h2>
-                <div className="flex items-center gap-3 mt-1 text-sm text-gray-400">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-sm text-gray-400">
                   <span>{new Date(movie.release_date).getFullYear()}</span>
-                  <span className="w-1 h-1 rounded-full bg-gray-600" />
+                  <span className="w-1 h-1 rounded-full bg-gray-600 hidden sm:block" />
                   <div className="flex items-center gap-1">
                     <BsStarFill className="w-4 h-4 text-yellow-500" />
                     <span className="font-medium">{movie.vote_average?.toFixed(1)}</span>
                   </div>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <button 
-                  className="p-2 rounded-full bg-gray-800/80 text-gray-400 hover:text-white
-                           hover:bg-gray-700/80 transition-all"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    // Add to watchlist handler
-                  }}
-                >
-                  <HiPlus className="w-5 h-5" />
-                </button>
-              </div>
             </div>
 
-            <p className="mt-4 text-sm text-gray-300 line-clamp-2">
+            <p className="mt-3 sm:mt-4 text-sm text-gray-300 line-clamp-2 sm:line-clamp-3">
               {movie.overview}
             </p>
 
-            <div className="flex items-center gap-3 mt-6">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button 
-                className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-red-600 text-white
-                         hover:bg-red-700 transition-colors font-medium"
+                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg 
+                         bg-red-600 text-white hover:bg-red-700 transition-colors 
+                         text-sm sm:text-base font-medium"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClick();
@@ -103,23 +95,17 @@ function Thumbnail({ movie, viewMode }: Props) {
                 <BsPlayFill className="w-5 h-5" />
                 Watch Now
               </button>
-              <button 
-                className="px-6 py-2.5 rounded-lg bg-gray-800/80 text-gray-300
-                         hover:bg-gray-700/80 hover:text-white transition-all font-medium"
-              >
-                View Details
-              </button>
             </div>
 
             {/* Genre Tags */}
-            <div className="flex items-center gap-2 mt-4">
+            <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-4">
               {movie.genre_ids?.slice(0, 3).map((genreId) => (
                 <span 
                   key={genreId}
                   className="px-2 py-1 text-xs rounded-md bg-gray-800/80 text-gray-400
                            border border-gray-700/50"
                 >
-                  Action
+                  {getGenreName(genreId)}
                 </span>
               ))}
             </div>
@@ -136,7 +122,7 @@ function Thumbnail({ movie, viewMode }: Props) {
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
-      style={{ willChange: 'transform' }}
+      style={{ willChange: "transform" }}
     >
       <img
         src={imageUrl}
@@ -146,12 +132,13 @@ function Thumbnail({ movie, viewMode }: Props) {
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
         className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${isHovered ? 'scale-105 brightness-75' : ''}
-                   ${isLoaded ? 'opacity-100' : 'opacity-0'}`}
+                   transition-all duration-300 ${isHovered ? "scale-105 brightness-75" : ""
+          }
+                   ${isLoaded ? "opacity-100" : "opacity-0"}`}
         style={{
-          willChange: 'transform',
-          transform: isHovered ? 'scale(1.05)' : 'scale(1)',
-          backfaceVisibility: 'hidden',
+          willChange: "transform",
+          transform: isHovered ? "scale(1.05)" : "scale(1)",
+          backfaceVisibility: "hidden",
         }}
       />
 
@@ -159,8 +146,11 @@ function Thumbnail({ movie, viewMode }: Props) {
         <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
       )}
 
-      <div className={`absolute inset-0 flex flex-col justify-end p-4 
-                      transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+      <div
+        className={`absolute inset-0 flex flex-col justify-end p-4 
+                      transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"
+          }`}
+      >
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
             <button

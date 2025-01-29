@@ -6,6 +6,7 @@ import { Movie } from "@/types/movie";
 import ViewMode from "../components/common/ViewMode";
 import Pagination from "../components/common/Pagination";
 import FilterLayout from '../components/layout/FilterLayout';
+import { getUrlParams, updateUrlParams } from "../utils/urlParams";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -23,17 +24,13 @@ interface FilterOptions {
 }
 
 function TVShows() {
+  const urlParams = getUrlParams();
   const [shows, setShows] = useState<TVShowDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
-  const [activeFilters, setActiveFilters] = useState<FilterOptions>({
-    genre: "",
-    year: "",
-    sort: "popularity.desc",
-    tag: "",
-  });
-  const [currentPage, setCurrentPage] = useState(1);
+  const [viewMode, setViewMode] = useState<"grid" | "list">(urlParams.viewMode);
+  const [currentPage, setCurrentPage] = useState(urlParams.page);
+  const [activeFilters, setActiveFilters] = useState(urlParams.filters);
   const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
   const ITEMS_PER_PAGE = 20;
@@ -158,6 +155,15 @@ function TVShows() {
     fetchTVShows();
   }, [currentPage, activeFilters, totalPages]);
 
+  // Update URL when state changes
+  useEffect(() => {
+    updateUrlParams({
+      page: currentPage,
+      viewMode,
+      filters: activeFilters
+    });
+  }, [currentPage, viewMode, activeFilters]);
+
   // Update genre ID mapping with correct TV show genre IDs
   const getGenreId = (genreName: string): number => {
     const genreMap: { [key: string]: number } = {
@@ -206,10 +212,13 @@ function TVShows() {
     });
   };
 
+  const handleViewModeChange = (mode: "grid" | "list") => {
+    setViewMode(mode);
+  };
+
   const handleFilterChange = (filters: FilterOptions) => {
-    // Reset to first page when filters change
-    setCurrentPage(1);
     setActiveFilters(filters);
+    setCurrentPage(1);
   };
 
   const handlePageChange = (page: number) => {
@@ -373,12 +382,12 @@ function TVShows() {
 
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
-      <FilterLayout onFilterChange={handleFilterChange}>
+      <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-white md:text-3xl">
             All TV Shows
           </h1>
-          <ViewMode viewMode={viewMode} onViewChange={setViewMode} />
+          <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
         </div>
 
         <ShowsGrid
