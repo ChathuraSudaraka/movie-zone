@@ -74,7 +74,7 @@ const Pagination: React.FC<PaginationProps> = ({
       <div className="text-sm text-gray-400">
         <span>Page {currentPage} of {totalPages}</span>
         <span className="mx-2">•</span>
-        <span>{totalItems} Episodes</span>
+        <span>{totalItems} Results</span>
       </div>
 
       {/* Navigation */}
