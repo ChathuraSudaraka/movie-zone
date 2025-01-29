@@ -4,18 +4,14 @@ import { MdOutlineCategory, MdLocalFireDepartment } from "react-icons/md";
 import { BsCalendar3, BsStarFill } from "react-icons/bs";
 import { TbArrowsSort } from "react-icons/tb";
 import { loadFilterState, saveFilterState } from "@/utils/filterState";
+import { FilterOptions } from "@/types/filters";
 
 interface FilterProps {
   initialFilters?: FilterOptions;
   onFilterChange: (filters: FilterOptions) => void;
   onClose?: () => void;
-}
-
-interface FilterOptions {
-  genre: string;
-  year: string;
-  sort: string;
-  tag?: string;
+  onApply?: (filters: FilterOptions) => void;  // Modified this line
+  isMobile?: boolean;
 }
 
 const CURRENT_YEAR = new Date().getFullYear();
@@ -77,7 +73,13 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   );
 };
 
-export default function Filter({ initialFilters, onFilterChange, onClose }: FilterProps) {
+export default function Filter({ 
+  initialFilters, 
+  onFilterChange, 
+  onClose, 
+  onApply,
+  isMobile 
+}: FilterProps) {
   const [filters, setFilters] = React.useState<FilterOptions>(() => {
     // Try to load saved state first, then fall back to initialFilters or defaults
     const savedState = loadFilterState(window.location.pathname);
@@ -108,8 +110,12 @@ export default function Filter({ initialFilters, onFilterChange, onClose }: Filt
       [key]: value.toLowerCase()
     };
     setFilters(newFilters);
-    onFilterChange(newFilters);
-    saveFilterState(window.location.pathname, newFilters);
+    
+    // Only call onFilterChange immediately for desktop
+    if (!isMobile) {
+      onFilterChange(newFilters);
+      saveFilterState(window.location.pathname, newFilters);
+    }
   };
 
   const handleReset = () => {
@@ -123,26 +129,29 @@ export default function Filter({ initialFilters, onFilterChange, onClose }: Filt
     saveFilterState(window.location.pathname, defaultFilters);
   };
 
+  const handleApply = () => {
+    if (isMobile && onApply) {
+      onApply(filters); // Pass current filters to parent
+      saveFilterState(window.location.pathname, filters);
+    }
+  };
+
   // Helper function to check if a filter is active
   const isFilterActive = (key: keyof FilterOptions, value: string): boolean => {
     return filters[key]?.toLowerCase() === value.toLowerCase();
   };
 
   return (
-    <div
-      className="w-full h-screen md:h-auto flex flex-col bg-[#1a1a1a]/90 backdrop-blur-sm 
-                    md:rounded-xl border-l md:border border-gray-800/50 shadow-xl shadow-black/20"
-    >
+    <div className="w-full h-[100dvh] md:h-auto flex flex-col bg-[#1a1a1a]/95 backdrop-blur-md
+                    md:rounded-xl border-l md:border border-gray-800/50 shadow-xl shadow-black/20">
       {/* Sticky Header */}
-      <div
-        className="sticky top-0 z-20 p-3 sm:p-4 border-b border-gray-800/50 rounded-t-xl
-        bg-[#1a1a1a] backdrop-blur-sm flex items-center justify-between"
-      >
+      <div className="sticky top-0 z-20 p-4 border-b border-gray-800/50 rounded-t-xl
+                     bg-[#1a1a1a] backdrop-blur-md flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-3">
           <FiFilter className="w-5 h-5 text-red-500" />
           <span>Filters</span>
         </h3>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={handleReset}
@@ -157,8 +166,9 @@ export default function Filter({ initialFilters, onFilterChange, onClose }: Filt
             <button
               type="button"
               onClick={onClose}
-              className="md:hidden w-8 h-8 flex items-center justify-center rounded-lg
-                       text-gray-400 hover:text-white hover:bg-gray-800/50 transition-all"
+              className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg
+                       bg-gray-800/50 text-gray-400 hover:text-white 
+                       hover:bg-gray-700/50 transition-all"
             >
               <svg
                 className="w-6 h-6"
@@ -178,8 +188,8 @@ export default function Filter({ initialFilters, onFilterChange, onClose }: Filt
         </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto overscroll-contain">
+      {/* Scrollable Content with Better Mobile Support */}
+      <div className="flex-1 overflow-y-auto overscroll-contain pb-safe">
         <div className="divide-y divide-gray-800/50">
           {/* Genres Section */}
           <FilterSection title="Genres" icon={MdOutlineCategory}>
@@ -271,8 +281,27 @@ export default function Filter({ initialFilters, onFilterChange, onClose }: Filt
         </div>
       </div>
 
-      {/* Safe Area Padding for Mobile */}
-      <div className="h-safe-area md:h-0" />
+      {/* Mobile Action Bar */}
+      {isMobile && (
+        <div className="md:hidden p-4 border-t border-gray-800/50 bg-[#1a1a1a] space-y-3">
+          <button
+            type="button"
+            onClick={handleApply}
+            className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 
+                     text-white font-medium rounded-xl transition-colors"
+          >
+            Apply Filters
+          </button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-full py-3 px-4 bg-gray-800 hover:bg-gray-700
+                     text-gray-300 font-medium rounded-xl transition-colors"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
     </div>
   );
 }
