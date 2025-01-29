@@ -4,9 +4,7 @@ import Thumbnail from "../components/Thumbnail";
 import { Movie } from "../types/movie";
 import { Skeleton } from "@mui/material";
 import ViewMode from "../components/common/ViewMode";
-import Filter from "../components/common/Filter";
 import Pagination from "../components/common/Pagination";
-import { FiFilter } from "react-icons/fi";
 import FilterLayout from '../components/layout/FilterLayout';
 
 interface FilterOptions {

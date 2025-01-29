@@ -4,9 +4,7 @@ import Thumbnail from "../components/Thumbnail";
 import { Skeleton } from "@mui/material";
 import { Movie } from "@/types/movie";
 import ViewMode from "../components/common/ViewMode";
-import Filter from "../components/common/Filter";
 import Pagination from "../components/common/Pagination";
-import { FiFilter } from "react-icons/fi";
 import FilterLayout from '../components/layout/FilterLayout';
 
 interface TVShowDetails extends Movie {
