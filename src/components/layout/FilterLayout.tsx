@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { FiFilter } from 'react-icons/fi';
 import Filter from '../common/Filter';
+import { FilterOptions } from '@/types/filters';
 
 interface FilterLayoutProps {
-  children: React.ReactNode;
-  onFilterChange: (filters: any) => void;
+    initialFilters: FilterOptions;
+    onFilterChange: (filters: FilterOptions) => void;
+    children: React.ReactNode;
 }
 
 const FilterLayout: React.FC<FilterLayoutProps> = ({ children, onFilterChange }) => {

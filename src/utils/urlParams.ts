@@ -29,12 +29,14 @@ export const updateUrlParams = (
 ) => {
   const searchParams = new URLSearchParams(window.location.search);
   
-  if (params.page) searchParams.set('page', params.page.toString());
+  if (params.page) searchParams.set('page', String(params.page));
   if (params.viewMode) searchParams.set('view', params.viewMode);
   if (params.filters) {
     Object.entries(params.filters).forEach(([key, value]) => {
-      if (value) {
-        searchParams.set(key, value.toLowerCase());
+      if (value !== undefined && value !== null && value !== '') {
+        // Ensure value is converted to string and handle numbers
+        const stringValue = typeof value === 'number' ? String(value) : value;
+        searchParams.set(key, stringValue.toLowerCase());
       } else {
         searchParams.delete(key);
       }

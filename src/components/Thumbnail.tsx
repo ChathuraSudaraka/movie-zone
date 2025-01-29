@@ -5,7 +5,6 @@ import { FaPlay } from "react-icons/fa";
 import { Movie } from "../types/movie";
 import { BsPlayFill, BsStarFill } from "react-icons/bs";
 import { BiTime } from "react-icons/bi";
-import { HiPlus } from "react-icons/hi";
 import { getGenreName } from "../utils/genreMap";
 
 const FALLBACK_IMAGE =

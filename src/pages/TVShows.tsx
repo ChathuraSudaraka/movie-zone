@@ -7,6 +7,8 @@ import ViewMode from "../components/common/ViewMode";
 import Pagination from "../components/common/Pagination";
 import FilterLayout from '../components/layout/FilterLayout';
 import { getUrlParams, updateUrlParams } from "../utils/urlParams";
+import { FilterOptions } from "@/types/filters";
+import { loadFilterState } from "@/utils/filterState";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -16,21 +18,15 @@ interface TVShowDetails extends Movie {
   networks?: Array<{ name: string }>;
 }
 
-interface FilterOptions {
-  genre: string;
-  year: string;
-  sort: string;
-  tag?: string;
-}
-
 function TVShows() {
   const urlParams = getUrlParams();
+  const savedFilters = loadFilterState(window.location.pathname);
   const [shows, setShows] = useState<TVShowDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">(urlParams.viewMode);
   const [currentPage, setCurrentPage] = useState(urlParams.page);
-  const [activeFilters, setActiveFilters] = useState(urlParams.filters);
+  const [activeFilters, setActiveFilters] = useState(savedFilters || urlParams.filters);
   const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
   const ITEMS_PER_PAGE = 20;
@@ -217,8 +213,17 @@ function TVShows() {
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
-    setActiveFilters(filters);
-    setCurrentPage(1);
+    // Convert year to number for validation
+    const yearValue = parseInt(filters.year);
+
+    // Only update if year is valid or empty
+    if (
+      !filters.year ||
+      (yearValue >= 1900 && yearValue <= new Date().getFullYear())
+    ) {
+      setCurrentPage(1);
+      setActiveFilters(filters);
+    }
   };
 
   const handlePageChange = (page: number) => {

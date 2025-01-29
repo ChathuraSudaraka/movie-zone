@@ -8,13 +8,7 @@ import Pagination from "../components/common/Pagination";
 import FilterLayout from '../components/layout/FilterLayout';
 import { getUrlParams, updateUrlParams } from "../utils/urlParams";
 import { loadFilterState } from '../utils/filterState';
-
-interface FilterOptions {
-  genre: string;
-  year: string;
-  sort: string;
-  tag?: string;
-}
+import { FilterOptions } from "@/types/filters";
 
 function Movies() {
   const urlParams = getUrlParams();
@@ -189,9 +183,7 @@ function Movies() {
   };
 
   const handlePageChange = (page: number) => {
-    // Ensure page number is within valid range
-    const safePage = Math.min(Math.max(1, page), 500);
-    setCurrentPage(safePage);
+    setCurrentPage(page);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
