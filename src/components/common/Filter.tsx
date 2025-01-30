@@ -125,7 +125,14 @@ export default function Filter({
       sort: "popularity.desc",
     };
     setFilters(defaultFilters);
-    onFilterChange(defaultFilters);
+    
+    // Always trigger the reset immediately, regardless of mobile/desktop
+    if (isMobile && onApply) {
+      onApply(defaultFilters);
+    } else {
+      onFilterChange(defaultFilters);
+    }
+    
     saveFilterState(window.location.pathname, defaultFilters);
   };
 

@@ -13,6 +13,11 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [tempFilters, setTempFilters] = useState(initialFilters);
+  
+  // Update tempFilters when initialFilters change externally
+  useEffect(() => {
+    setTempFilters(initialFilters);
+  }, [initialFilters]);
 
   // Handle scroll effects
   useEffect(() => {
@@ -38,6 +43,8 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
 
   const handleMobileFilterChange = (filters: FilterOptions) => {
     setTempFilters(filters); // Store temporary filter state
+    // Optional: Update in real-time
+    // onFilterChange(filters);
   };
 
   const handleMobileApply = (filters: FilterOptions) => {
@@ -52,20 +59,22 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
   };
 
   return (
-    <div className="py-6 px-2 sm:px-4">
-      {/* Mobile Filter Button - Now sticky */}
-      <div className={`md:hidden fixed bottom-0 left-0 right-0 z-40 p-4 
-        transition-transform duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-full'}`}>
+    <div className="py-2 md:py-6 px-2 sm:px-4">
+      {/* Mobile Filter Button - Top Floating Style */}
+      <div className={`md:hidden fixed top-20 right-4 z-40
+        transition-all duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-[115%]'}`}
+      >
+        <div className="absolute inset-0 rounded-full -z-10 bg-gradient-to-b from-black/50 to-transparent blur-md" />
         <button
           type="button"
           onClick={() => setIsMobileFilterOpen(true)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3.5
-                    bg-red-600 hover:bg-red-700 rounded-xl 
-                    text-white font-medium shadow-lg shadow-black/20
-                    transition-all duration-300"
+          className={`relative flex items-center justify-center w-11 h-11
+                    bg-red-600 hover:bg-red-700 rounded-full 
+                    text-white shadow-lg shadow-black/20
+                    transition-all duration-300 hover:scale-110
+                    border border-red-500/30`}
         >
           <FiFilter className="w-5 h-5" />
-          <span>Show Filters</span>
         </button>
       </div>
 
@@ -104,7 +113,9 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
 
         {/* Main Content */}
         <main className="flex-1 min-w-0">
-          {children}
+          <div className=""> {/* Reduced padding since button is floating */}
+            {children}
+          </div>
         </main>
       </div>
     </div>
