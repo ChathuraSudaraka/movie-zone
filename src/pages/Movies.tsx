@@ -9,6 +9,7 @@ import FilterLayout from '../components/layout/FilterLayout';
 import { getUrlParams, updateUrlParams } from "../utils/urlParams";
 import { loadFilterState } from '../utils/filterState';
 import { FilterOptions } from "@/types/filters";
+import NoResults from '../components/common/NoResults';
 
 function Movies() {
   const urlParams = getUrlParams();
@@ -187,32 +188,42 @@ function Movies() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
-  const MoviesGrid = ({
-    movies,
-    title,
-  }: {
-    movies: Movie[];
-    title: string;
-  }) => (
+  const handleReset = () => {
+    const defaultFilters = {
+      genre: "",
+      year: "",
+      sort: "popularity.desc",
+    };
+    setActiveFilters(defaultFilters);
+    setCurrentPage(1);
+  };
+
+  const MoviesGrid = ({ movies, title }: { movies: Movie[]; title: string }) => (
     <div className="mb-8">
       <div className="flex items-center justify-between mb-6">
         <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
           {title}
         </h2>
       </div>
-      <div
-        className={`${
+      
+      {movies.length > 0 ? (
+        <div className={`${
           viewMode === "grid"
             ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
             : "flex flex-col gap-4"
-        }`}
-      >
-        {movies.map((movie) => (
-          <div key={movie.id} className="group relative">
-            <Thumbnail movie={movie} viewMode={viewMode} />
-          </div>
-        ))}
-      </div>
+        }`}>
+          {movies.map((movie) => (
+            <div key={movie.id} className="group relative">
+              <Thumbnail movie={movie} viewMode={viewMode} />
+            </div>
+          ))}
+        </div>
+      ) : (
+        <NoResults 
+          filters={activeFilters} 
+          onReset={handleReset} 
+        />
+      )}
     </div>
   );
 
