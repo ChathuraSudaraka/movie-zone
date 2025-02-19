@@ -22,9 +22,9 @@ function Thumbnail({ movie, viewMode }: Props) {
   const navigate = useNavigate();
 
   const handleClick = () => {
-    window.scrollTo(0, 0);
     const mediaType = movie.media_type || "movie";
     navigate(`/info/${mediaType}/${movie.id}`);
+    window.scrollTo(0, 0);
   };
 
   const imageUrl = imgError
