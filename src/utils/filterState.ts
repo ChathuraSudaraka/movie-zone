@@ -32,3 +32,20 @@ export const loadFilterState = (key: string): FilterState | null => {
     return null;
   }
 };
+
+export const clearFilterStates = () => {
+  // Clear all filter states from localStorage
+  const keys = Object.keys(localStorage);
+  keys.forEach(key => {
+    if (key.startsWith('filter-state-')) {
+      localStorage.removeItem(key);
+    }
+  });
+};
+
+// Add event listener for tab closing
+window.addEventListener('beforeunload', () => {
+  clearFilterStates();
+  // Clear URL parameters
+  window.history.replaceState({}, '', window.location.pathname);
+});
