@@ -1,9 +1,15 @@
+import { useEffect } from "react";
 import Banner from "../components/Banner";
 import Row from "../components/Row";
 import requests from "../utils/requests";
 
 
 const Home = () => {
+
+  useEffect(() => {
+    document.title = "Home - MovieZone";
+  }, []);
+  
   return (
     <div className="relative h-screen">
       {/* Banner Section */}
