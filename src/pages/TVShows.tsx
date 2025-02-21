@@ -1,15 +1,14 @@
 import { useEffect, useState } from "react";
 import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
-import { Skeleton } from "@mui/material";
-import { Movie } from "@/types/movie";
+import { Movie } from "../types/movie";
 import ViewMode from "../components/common/ViewMode";
-import Pagination from "../components/common/Pagination";
-import FilterLayout from '../components/layout/FilterLayout';
 import { getUrlParams, updateUrlParams } from "../utils/urlParams";
 import { FilterOptions } from "@/types/filters";
 import { loadFilterState } from "@/utils/filterState";
 import NoResults from '../components/common/NoResults';
+import FilterLayout from '../components/layout/FilterLayout';
+import Pagination from "../components/common/Pagination";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -30,21 +29,23 @@ function TVShows() {
   const [activeFilters, setActiveFilters] = useState(savedFilters || urlParams.filters);
   const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const ITEMS_PER_PAGE = 20;
 
   useEffect(() => {
-    document.title = "Top Rated TV Shows - MovieZone";
+    document.title = "TV Shows - MovieZone";
 
     async function fetchTVShows() {
       try {
-        setLoading(false);
+        if (!isInitialLoad) setLoading(true);
+        else setLoading(true); // Also set loading on initial load
+
         let endpoint = "/tv/top_rated";
         let params: any = {
           page: currentPage,
           include_adult: false,
         };
 
-        // Handle sorting
         switch (activeFilters.sort) {
           case "vote_average.desc":
             params["vote_count.gte"] = 200;
@@ -63,25 +64,20 @@ function TVShows() {
             break;
         }
 
-        // Handle genre filter
         if (activeFilters.genre) {
           endpoint = "/discover/tv";
           params.with_genres = getGenreId(activeFilters.genre);
         }
 
-        // Handle year filter with proper date ranges
         if (activeFilters.year) {
           endpoint = "/discover/tv";
           const year = activeFilters.year;
           params.sort_by = params.sort_by || "popularity.desc";
           params["first_air_date.gte"] = `${year}-01-01`;
           params["first_air_date.lte"] = `${year}-12-31`;
-
-          // Ensure we get shows with valid dates
           params.include_null_first_air_dates = false;
         }
 
-        // Handle tag filters
         if (activeFilters.tag) {
           endpoint = "/discover/tv";
           switch (activeFilters.tag) {
@@ -122,9 +118,8 @@ function TVShows() {
             release_date: show.first_air_date,
           }));
 
-        // Calculate real total pages based on actual results
         const actualResults = response.data.total_results;
-        const maxResults = Math.min(actualResults, 10000); // TMDB typically limits to 10000 results
+        const maxResults = Math.min(actualResults, 10000);
         const calculatedPages = Math.ceil(maxResults / ITEMS_PER_PAGE);
         const actualTotalPages = Math.min(
           calculatedPages,
@@ -134,25 +129,26 @@ function TVShows() {
         setShows(processedShows);
         setTotalPages(actualTotalPages);
         setTotalResults(maxResults);
-
-        // Reset to page 1 if current page is beyond total pages
-        if (currentPage > actualTotalPages) {
+        setError(null);
+      } catch (error: any) {
+        setError(
+          error.response?.status === 400
+            ? "Invalid page number. Showing first page instead."
+            : "Failed to load TV shows. Please try again later."
+        );
+        
+        if (error.response?.status === 400) {
           setCurrentPage(1);
         }
-
-        setError(null);
-      } catch (error) {
-        console.error("Error fetching TV shows:", error);
-        setError("Failed to load TV shows. Please try again later.");
       } finally {
         setLoading(false);
+        setIsInitialLoad(false);
       }
     }
 
     fetchTVShows();
-  }, [currentPage, activeFilters, totalPages]);
+  }, [currentPage, activeFilters]);
 
-  // Update URL when state changes
   useEffect(() => {
     updateUrlParams({
       page: currentPage,
@@ -161,17 +157,16 @@ function TVShows() {
     });
   }, [currentPage, viewMode, activeFilters]);
 
-  // Update genre ID mapping with correct TV show genre IDs
   const getGenreId = (genreName: string): number => {
     const genreMap: { [key: string]: number } = {
-      action: 10759, // Action & Adventure
+      action: 10759,
       animation: 16,
       comedy: 35,
       crime: 80,
       documentary: 99,
       drama: 18,
       family: 10751,
-      fantasy: 10765, // Sci-Fi & Fantasy
+      fantasy: 10765,
       kids: 10762,
       mystery: 9648,
       news: 10763,
@@ -184,7 +179,6 @@ function TVShows() {
     return genreMap[genreName.toLowerCase()] || 0;
   };
 
-  // Add sorting function
   const sortShows = (shows: TVShowDetails[]) => {
     const { sort } = activeFilters;
     return [...shows].sort((a, b) => {
@@ -214,10 +208,8 @@ function TVShows() {
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
-    // Convert year to number for validation
     const yearValue = parseInt(filters.year);
 
-    // Only update if year is valid or empty
     if (
       !filters.year ||
       (yearValue >= 1900 && yearValue <= new Date().getFullYear())
@@ -249,158 +241,46 @@ function TVShows() {
           {title}
         </h2>
       </div>
-      
-      {shows.length > 0 ? (
-        <div className={`${
+
+      <div className="min-h-[400px] relative w-full">
+        <div className={`w-full ${
           viewMode === "grid"
-            ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+          ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
             : "flex flex-col gap-4"
         }`}>
-          {shows.map((show) => (
-            <div key={show.id} className="group relative">
-              <Thumbnail movie={show} viewMode={viewMode} />
+          {isInitialLoad || (loading && !isInitialLoad) ? (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent" />
             </div>
-          ))}
+          ) : shows.length > 0 ? (
+            shows.map((show) => (
+              <div key={show.id} className="group relative h-full">
+                <Thumbnail movie={show} viewMode={viewMode} />
+              </div>
+            ))
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <NoResults 
+                filters={activeFilters} 
+                onReset={handleReset} 
+              />
+            </div>
+          )}
         </div>
-      ) : (
-        <NoResults 
-          filters={activeFilters} 
-          onReset={handleReset} 
-        />
-      )}
+      </div>
     </div>
   );
-
-  if (loading) {
-    return (
-      <div className="mt-[68px] min-h-screen bg-[#141414]">
-        <div className="px-2 py-6 md:px-3 lg:px-4">
-          {/* Mobile Skeleton Button */}
-          <div className="md:hidden mb-4">
-            <Skeleton
-              variant="rectangular"
-              height={50}
-              sx={{ bgcolor: "#2b2b2b", borderRadius: "0.75rem" }}
-            />
-          </div>
-
-          <div className="flex gap-6">
-            {/* Filter Skeleton */}
-            <div className="hidden md:block w-[280px] flex-shrink-0">
-              <div className="sticky top-[84px]">
-                <div className="bg-[#2b2b2b] rounded-xl overflow-hidden">
-                  {/* Filter Header Skeleton */}
-                  <Skeleton
-                    variant="rectangular"
-                    height={60}
-                    sx={{ bgcolor: "#232323" }}
-                  />
-                  {/* Filter Content Skeleton */}
-                  {[...Array(4)].map((_, index) => (
-                    <div key={index} className="px-4 py-3">
-                      <Skeleton
-                        variant="text"
-                        width={120}
-                        height={24}
-                        sx={{ bgcolor: "#232323", marginBottom: "12px" }}
-                      />
-                      <div className="grid grid-cols-2 gap-2">
-                        {[...Array(4)].map((_, idx) => (
-                          <Skeleton
-                            key={idx}
-                            variant="rectangular"
-                            height={36}
-                            sx={{ bgcolor: "#232323", borderRadius: "0.75rem" }}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Main Content Skeleton */}
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-6">
-                <Skeleton
-                  variant="text"
-                  width={200}
-                  height={40}
-                  sx={{ bgcolor: "#2b2b2b" }}
-                />
-                <Skeleton
-                  variant="rectangular"
-                  width={100}
-                  height={36}
-                  sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
-                />
-              </div>
-              <Skeleton
-                className="mb-8"
-                variant="rectangular"
-                width={100}
-                height={36}
-                sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
-              />
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-                {[...Array(12)].map((_, index) => (
-                  <div key={index} className="relative aspect-[2/3] w-full">
-                    <Skeleton
-                      variant="rectangular"
-                      width="100%"
-                      height="100%"
-                      sx={{
-                        bgcolor: "#2b2b2b",
-                        borderRadius: "0.5rem",
-                        transform: "scale(1)",
-                        "&::after": {
-                          background:
-                            "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)",
-                        },
-                      }}
-                    />
-                  </div>
-                ))}
-              </div>
-
-              {/* Pagination Skeleton */}
-              <div className="mt-8 flex justify-center">
-                <Skeleton
-                  variant="rectangular"
-                  width={300}
-                  height={40}
-                  sx={{ bgcolor: "#2b2b2b", borderRadius: "0.5rem" }}
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-[#141414] flex items-center justify-center">
-        <div className="text-white text-center">
-          <p className="text-xl">{error}</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="mt-4 px-6 py-2 bg-red-600 rounded hover:bg-red-700 transition"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
+        {error && (
+          <div className="bg-red-500 text-white px-4 py-2 rounded mb-4">
+            {error}
+          </div>
+        )}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white md:text-3xl">
+          <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
             All TV Shows
           </h1>
           <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
@@ -411,12 +291,14 @@ function TVShows() {
           title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ""}`}
         />
 
-        <Pagination
-          currentPage={currentPage}
-          totalItems={totalResults}
-          itemsPerPage={ITEMS_PER_PAGE}
-          onPageChange={handlePageChange}
-        />
+        {!isInitialLoad && shows.length > 0 && (
+          <Pagination
+            currentPage={currentPage}
+            totalItems={totalResults}
+            itemsPerPage={ITEMS_PER_PAGE}
+            onPageChange={handlePageChange}
+          />
+        )}
       </FilterLayout>
     </div>
   );
