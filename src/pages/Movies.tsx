@@ -138,7 +138,7 @@ function Movies() {
     }
 
     fetchMovies();
-  }, [currentPage, activeFilters]);
+  }, [currentPage, activeFilters, totalPages]);
 
   // Update URL when state changes
   useEffect(() => {

@@ -147,7 +147,7 @@ function TVShows() {
     }
 
     fetchTVShows();
-  }, [currentPage, activeFilters]);
+  }, [currentPage, activeFilters, totalPages]);
 
   useEffect(() => {
     updateUrlParams({
