@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { baseUrl } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
@@ -11,7 +11,7 @@ const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
 
 interface Props {
-  movie: Movie;
+  movie: Movie & { runtime?: number };
   viewMode: "grid" | "list";
 }
 
@@ -19,7 +19,28 @@ function Thumbnail({ movie, viewMode }: Props) {
   const [isHovered, setIsHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [runtime, setRuntime] = useState<number | null>(null);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchRuntime = async () => {
+      if (viewMode === 'list' && movie.id) {
+        try {
+          const mediaType = movie.media_type || 'movie';
+          const response = await fetch(
+            `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
+          );
+          const data = await response.json();
+          setRuntime(data.runtime || null);
+        } catch (error) {
+          console.error('Error fetching runtime:', error);
+          setRuntime(null);
+        }
+      }
+    };
+
+    fetchRuntime();
+  }, [movie.id, movie.media_type, viewMode]);
 
   const handleClick = () => {
     const mediaType = movie.media_type || "movie";
@@ -54,7 +75,11 @@ function Thumbnail({ movie, viewMode }: Props) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
             <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-sm bg-black/60 px-2 py-1 rounded-md">
               <BiTime className="w-4 h-4" />
-              <span>2h 30m</span>
+              {runtime ? (
+                <span>{Math.floor(runtime / 60)}h {runtime % 60}m</span>
+              ) : (
+                <span>N/A</span>
+              )}
             </div>
           </div>
 
