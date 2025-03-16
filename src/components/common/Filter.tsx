@@ -149,11 +149,10 @@ export default function Filter({
   };
 
   return (
-    <div className="w-full h-[100dvh] md:h-auto flex flex-col bg-[#1a1a1a]/95 backdrop-blur-md
-                    md:rounded-xl border-l md:border border-gray-800/50 shadow-xl shadow-black/20">
+    <div className={`w-full flex flex-col bg-[#141414] ${isMobile ? 'h-screen' : 'h-full'}`}>
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 p-4 border-b border-gray-800/50 rounded-t-xl
-                     bg-[#1a1a1a] backdrop-blur-md flex items-center justify-between">
+      <div className="sticky top-0 z-20 p-4 border-b border-gray-800/50
+                     bg-[#141414] flex items-center justify-between">
         <h3 className="text-lg font-semibold text-white flex items-center gap-3">
           <FiFilter className="w-5 h-5 text-red-500" />
           <span>Filters</span>
@@ -290,7 +289,7 @@ export default function Filter({
 
       {/* Mobile Action Bar */}
       {isMobile && (
-        <div className="md:hidden p-4 border-t border-gray-800/50 bg-[#1a1a1a] space-y-3">
+        <div className="sticky bottom-0 p-4 border-t border-gray-800/50 bg-[#141414]">
           <button
             type="button"
             onClick={handleApply}

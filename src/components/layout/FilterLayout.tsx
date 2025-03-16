@@ -59,11 +59,21 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
   };
 
   return (
-    <div className="py-2 md:py-6 px-2 sm:px-4">
-      {/* Mobile Filter Button - Top Floating Style */}
+    <div className="relative min-h-[calc(100vh-68px)]">
+      {/* Desktop Filter */}
+      <aside className="hidden md:block fixed left-0 w-[280px] lg:w-[300px] xl:w-[320px] 
+                       top-[68px] bottom-0 bg-[#141414] border-r border-gray-800/50">
+        <div className="sticky top-0 h-[calc(100vh-68px)] overflow-y-auto scrollbar-none">
+          <Filter
+            initialFilters={initialFilters}
+            onFilterChange={onFilterChange}
+          />
+        </div>
+      </aside>
+
+      {/* Mobile Filter Button */}
       <div className={`md:hidden fixed top-20 right-4 z-40
-        transition-all duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-[115%]'}`}
-      >
+        transition-all duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-[115%]'}`}>
         <div className="absolute inset-0 rounded-full -z-10 bg-gradient-to-b from-black/50 to-transparent blur-md" />
         <button
           type="button"
@@ -78,46 +88,29 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
         </button>
       </div>
 
-      <div className="relative flex flex-col md:flex-row gap-4 lg:gap-6">
-        {/* Desktop Filter */}
-        <aside className="hidden md:block w-[280px] lg:w-[300px] xl:w-[320px] flex-shrink-0">
-          <div className={`sticky transition-all duration-300
-            ${isScrolled ? 'top-[90px]' : 'top-[90px]'}
-            max-h-[calc(100vh-100px)] rounded-lg overflow-y-auto hide-scrollbar`}>
-            <Filter 
-              initialFilters={initialFilters}
-              onFilterChange={onFilterChange}
+      {/* Mobile Filter Drawer */}
+      {isMobileFilterOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={handleMobileClose} />
+          <div className="fixed right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-[400px] 
+                         bg-[#141414] border-l border-gray-800/50">
+            <Filter
+              initialFilters={tempFilters}
+              onFilterChange={handleMobileFilterChange}
+              onClose={() => setIsMobileFilterOpen(false)}
+              onApply={handleMobileApply}
+              isMobile={true}
             />
           </div>
-        </aside>
+        </div>
+      )}
 
-        {/* Mobile Filter Drawer */}
-        {isMobileFilterOpen && (
-          <div className="fixed inset-0 z-50 md:hidden">
-            <div 
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm transition-opacity"
-              onClick={handleMobileClose}
-            />
-            <div className="absolute inset-y-0 right-0 w-full max-w-[90%] sm:max-w-[400px]
-                          transform transition-transform duration-300 ease-out-cubic">
-              <Filter
-                initialFilters={tempFilters}
-                onFilterChange={handleMobileFilterChange}
-                onClose={() => setIsMobileFilterOpen(false)}
-                onApply={handleMobileApply}
-                isMobile={true}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* Main Content */}
-        <main className="flex-1 min-w-0">
-          <div className=""> {/* Reduced padding since button is floating */}
-            {children}
-          </div>
-        </main>
-      </div>
+      {/* Main Content */}
+      <main className="md:pl-[280px] lg:pl-[300px] xl:pl-[320px]">
+        <div className="p-4 md:p-6">
+          {children}
+        </div>
+      </main>
     </div>
   );
 };
