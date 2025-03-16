@@ -107,7 +107,7 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
 
       {/* Main Content */}
       <main className="md:pl-[280px] lg:pl-[300px] xl:pl-[320px]">
-        <div className="p-4 md:p-6">
+        <div className="p-2 md:p-4">
           {children}
         </div>
       </main>

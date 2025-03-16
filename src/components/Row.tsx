@@ -75,12 +75,17 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
 
   if (isLoading) {
     return (
-      <div className="space-y-2">
-        <h2 className="w-56 ml-4 md:ml-8 lg:ml-16 text-sm font-semibold text-[#e5e5e5] md:text-2xl">
-          {title}
-        </h2>
+      <div className="space-y-2 mb-12">
+        <div className="flex justify-between items-center px-4 md:px-8 lg:px-16 md:mb-8 mb-4">
+          <Skeleton
+            variant="rectangular"
+            width={200}
+            height={32}
+            sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+          />
+        </div>
         <div className="relative">
-          <div className="flex items-center space-x-4 overflow-x-hidden px-4 md:px-8 lg:px-16">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16">
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
@@ -90,8 +95,18 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
                   variant="rectangular"
                   width="100%"
                   height="100%"
-                  sx={{ bgcolor: "#2b2b2b" }}
+                  sx={{
+                    bgcolor: "#1f1f1f",
+                    borderRadius: "0.125rem", // This matches rounded-sm
+                  }}
                 />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    sx={{ bgcolor: "#1f1f1f" }}
+                  />
+                </div>
               </div>
             ))}
           </div>

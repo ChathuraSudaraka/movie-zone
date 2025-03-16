@@ -3,12 +3,13 @@ import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
 import { Movie } from "../types/movie";
 import ViewMode from "../components/common/ViewMode";
-import { getUrlParams, updateUrlParams } from "../utils/urlParams";
-import { FilterOptions } from "@/types/filters";
-import { loadFilterState } from "@/utils/filterState";
-import NoResults from '../components/common/NoResults';
-import FilterLayout from '../components/layout/FilterLayout';
 import Pagination from "../components/common/Pagination";
+import FilterLayout from '../components/layout/FilterLayout';
+import { getUrlParams, updateUrlParams } from "../utils/urlParams";
+import { loadFilterState } from '../utils/filterState';
+import { FilterOptions } from "@/types/filters";
+import NoResults from '../components/common/NoResults';
+import { Skeleton } from "@mui/material";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -249,9 +250,27 @@ function TVShows() {
             : "flex flex-col gap-4"
         }`}>
           {isInitialLoad || (loading && !isInitialLoad) ? (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-12 w-12 border-4 border-red-600 border-t-transparent" />
-            </div>
+            // Skeleton Loading Grid
+            [...Array(12)].map((_, index) => (
+              <div key={index} className={viewMode === "grid" 
+                ? "aspect-[2/3] w-full relative rounded-sm overflow-hidden"
+                : "w-full h-[200px] relative rounded-sm overflow-hidden"
+              }>
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height="100%"
+                  sx={{ bgcolor: "#1f1f1f" }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    sx={{ bgcolor: "#1f1f1f" }}
+                  />
+                </div>
+              </div>
+            ))
           ) : shows.length > 0 ? (
             shows.map((show) => (
               <div key={show.id} className="group relative h-full">
@@ -279,15 +298,33 @@ function TVShows() {
             {error}
           </div>
         )}
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
-            All TV Shows
-          </h1>
-          <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
-        </div>
+        {isInitialLoad || loading ? (
+          // Header Skeleton
+          <div className="flex items-center justify-between mb-6">
+            <Skeleton
+              variant="rectangular"
+              width={200}
+              height={40}
+              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+            />
+            <Skeleton
+              variant="rectangular"
+              width={100}
+              height={40}
+              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+            />
+          </div>
+        ) : (
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
+              All TV Shows
+            </h1>
+            <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
+          </div>
+        )}
 
         <ShowsGrid
-          shows={sortShows(shows)}
+          shows={shows}
           title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ""}`}
         />
 

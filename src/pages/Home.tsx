@@ -18,11 +18,7 @@ const Home = () => {
       {/* Main Content */}
       <main className="relative z-10 -mt-[55px] pb-24 lg:-mt-[100px] lg:space-y-16">
         <section className="space-y-6 md:space-y-12">
-          <Row
-            title="Netflix Originals"
-            fetchUrl={requests.fetchNetflixOriginals}
-
-          />
+          <Row title="Netflix Originals" fetchUrl={requests.fetchNetflixOriginals} />
           <Row title="Trending Now" fetchUrl={requests.fetchTrending} />
           <Row title="Top Rated TV" fetchUrl={requests.fetchTopRatedTV} />
           <Row title="Popular TV Shows" fetchUrl={requests.fetchPopularTV} />

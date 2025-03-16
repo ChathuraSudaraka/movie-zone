@@ -7,7 +7,13 @@ import { Skeleton } from "@mui/material";
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
 
-function MovieCard({ item, onRemove }: { item: Movie; onRemove: (e: React.MouseEvent, id: number) => void }) {
+function MovieCard({
+  item,
+  onRemove,
+}: {
+  item: Movie;
+  onRemove: (e: React.MouseEvent, id: number) => void;
+}) {
   const [isHovered, setIsHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
@@ -18,9 +24,10 @@ function MovieCard({ item, onRemove }: { item: Movie; onRemove: (e: React.MouseE
     navigate(`/info/${item.media_type}/${item.id}`);
   };
 
-  const imageUrl = imgError || !item.poster_path
-    ? FALLBACK_IMAGE
-    : `https://image.tmdb.org/t/p/w500${item.poster_path}`;
+  const imageUrl =
+    imgError || !item.poster_path
+      ? FALLBACK_IMAGE
+      : `https://image.tmdb.org/t/p/w500${item.poster_path}`;
 
   return (
     <div
@@ -43,13 +50,17 @@ function MovieCard({ item, onRemove }: { item: Movie; onRemove: (e: React.MouseE
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
         className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${isHovered ? "scale-105 brightness-75" : ""}
+                   transition-all duration-300 ${
+                     isHovered ? "scale-105 brightness-75" : ""
+                   }
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
 
       <div
         className={`absolute inset-0 flex flex-col justify-end p-4 
-                   transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+                   transition-opacity duration-300 ${
+                     isHovered ? "opacity-100" : "opacity-0"
+                   }`}
       >
         <div className="flex flex-col gap-2">
           <div className="flex items-center gap-2">
@@ -107,17 +118,38 @@ function MyList() {
   if (isLoading) {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">
-        <div className="px-2 py-6 md:px-3 lg:px-4">
-          <div className="h-8 w-40 bg-gray-700 rounded mb-6 animate-pulse"></div>
+        <div className="px-4 py-6 md:px-6 lg:px-8">
+          {/* Header Skeleton */}
+          <div className="mb-6">
+            <Skeleton
+              variant="rectangular"
+              width={160}
+              height={32}
+              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+            />
+          </div>
+
+          {/* Grid Skeleton */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(10)].map((_, index) => (
-              <div key={index} className="relative min-w-[160px] md:h-[420px] md:min-w-[280px]">
+              <div
+                key={index}
+                className="aspect-[2/3] w-full relative rounded-sm overflow-hidden"
+              >
                 <Skeleton
                   variant="rectangular"
                   width="100%"
                   height="100%"
-                  sx={{ bgcolor: "#2b2b2b" }}
+                  sx={{ bgcolor: "#1f1f1f" }}
                 />
+                {/* Mobile Title Skeleton - Only visible on mobile */}
+                <div className="md:hidden absolute bottom-0 left-0 right-0 p-2">
+                  <Skeleton
+                    variant="text"
+                    width="80%"
+                    sx={{ bgcolor: "#1f1f1f" }}
+                  />
+                </div>
               </div>
             ))}
           </div>
@@ -157,11 +189,7 @@ function MyList() {
         </h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {myList.map((item) => (
-            <MovieCard
-              key={item.id}
-              item={item}
-              onRemove={removeFromList}
-            />
+            <MovieCard key={item.id} item={item} onRemove={removeFromList} />
           ))}
         </div>
       </div>
