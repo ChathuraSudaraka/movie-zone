@@ -63,7 +63,7 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
       {/* Desktop Filter */}
       <aside className="hidden md:block fixed left-0 w-[280px] lg:w-[300px] xl:w-[320px] 
                        top-[68px] bottom-0 bg-[#141414] border-r border-gray-800/50">
-        <div className="sticky top-0 h-[calc(100vh-68px)] overflow-y-auto scrollbar-none">
+        <div className="sticky top-0 h-[calc(100vh-68px)] overflow-y-auto">
           <Filter
             initialFilters={initialFilters}
             onFilterChange={onFilterChange}

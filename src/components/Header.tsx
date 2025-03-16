@@ -1,105 +1,111 @@
-import { useEffect, useState } from 'react'
-import { useNavigate, useLocation } from 'react-router-dom'
-import { BellIcon, ChevronDownIcon, SearchIcon, XIcon } from 'lucide-react'
-import { baseUrl } from '@/utils/requests'
-import { Movie } from '../types/movie'
+import { useEffect, useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { BellIcon, ChevronDownIcon, SearchIcon, XIcon } from "lucide-react";
+import { baseUrl } from "@/utils/requests";
+import { Movie } from "../types/movie";
+import { NotificationDialog } from "./common/NotificationDialog";
 
 interface SearchResult extends Movie {
-  media_type: 'movie' | 'tv' | string
+  media_type: "movie" | "tv" | string;
 }
 
 function Header() {
-  const [isScrolled, setIsScrolled] = useState(false)
-  const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [showSearch, setShowSearch] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('')
-  const [suggestions, setSuggestions] = useState<SearchResult[]>([])
-  const [showSuggestions, setShowSuggestions] = useState(false)
-  const navigate = useNavigate()
-  const location = useLocation()
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
 
   const navigation = [
-    { name: 'Home', href: '/' },
-    { name: 'TV Shows', href: '/tv' },
-    { name: 'Movies', href: '/movies' },
+    { name: "Home", href: "/" },
+    { name: "TV Shows", href: "/tv" },
+    { name: "Movies", href: "/movies" },
     // { name: 'New & Popular', href: '/new' },
-    { name: 'My List', href: '/my-list' }
-  ]
+    { name: "My List", href: "/my-list" },
+  ];
 
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 0) {
-        setIsScrolled(true)
+        setIsScrolled(true);
       } else {
-        setIsScrolled(false)
+        setIsScrolled(false);
       }
-    }
+    };
 
-    window.addEventListener('scroll', handleScroll)
-    return () => window.removeEventListener('scroll', handleScroll)
-  }, [])
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
     if (searchTerm) {
-      navigate(`/search?q=${encodeURIComponent(searchTerm)}`)
-      setShowSearch(false)
-      setSearchTerm('')
+      navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+      setShowSearch(false);
+      setSearchTerm("");
     }
-  }
+  };
 
   const fetchSuggestions = async (input: string) => {
     if (!input || input.length < 2) {
-      setSuggestions([])
-      return
+      setSuggestions([]);
+      return;
     }
 
     try {
-      const API_KEY = import.meta.env.VITE_TMDB_API_KEY
+      const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
       const response = await fetch(
         `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(
           input
         )}&page=1&include_adult=false`
-      )
-      const data = await response.json()
+      );
+      const data = await response.json();
       const filteredSuggestions = data.results
         .filter(
           (item: SearchResult) =>
-            (item.media_type === 'movie' || item.media_type === 'tv') &&
+            (item.media_type === "movie" || item.media_type === "tv") &&
             (item.backdrop_path || item.poster_path)
         )
-        .slice(0, 5)
-      setSuggestions(filteredSuggestions)
+        .slice(0, 5);
+      setSuggestions(filteredSuggestions);
     } catch (error) {
-      console.error('Error fetching suggestions:', error)
+      console.error("Error fetching suggestions:", error);
     }
-  }
+  };
 
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value
-    setSearchTerm(value)
+    const value = e.target.value;
+    setSearchTerm(value);
     if (value.length >= 2) {
-      fetchSuggestions(value)
-      setShowSuggestions(true)
+      fetchSuggestions(value);
+      setShowSuggestions(true);
     } else {
-      setSuggestions([])
-      setShowSuggestions(false)
+      setSuggestions([]);
+      setShowSuggestions(false);
     }
-  }
+  };
 
   const handleSuggestionClick = (suggestion: SearchResult) => {
-    const type = suggestion.media_type || (suggestion.first_air_date ? 'tv' : 'movie')
-    navigate(`/info/${type}/${suggestion.id}`)
-    setShowSearch(false)
-    setSearchTerm('')
-    setSuggestions([])
-    setShowSuggestions(false)
-  }
+    const type =
+      suggestion.media_type || (suggestion.first_air_date ? "tv" : "movie");
+    navigate(`/info/${type}/${suggestion.id}`);
+    setShowSearch(false);
+    setSearchTerm("");
+    setSuggestions([]);
+    setShowSuggestions(false);
+  };
 
   return (
     <header
-      className={`${isScrolled ? 'bg-[#141414]' : 'bg-gradient-to-b from-black/80 to-transparent'
-        } fixed top-0 z-50 w-full transition-colors duration-300`}
+      className={`${
+        isScrolled
+          ? "bg-[#141414]"
+          : "bg-gradient-to-b from-black/80 to-transparent"
+      } fixed top-0 z-50 w-full transition-colors duration-300`}
     >
       <div className="flex w-full items-center justify-between h-[35px] px-4 md:px-8">
         {/* Left side */}
@@ -111,7 +117,9 @@ function Header() {
             onClick={() => navigate('/')}
           /> */}
 
-          <p className='text-2xl font-semibold cursor-pointer hover:text-white'>MovieZone</p>
+          <p className="text-2xl font-semibold cursor-pointer hover:text-white">
+            MovieZone
+          </p>
 
           {/* Desktop Navigation */}
           <>
@@ -120,10 +128,11 @@ function Header() {
                 <button
                   key={item.name}
                   onClick={() => navigate(item.href)}
-                  className={`headerLink group relative ${location.pathname === item.href
-                    ? 'font-semibold text-white'
-                    : 'text-[#e5e5e5] hover:text-white'
-                    }`}
+                  className={`headerLink group relative ${
+                    location.pathname === item.href
+                      ? "font-semibold text-white"
+                      : "text-[#e5e5e5] hover:text-white"
+                  }`}
                 >
                   {item.name}
                   {location.pathname === item.href && (
@@ -141,7 +150,11 @@ function Header() {
                 onClick={() => setShowMobileMenu(!showMobileMenu)}
               >
                 <span>Browse</span>
-                <ChevronDownIcon className={`w-4 h-4 transition duration-200 ${showMobileMenu ? 'rotate-180' : 'rotate-0'}`} />
+                <ChevronDownIcon
+                  className={`w-4 h-4 transition duration-200 ${
+                    showMobileMenu ? "rotate-180" : "rotate-0"
+                  }`}
+                />
               </button>
 
               {showMobileMenu && (
@@ -151,11 +164,13 @@ function Header() {
                       <button
                         key={item.name}
                         onClick={() => {
-                          navigate(item.href)
-                          setShowMobileMenu(false)
+                          navigate(item.href);
+                          setShowMobileMenu(false);
                         }}
-                        className={`mobileLink ${location.pathname === item.href && 'text-white font-semibold'
-                          }`}
+                        className={`mobileLink ${
+                          location.pathname === item.href &&
+                          "text-white font-semibold"
+                        }`}
                       >
                         {item.name}
                       </button>
@@ -176,7 +191,14 @@ function Header() {
             >
               <SearchIcon className="h-6 w-6" />
             </button>
-            <BellIcon className="h-6 w-6 cursor-pointer transition hover:text-[#b3b3b3]" />
+            <BellIcon
+              className="h-6 w-6 cursor-pointer transition hover:text-[#b3b3b3]"
+              onClick={() => setIsNotificationOpen(true)}
+            />
+            <NotificationDialog
+              isOpen={isNotificationOpen}
+              onClose={() => setIsNotificationOpen(false)}
+            />
           </>
         </div>
       </div>
@@ -188,10 +210,10 @@ function Header() {
             <button
               className="absolute right-4 top-4 text-gray-400 hover:text-white"
               onClick={() => {
-                setShowSearch(false)
-                setSearchTerm('')
-                setSuggestions([])
-                setShowSuggestions(false)
+                setShowSearch(false);
+                setSearchTerm("");
+                setSuggestions([]);
+                setShowSuggestions(false);
               }}
             >
               <XIcon className="h-6 w-6" />
@@ -219,7 +241,9 @@ function Header() {
                     onClick={() => handleSuggestionClick(suggestion)}
                   >
                     <img
-                      src={`${baseUrl}${suggestion.backdrop_path || suggestion.poster_path}`}
+                      src={`${baseUrl}${
+                        suggestion.backdrop_path || suggestion.poster_path
+                      }`}
                       alt={suggestion.title || suggestion.name}
                       className="h-16 w-28 object-cover rounded"
                     />
@@ -229,14 +253,16 @@ function Header() {
                       </p>
                       <div className="flex items-center gap-2 text-sm text-gray-400">
                         <span>
-                          {suggestion.media_type.charAt(0).toUpperCase() + suggestion.media_type.slice(1)}
+                          {suggestion.media_type.charAt(0).toUpperCase() +
+                            suggestion.media_type.slice(1)}
                         </span>
-                        {(suggestion.release_date || suggestion.first_air_date) && (
+                        {(suggestion.release_date ||
+                          suggestion.first_air_date) && (
                           <>
                             <span>•</span>
                             <span>
-                              {suggestion.release_date?.split('-')[0] ||
-                                suggestion.first_air_date?.split('-')[0]}
+                              {suggestion.release_date?.split("-")[0] ||
+                                suggestion.first_air_date?.split("-")[0]}
                             </span>
                           </>
                         )}
@@ -258,7 +284,7 @@ function Header() {
         </div>
       )}
     </header>
-  )
+  );
 }
 
-export default Header
+export default Header;
