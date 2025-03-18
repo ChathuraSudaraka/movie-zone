@@ -132,18 +132,21 @@ function Info() {
     // Start playing video immediately
     handlePlayClick();
 
-    // Track watch history in the background
-    try {
-      await addToWatchHistory({
-        id: content.id,
-        title: content.media_type === 'tv' ? content.name || 'Unknown TV Show' : content.title || 'Unknown Movie',
-        poster_path: content.poster_path || '',
-        media_type: (content.media_type === 'movie' || content.media_type === 'tv') ? content.media_type : (type === 'movie' || type === 'tv') ? type : 'movie'
-      }).catch(console.error); // Catch error silently to not interrupt viewing
-    } catch (error) {
-      // Error is handled silently to not interrupt the user experience
-      console.error('Background watch history update failed:', error);
-    }
+    // Ensure we have valid data for watch history
+    const mediaData = {
+      id: content.id,
+      title: content.media_type === 'tv' 
+        ? content.name || content.title || 'Unknown Show'
+        : content.title || 'Unknown Movie',
+      poster_path: content.poster_path || '',
+      media_type: (content.media_type || type) as 'movie' | 'tv'
+    };
+
+    // Add to watch history in the background
+    addToWatchHistory(mediaData).catch(error => {
+      // Log error but don't interrupt viewing
+      console.error('Failed to update watch history:', error);
+    });
   };
 
   if (loading) {

@@ -40,35 +40,48 @@ export function useWatchHistory() {
     }
   };
 
-  useEffect(() => {
-    fetchWatchHistory();
-  }, [user]);
-
   const fetchWatchHistory = async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
 
     try {
       setLoading(true);
       
-      // Always use cached data first
-      const cachedHistory = localStorage.getItem(`watchHistory-${user.uid}`);
-      if (cachedHistory) {
-        setWatchHistory(JSON.parse(cachedHistory));
-        setLoading(false);
-      }
+      // Get cached data first
+      const cachedData = localStorage.getItem(`watchHistory-${user.uid}`);
+      const cachedHistory = cachedData ? JSON.parse(cachedData) : [];
+      
+      // Set cached data immediately
+      setWatchHistory(cachedHistory);
 
-      // Then try to fetch fresh data
+      // Fetch from Firestore
       const userDoc = doc(db, 'users', user.uid);
-      const docSnap = await retryOperation(() => getDoc(userDoc));
+      const docSnap = await getDoc(userDoc);
       
       if (docSnap.exists()) {
-        const history = docSnap.data().watchHistory || [];
-        setWatchHistory(history);
-        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(history));
+        const firestoreHistory = docSnap.data().watchHistory || [];
+        // Merge with cached data to prevent duplicates
+        const mergedHistory = [...firestoreHistory];
+        
+        // Sort by date, most recent first
+        mergedHistory.sort((a, b) => 
+          new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime()
+        );
+
+        setWatchHistory(mergedHistory);
+        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(mergedHistory));
+      } else {
+        // Initialize user document if it doesn't exist
+        await setDoc(userDoc, {
+          watchHistory: [],
+          createdAt: new Date().toISOString()
+        });
       }
     } catch (error) {
-      console.warn('Using cached data due to connection error:', error);
-      // Continue using cached data if available
+      console.warn('Error fetching watch history:', error);
+      // Keep using cached data if there's an error
     } finally {
       setLoading(false);
     }
@@ -93,36 +106,41 @@ export function useWatchHistory() {
       watchedAt: timestamp
     };
 
-    // Update local state immediately for instant UI feedback
-    setWatchHistory(prev => {
-      const newHistory = [watchItem, ...prev];
-      // Update localStorage cache
-      localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(newHistory));
-      return newHistory;
-    });
+    try {
+      // Update local state and cache first
+      setWatchHistory(prev => {
+        const newHistory = [watchItem, ...prev.filter(item => item.id !== watchItem.id)];
+        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(newHistory));
+        return newHistory;
+      });
 
-    // Queue update for background processing
-    queueMicrotask(async () => {
-      try {
-        const userDoc = doc(db, 'users', user.uid);
-        await setDoc(userDoc, {
-          watchHistory: arrayUnion(watchItem),
-          lastUpdated: timestamp
-        }, { merge: true });
-      } catch (error) {
-        console.error('Background sync failed:', error);
-        // Add to pending updates for later sync
-        const pendingUpdates = JSON.parse(
-          localStorage.getItem('pendingWatchHistoryUpdates') || '[]'
-        );
-        pendingUpdates.push({ userId: user.uid, watchItem });
-        localStorage.setItem(
-          'pendingWatchHistoryUpdates', 
-          JSON.stringify(pendingUpdates)
-        );
-      }
-    });
+      // Update Firestore
+      const userDoc = doc(db, 'users', user.uid);
+      await setDoc(userDoc, {
+        watchHistory: arrayUnion(watchItem),
+        lastUpdated: timestamp
+      }, { merge: true });
+
+    } catch (error) {
+      console.error('Error adding to watch history:', error);
+      // The local update is already done, so the user still sees their history
+    }
   };
+
+  // Clear watch history when user logs out
+  useEffect(() => {
+    if (!user) {
+      setWatchHistory([]);
+      setLoading(false);
+    }
+  }, [user]);
+
+  // Refresh watch history when coming back online
+  useEffect(() => {
+    if (!isOffline && user) {
+      fetchWatchHistory();
+    }
+  }, [isOffline, user]);
 
   // Sync pending updates when coming online
   useEffect(() => {
@@ -158,6 +176,7 @@ export function useWatchHistory() {
     watchHistory, 
     loading, 
     addToWatchHistory,
-    isOffline 
+    isOffline,
+    refreshHistory: fetchWatchHistory 
   };
 }
