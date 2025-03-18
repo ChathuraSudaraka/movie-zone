@@ -1,9 +1,7 @@
 import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2 } from "lucide-react";
 
-const API_URL = import.meta.env.PROD
-  ? "https://api.movie-zone.pages.dev"
-  : "http://localhost:3000";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 export function Contact() {
   const [formData, setFormData] = useState({
