@@ -1,4 +1,4 @@
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useMemo } from "react";
 import { Dialog, Transition } from "@headlessui/react";
 import { Bell, CalendarCheck, Film } from "lucide-react";
 import axios from "@/utils/axios";
@@ -17,6 +17,16 @@ interface Notification {
   read: boolean;
   image: string | null;
   type: 'upcoming' | 'new_release';
+  uniqueId?: string;
+}
+
+interface NotificationItem {
+  id: number;
+  title: string;
+  message: string;
+  type: 'movie' | 'tv';
+  posterPath?: string;
+  timestamp: string;
 }
 
 export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps) {
@@ -67,6 +77,13 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
     }
   }, [isOpen, user]);
 
+  const notificationItems = useMemo(() => {
+    return notifications.map((item, index) => ({
+      ...item,
+      uniqueId: `${item.id}-${index}`, // Add unique identifier
+    }));
+  }, [notifications]);
+
   if (!user) return null; // Don't render anything if no user
 
   return (
@@ -97,7 +114,7 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
               leaveTo="opacity-0 -translate-y-4"
             >
               <Dialog.Panel className="w-[400px] max-w-md transform overflow-hidden rounded-lg bg-[#141414] border border-gray-800/50 shadow-xl transition-all">
-                <NotificationContent notifications={notifications} loading={loading} />
+                <NotificationContent notifications={notificationItems} loading={loading} />
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -122,7 +139,7 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
                     <div className="w-12 h-1 bg-gray-600 rounded-full" />
                   </div>
 
-                  <NotificationContent notifications={notifications} loading={loading} />
+                  <NotificationContent notifications={notificationItems} loading={loading} />
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -164,7 +181,7 @@ function NotificationContent({
           <div className="space-y-3">
             {notifications.map((notification) => (
               <div
-                key={notification.id}
+                key={notification.uniqueId} // Use unique identifier here
                 className={`flex gap-3 p-3 rounded-lg transition-colors
                   ${notification.read ? "bg-gray-800/30" : "bg-gray-800/50"}
                   hover:bg-gray-700/50 cursor-pointer`}
