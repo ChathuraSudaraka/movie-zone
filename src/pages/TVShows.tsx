@@ -180,29 +180,29 @@ function TVShows() {
     return genreMap[genreName.toLowerCase()] || 0;
   };
 
-  const sortShows = (shows: TVShowDetails[]) => {
-    const { sort } = activeFilters;
-    return [...shows].sort((a, b) => {
-      switch (sort) {
-        case "popularity.desc":
-          return (b.popularity || 0) - (a.popularity || 0);
-        case "vote_average.desc":
-          return (b.vote_average || 0) - (a.vote_average || 0);
-        case "release_date.desc":
-          return (
-            new Date(b.first_air_date).getTime() -
-            new Date(a.first_air_date).getTime()
-          );
-        case "release_date.asc":
-          return (
-            new Date(a.first_air_date).getTime() -
-            new Date(b.first_air_date).getTime()
-          );
-        default:
-          return 0;
-      }
-    });
-  };
+  // const sortShows = (shows: TVShowDetails[]) => {
+  //   const { sort } = activeFilters;
+  //   return [...shows].sort((a, b) => {
+  //     switch (sort) {
+  //       case "popularity.desc":
+  //         return (b.popularity || 0) - (a.popularity || 0);
+  //       case "vote_average.desc":
+  //         return (b.vote_average || 0) - (a.vote_average || 0);
+  //       case "release_date.desc":
+  //         return (
+  //           new Date(b.first_air_date).getTime() -
+  //           new Date(a.first_air_date).getTime()
+  //         );
+  //       case "release_date.asc":
+  //         return (
+  //           new Date(a.first_air_date).getTime() -
+  //           new Date(b.first_air_date).getTime()
+  //         );
+  //       default:
+  //         return 0;
+  //     }
+  //   });
+  // };
 
   const handleViewModeChange = (mode: "grid" | "list") => {
     setViewMode(mode);

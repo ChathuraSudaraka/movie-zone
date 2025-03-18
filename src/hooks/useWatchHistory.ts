@@ -47,41 +47,29 @@ export function useWatchHistory() {
     }
 
     try {
-      setLoading(true);
-      
-      // Get cached data first
+      // Load from localStorage first for instant display
       const cachedData = localStorage.getItem(`watchHistory-${user.uid}`);
-      const cachedHistory = cachedData ? JSON.parse(cachedData) : [];
-      
-      // Set cached data immediately
-      setWatchHistory(cachedHistory);
+      if (cachedData) {
+        const cached = JSON.parse(cachedData);
+        setWatchHistory(cached);
+        setLoading(false); // Set loading false immediately after cache load
+      }
 
-      // Fetch from Firestore
+      // Then fetch fresh data in background
       const userDoc = doc(db, 'users', user.uid);
       const docSnap = await getDoc(userDoc);
       
       if (docSnap.exists()) {
-        const firestoreHistory = docSnap.data().watchHistory || [];
-        // Merge with cached data to prevent duplicates
-        const mergedHistory = [...firestoreHistory];
-        
-        // Sort by date, most recent first
-        mergedHistory.sort((a, b) => 
+        const data = docSnap.data().watchHistory || [];
+        const sortedHistory = data.sort((a: WatchHistoryItem, b: WatchHistoryItem) => 
           new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime()
         );
-
-        setWatchHistory(mergedHistory);
-        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(mergedHistory));
-      } else {
-        // Initialize user document if it doesn't exist
-        await setDoc(userDoc, {
-          watchHistory: [],
-          createdAt: new Date().toISOString()
-        });
+        
+        setWatchHistory(sortedHistory);
+        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(sortedHistory));
       }
     } catch (error) {
-      console.warn('Error fetching watch history:', error);
-      // Keep using cached data if there's an error
+      console.warn('Using cached data:', error);
     } finally {
       setLoading(false);
     }
@@ -124,6 +112,22 @@ export function useWatchHistory() {
     } catch (error) {
       console.error('Error adding to watch history:', error);
       // The local update is already done, so the user still sees their history
+    }
+  };
+
+  const clearHistory = async () => {
+    if (!user) return;
+    
+    try {
+      // Clear local first for immediate feedback
+      localStorage.removeItem(`watchHistory-${user.uid}`);
+      setWatchHistory([]);
+      
+      // Then update Firestore
+      const userDoc = doc(db, 'users', user.uid);
+      await setDoc(userDoc, { watchHistory: [] }, { merge: true });
+    } catch (error) {
+      console.error('Error clearing history:', error);
     }
   };
 
@@ -176,6 +180,7 @@ export function useWatchHistory() {
     watchHistory, 
     loading, 
     addToWatchHistory,
+    clearHistory,
     isOffline,
     refreshHistory: fetchWatchHistory 
   };
