@@ -50,7 +50,7 @@ export function Profile() {
     if (user?.user_metadata?.full_name) {
       setDisplayName(user.user_metadata.full_name);
     }
-  }, [user]);
+  }, [user, setActivities]);
 
   const updatePreferences = async (
     newPreferences: Partial<UserPreferences>
@@ -101,7 +101,7 @@ export function Profile() {
       setIsSaving(true);
       const publicUrl = await uploadAvatar(file, user.id);
       await updateUserProfile(user.id, { avatar_url: publicUrl });
-      
+
       window.location.reload();
     } catch (error) {
       console.error("Error uploading avatar:", error);
@@ -174,7 +174,7 @@ export function Profile() {
         {/* Content Sections */}
         <div className="py-8">
           {activeTab === "profile" && (
-            <UserProfile 
+            <UserProfile
               user={user}
               displayName={displayName}
               setDisplayName={setDisplayName}
@@ -184,14 +184,11 @@ export function Profile() {
           )}
 
           {activeTab === "activity" && (
-            <Activity 
-              activities={activities}
-              loading={loading}
-            />
+            <Activity activities={activities} loading={loading} />
           )}
 
           {activeTab === "preferences" && (
-            <Preferences 
+            <Preferences
               preferences={preferences}
               updatePreferences={updatePreferences}
             />
