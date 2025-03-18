@@ -20,8 +20,30 @@ export function Login() {
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        if (error.message.includes('Email not confirmed')) {
+          setError('Please check your email and confirm your account before signing in.');
+          
+          // Option to resend confirmation email
+          const { error: resendError } = await supabase.auth.resend({
+            type: 'signup',
+            email,
+          });
+          
+          if (!resendError) {
+            setError('Please check your email and confirm your account before signing in. We\'ve sent a new confirmation email.');
+          }
+          return;
+        }
+        throw error;
+      }
+
       if (data.user) {
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          email: data.user.email,
+          updated_at: new Date().toISOString(),
+        });
         navigate("/");
       }
     } catch (error: any) {

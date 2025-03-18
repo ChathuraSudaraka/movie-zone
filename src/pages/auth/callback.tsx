@@ -8,8 +8,21 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
+        // Check if this is an email confirmation
+        const queryParams = new URLSearchParams(window.location.search);
+        const type = queryParams.get('type');
+
+        if (type === 'email_confirmation') {
+          // Handle email confirmation
+          await supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN') {
+              navigate('/', { replace: true });
+            }
+          });
+        }
+
         // Try to get session from Supabase
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
         if (session) {
           // Already have a session, redirect to home
@@ -19,7 +32,7 @@ export default function AuthCallback() {
 
         // Get parameters from URL (both hash and search params)
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const queryParams = new URLSearchParams(window.location.search);
+        const urlQueryParams = new URLSearchParams(window.location.search);
 
         // Check for error in query parameters
         if (queryParams.get('error')) {
@@ -27,8 +40,8 @@ export default function AuthCallback() {
         }
 
         // Get tokens from either hash or query parameters
-        const access_token = hashParams.get('access_token') || queryParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token') || queryParams.get('refresh_token');
+        const access_token = hashParams.get('access_token') || urlQueryParams.get('access_token');
+        const refresh_token = hashParams.get('refresh_token') || urlQueryParams.get('refresh_token');
 
         if (!access_token) {
           // No tokens found, let Supabase handle the exchange

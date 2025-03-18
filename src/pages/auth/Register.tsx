@@ -10,6 +10,7 @@ export function Register() {
   const [name, setName] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isEmailSent, setIsEmailSent] = useState(false);
   const navigate = useNavigate();
   const { } = useAuth();
 
@@ -25,12 +26,18 @@ export function Register() {
         options: {
           data: {
             display_name: name,
-          }
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         }
       });
 
       if (error) throw error;
-      if (data) navigate("/auth/login");
+      
+      if (data.user && !data.user.confirmed_at) {
+        setIsEmailSent(true);
+      } else {
+        navigate("/auth/login");
+      }
     } catch (error: any) {
       setError(error.message || "Registration failed");
     } finally {
@@ -57,6 +64,22 @@ export function Register() {
       setLoading(false);
     }
   };
+
+  if (isEmailSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
+        <div className="max-w-md w-full space-y-8 bg-zinc-900/80 p-8 rounded-lg border border-zinc-800">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-white mb-4">Check your email</h2>
+            <p className="text-gray-400">
+              We've sent you an email confirmation link to {email}.<br />
+              Please check your email to complete registration.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">

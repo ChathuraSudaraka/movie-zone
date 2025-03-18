@@ -121,3 +121,19 @@ export const initializeUserProfile = async (userId: string, userData: any) => {
     return false;
   }
 };
+
+export const initializeProfile = async (userId: string, userData: { email: string }) => {
+  try {
+    const { error } = await supabase.from('profiles').upsert({
+      id: userId,
+      email: userData.email,
+      updated_at: new Date().toISOString(),
+    });
+
+    if (error) throw error;
+    return true;
+  } catch (error) {
+    console.error('Error initializing profile:', error);
+    return false;
+  }
+};
