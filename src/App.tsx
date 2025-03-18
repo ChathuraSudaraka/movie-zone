@@ -13,6 +13,7 @@ import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { Profile } from "./pages/Profile";
+import { Contact } from "./pages/Contact";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -33,6 +34,7 @@ function AppContent() {
           <Route path="/info/:type/:id" element={<Info />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/contact" element={<Contact />} />
         </Routes>
       </main>
     </div>

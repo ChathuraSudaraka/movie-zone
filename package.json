@@ -7,11 +7,13 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "server": "tsx src/server/index.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
+    "@fastify/cors": "^11.0.0",
     "@firebase/auth": "^1.9.1",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
@@ -20,10 +22,13 @@
     "@types/node": "^22.10.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",
+    "dotenv": "^16.4.7",
+    "fastify": "^5.2.1",
     "firebase": "^11.4.0",
     "framer-motion": "^11.14.1",
     "hls.js": "^1.5.17",
     "lucide-react": "^0.461.0",
+    "nodemailer": "^6.10.0",
     "postcss": "^8.4.49",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
@@ -35,10 +40,12 @@
     "tailwind-scrollbar": "^3.1.0",
     "tailwind-scrollbar-hide": "^1.1.7",
     "tailwindcss": "^3.4.15",
+    "tsx": "^4.19.3",
     "use-debounce": "^10.0.4"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
+    "@types/nodemailer": "^6.4.17",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",

@@ -1,16 +1,31 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Camera, User, Eye, Bell, Film, ThumbsUp, History, Trash2 } from "lucide-react";
+import {
+  Camera,
+  User,
+  Eye,
+  Bell,
+  Film,
+  ThumbsUp,
+  History,
+  Trash2,
+  MessageSquare,
+} from "lucide-react";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
 import type { ActivityItem, UserPreferences } from "../types/user";
 import { PLACEHOLDER_IMAGE } from "../utils/constants";
 import { useWatchHistory } from "../hooks/useWatchHistory";
 import { useNavigate } from "react-router-dom";
+import { Contact } from "./Contact";
 
 export function Profile() {
   const { user } = useAuth();
-  const { watchHistory, loading: watchHistoryLoading, clearHistory } = useWatchHistory();
+  const {
+    watchHistory,
+    loading: watchHistoryLoading,
+    clearHistory,
+  } = useWatchHistory();
   const [activeTab, setActiveTab] = useState("profile");
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({
@@ -29,7 +44,7 @@ export function Profile() {
   const navigate = useNavigate();
   const [historyPage, setHistoryPage] = useState(1);
   const [itemsPerPage] = useState(8);
-  const [filterType, setFilterType] = useState<'all' | 'movie' | 'tv'>('all');
+  const [filterType, setFilterType] = useState<"all" | "movie" | "tv">("all");
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -113,8 +128,8 @@ export function Profile() {
       );
     }
 
-    const filteredHistory = watchHistory.filter(item => 
-      filterType === 'all' ? true : item.mediaType === filterType
+    const filteredHistory = watchHistory.filter((item) =>
+      filterType === "all" ? true : item.mediaType === filterType
     );
     const totalPages = Math.ceil(filteredHistory.length / itemsPerPage);
     const currentItems = filteredHistory.slice(
@@ -141,7 +156,11 @@ export function Profile() {
           {watchHistory.length > 0 && (
             <button
               onClick={() => {
-                if (window.confirm('Are you sure you want to clear your watch history?')) {
+                if (
+                  window.confirm(
+                    "Are you sure you want to clear your watch history?"
+                  )
+                ) {
                   clearHistory();
                 }
               }}
@@ -184,19 +203,21 @@ export function Profile() {
             {/* Pagination */}
             {totalPages > 1 && (
               <div className="flex justify-center gap-2 pt-4">
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                  <button
-                    key={page}
-                    onClick={() => setHistoryPage(page)}
-                    className={`w-8 h-8 rounded-full text-sm transition-colors ${
-                      historyPage === page
-                        ? "bg-red-600 text-white"
-                        : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
-                    }`}
-                  >
-                    {page}
-                  </button>
-                ))}
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => setHistoryPage(page)}
+                      className={`w-8 h-8 rounded-full text-sm transition-colors ${
+                        historyPage === page
+                          ? "bg-red-600 text-white"
+                          : "bg-zinc-800 text-gray-400 hover:bg-zinc-700"
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
               </div>
             )}
           </>
@@ -245,6 +266,7 @@ export function Profile() {
               { id: "profile", label: "Profile", icon: User },
               { id: "activity", label: "Activity", icon: Eye },
               { id: "preferences", label: "Preferences", icon: Bell },
+              { id: "contact", label: "Contact", icon: MessageSquare }, // New tab
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -307,9 +329,7 @@ export function Profile() {
                 <h2 className="text-xl font-semibold text-white mb-4">
                   Watch History
                 </h2>
-                <div className="space-y-4">
-                  {renderWatchHistory()}
-                </div>
+                <div className="space-y-4">{renderWatchHistory()}</div>
               </div>
             </div>
           )}
@@ -460,6 +480,8 @@ export function Profile() {
               </div>
             </div>
           )}
+
+          {activeTab === "contact" && <Contact />}
         </div>
       </div>
     </div>
