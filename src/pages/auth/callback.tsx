@@ -8,63 +8,44 @@ export default function AuthCallback() {
   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        // Check if this is an email confirmation
         const queryParams = new URLSearchParams(window.location.search);
-        const type = queryParams.get('type');
+        const token = queryParams.get('token');
+        const email = queryParams.get('email');
 
-        if (type === 'email_confirmation') {
-          const { error } = await supabase.auth.verifyOtp({
-            email: queryParams.get('email') || '',
-            token: queryParams.get('token') || '',
-            type: 'email',
+        if (token && email) {
+          // Update user status in profiles table
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ email_verified: true })
+            .eq('id', token);
+
+          if (updateError) throw updateError;
+
+          // Send welcome email
+          await sendEmail({
+            to: email,
+            subject: 'Welcome to MovieZone',
+            template: 'welcome',
+            data: {
+              name: email.split('@')[0],
+              loginUrl: `${window.location.origin}/auth/login`
+            }
           });
 
-          if (error) throw error;
-          
-          // Show success message and redirect
           navigate('/auth/login?verified=true');
           return;
         }
 
-        // Try to get session from Supabase
-        const { data: { session } } = await supabase.auth.getSession();
+        // Handle OAuth callbacks
+        const { data: { session }, error } = await supabase.auth.getSession();
+        if (error) throw error;
         
         if (session) {
-          // Already have a session, redirect to home
           navigate('/', { replace: true });
           return;
         }
 
-        // Get parameters from URL (both hash and search params)
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const urlQueryParams = new URLSearchParams(window.location.search);
-
-        // Check for error in query parameters
-        if (queryParams.get('error')) {
-          throw new Error(queryParams.get('error_description') || 'Authentication failed');
-        }
-
-        // Get tokens from either hash or query parameters
-        const access_token = hashParams.get('access_token') || urlQueryParams.get('access_token');
-        const refresh_token = hashParams.get('refresh_token') || urlQueryParams.get('refresh_token');
-
-        if (!access_token) {
-          // No tokens found, let Supabase handle the exchange
-          const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
-          if (error) throw error;
-          navigate('/', { replace: true });
-          return;
-        }
-
-        // Set the session if we have tokens
-        const { error } = await supabase.auth.setSession({
-          access_token,
-          refresh_token: refresh_token || '',
-        });
-
-        if (error) throw error;
-        navigate('/', { replace: true });
-
+        navigate('/auth/login');
       } catch (error) {
         console.error('Auth callback error:', error);
         navigate('/auth/login?error=verification_failed');

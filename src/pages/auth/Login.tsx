@@ -79,9 +79,8 @@ export function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-[#141414] flex items-center justify-center px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#141414] items-center justify-center px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8 bg-zinc-900/80 p-8 rounded-lg border border-zinc-800">
-        <div></div>
         <h2 className="text-center text-3xl font-bold text-white">Sign in</h2>
       </div>
 

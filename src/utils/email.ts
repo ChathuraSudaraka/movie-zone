@@ -1,40 +1,51 @@
 import { supabase } from '../config/supabase';
 
-interface SendEmailParams {
+export async function sendEmail(params: {
   to: string;
   subject: string;
-  templateName: 'confirm-email' | 'reset-password' | 'welcome';
-  data: {
-    name?: string;
-    confirmationUrl?: string;
-    resetUrl?: string;
-    [key: string]: any;
-  };
-}
-
-export async function sendEmail({ to, subject, templateName, data }: SendEmailParams) {
+  template: 'confirm-email' | 'reset-password';
+  data: Record<string, any>;
+}) {
   try {
-    const { data: functionData, error } = await supabase.functions.invoke('send-email', {
-      body: {
-        to,
-        subject,
-        templateName,
-        data: {
-          ...data,
-          year: new Date().getFullYear()
-        }
-      }
+    const response = await supabase.functions.invoke('send-email', {
+      body: params,
+      headers: {
+        'Content-Type': 'application/json',
+      },
     });
 
-    if (error) {
-      console.error('Email function error:', error);
-      throw error;
+    if (response.error) {
+      throw new Error(`Failed to send email: ${response.error.message}`);
     }
 
-    return functionData;
+    return response.data;
   } catch (error) {
     console.error('Email sending error:', error);
-    // Don't throw error to prevent blocking registration
-    return null;
+    throw error;
   }
 }
+
+// Utility functions for common email types
+export const sendConfirmationEmail = async (email: string, name: string, token: string) => {
+  return sendEmail({
+    to: email,
+    subject: 'Confirm your MovieZone account',
+    template: 'confirm-email',
+    data: {
+      name,
+      confirmationUrl: `${window.location.origin}/auth/verify?token=${token}`
+    }
+  });
+};
+
+export const sendPasswordResetEmail = async (email: string, name: string, token: string) => {
+  return sendEmail({
+    to: email,
+    subject: 'Reset your MovieZone password',
+    template: 'reset-password',
+    data: {
+      name,
+      resetUrl: `${window.location.origin}/auth/reset-password?token=${token}`
+    }
+  });
+};

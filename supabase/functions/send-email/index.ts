@@ -1,108 +1,99 @@
-// Add Deno namespace reference
-/// <reference lib="deno.ns" />
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
 
-import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
-import { corsHeaders, handleCors } from "../_shared/cors.ts";
-import { SMTPClient } from "https://deno.land/x/smtp@v0.7.0/mod.ts";
-import Handlebars from "npm:handlebars@4.7.8";
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
-interface EmailRequest {
+import nodemailer from "npm:nodemailer@6.6.3";
+import Handlebars from "npm:handlebars@4.7.6";
+import { corsHeaders } from "../_shared/cors.ts";
+
+interface Request {
   to: string;
   subject: string;
-  templateName: 'confirm-email' | 'reset-password' | 'welcome';
-  data: {
-    name?: string;
-    confirmationUrl?: string;
-    resetUrl?: string;
-    [key: string]: any;
-  };
+  template: string; // URL to the template
+  options: any; // Data to compile the template
 }
 
-const templates = {
-  'confirm-email': `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        /* ... existing email template styles ... */
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="card">
-          <div class="logo">MovieZone</div>
-          <div class="title">Confirm your email address</div>
-          <div class="text">
-            Hi {{name}},<br><br>
-            Thanks for signing up for MovieZone! Please confirm your email address by clicking the button below.
-          </div>
-          <a href="{{confirmationUrl}}" class="button">Confirm Email Address</a>
-          <div class="text" style="margin-top: 24px;">
-            If you didn't create an account with MovieZone, you can safely ignore this email.
-          </div>
-          <div class="footer">
-            © {{year}} MovieZone. All rights reserved.
-          </div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `,
-  'reset-password': `...`, // Add reset password template
-  'welcome': `...` // Add welcome template
-};
+const transporter = nodemailer.createTransport({
+  host: "smtp.zoho.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: Deno.env.get("ZOHO_USER"),
+    pass: Deno.env.get("ZOHO_PASS"),
+  },
+});
 
-serve(async (req) => {
-  // Handle CORS
-  const corsResponse = handleCors(req);
-  if (corsResponse) return corsResponse;
+// Function to fetch the HTML template from a URL
+async function fetchTemplate(templateUrl: string): Promise<string> {
+  const response = await fetch(templateUrl);
+  if (!response.ok) {
+    throw new Error(`Failed to fetch template: ${response.statusText}`);
+  }
+  return await response.text();
+}
+
+Deno.serve(async (req: any) => {
+  // This is needed if you're planning to invoke your function from a browser.
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
 
   try {
-    const { to, subject, templateName, data } = await req.json();
+    const data = (await req.json()) as Request;
+    // Fetch the HTML template from the provided URL
+    const templateHtml = await fetchTemplate(data.template);
 
-    const client = new SMTPClient({
-      connection: {
-        hostname: Deno.env.get("SMTP_HOST")!,
-        port: Number(Deno.env.get("SMTP_PORT")),
-        tls: true,
-        auth: {
-          username: Deno.env.get("SMTP_USER")!,
-          password: Deno.env.get("SMTP_PASS")!,
-        }
-      }
-    });
-
-    const templateHtml = templates[templateName];
-    if (!templateHtml) {
-      throw new Error(`Template ${templateName} not found`);
-    }
-
-    const templateData = {
-      ...data,
-      year: new Date().getFullYear()
-    };
-
+    // Compile the template using Handlebars
     const template = Handlebars.compile(templateHtml);
-    const html = template(templateData);
+    const compiledHtml = template(data.options);
 
-    await client.send({
-      from: Deno.env.get("SMTP_FROM_EMAIL")!,
-      to,
-      subject,
-      content: "text/html",
-      html,
+    // Send the email with the compiled HTML
+    const info = await transporter.sendMail({
+      from: '"Everstock | POS System" <no-reply.everstock@eversoft.lk>', // sender address
+      to: data.to, // list of receivers
+      subject: data.subject, // Subject line
+      html: compiledHtml, // Compiled HTML body
     });
 
-    await client.close();
-
-    return new Response(JSON.stringify({ success: true }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 200,
-    });
+    return new Response(
+      JSON.stringify({
+        info,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+      }
+    );
   } catch (error) {
-    return new Response(JSON.stringify({ error: error.message }), {
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-      status: 500,
-    });
+    console.error("Error sending email:", error);
+    return new Response(
+      JSON.stringify({
+        error: error,
+      }),
+      {
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json",
+        },
+        status: 500,
+      }
+    );
   }
 });
+
+/* To invoke locally:
+
+  1. Run `supabase start` (see: https://supabase.com/docs/reference/cli/supabase-start)
+  2. Make an HTTP request:
+
+  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/mail-sender' \
+    --header 'Authorization: Bearer ' \
+    --header 'Content-Type: application/json' \
+    --data '{"name":"Functions"}'
+
+*/

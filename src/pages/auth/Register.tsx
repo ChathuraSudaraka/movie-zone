@@ -8,6 +8,7 @@ import {
   validatePassword,
   validateName,
 } from "../../utils/validation";
+import { sendEmail } from "../../utils/email";
 
 export function Register() {
   const [email, setEmail] = useState("");
@@ -38,33 +39,49 @@ export function Register() {
     try {
       setLoading(true);
 
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.signUp({
+      // Register with Supabase without email confirmation
+      const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: { full_name: name },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+        }
       });
 
-      if (error) {
-        if (error.message.includes("already registered")) {
-          setError("This email is already registered");
-        } else {
-          throw error;
-        }
-        return;
-      }
+      if (error) throw error;
 
-      if (user) {
-        setIsEmailSent(true);
+      if (data?.user) {
+        try {
+          // Create profile
+          await supabase.from('profiles').upsert({
+            id: data.user.id,
+            full_name: name,
+            email: email,
+            auth_provider: 'email',
+            updated_at: new Date().toISOString(),
+          });
+
+          // Send verification email using our Edge Function
+          await sendEmail({
+            to: email,
+            subject: 'Verify your MovieZone account',
+            template: 'confirm-email',
+            data: {
+              name,
+              confirmationUrl: `${window.location.origin}/auth/verify?token=${data.user.id}&email=${email}`
+            }
+          });
+
+          setIsEmailSent(true);
+        } catch (emailError) {
+          console.error('Error sending verification email:', emailError);
+          setError('Account created but failed to send verification email. Please contact support.');
+        }
       }
     } catch (error: any) {
-      console.error("Registration error:", error);
-      setError("Failed to create account");
+      console.error('Registration error:', error);
+      setError(error.message || 'Failed to create account');
     } finally {
       setLoading(false);
     }
