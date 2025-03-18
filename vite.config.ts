@@ -64,6 +64,17 @@ export default defineConfig({
     watch: {
       usePolling: true,
     },
+    headers: {
+      'Cross-Origin-Opener-Policy': 'unsafe-none',
+      'Cross-Origin-Embedder-Policy': 'unsafe-none',
+      'Cross-Origin-Resource-Policy': 'cross-origin',
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization'
+    }
   },
   base: '/',
+  optimizeDeps: {
+    exclude: ['firebase', '@firebase/auth']
+  }
 })

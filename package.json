@@ -12,6 +12,7 @@
   "dependencies": {
     "@emotion/react": "^11.13.5",
     "@emotion/styled": "^11.13.5",
+    "@firebase/auth": "^1.9.1",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.2.0",
     "@mui/material": "^6.1.8",
@@ -19,6 +20,7 @@
     "@types/node": "^22.10.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",
+    "firebase": "^11.4.0",
     "framer-motion": "^11.14.1",
     "hls.js": "^1.5.17",
     "lucide-react": "^0.461.0",

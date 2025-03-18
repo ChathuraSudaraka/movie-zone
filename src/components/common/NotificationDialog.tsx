@@ -1,43 +1,73 @@
-import { Fragment } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { Dialog, Transition } from "@headlessui/react";
-import { Bell } from "lucide-react";
+import { Bell, CalendarCheck, Film } from "lucide-react";
+import axios from "@/utils/axios";
+import { useAuth } from '../../context/AuthContext';
 
 interface NotificationDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
-export function NotificationDialog({
-  isOpen,
-  onClose,
-}: NotificationDialogProps) {
-  // Sample notification data
-  const notifications = [
-    {
-      id: 1,
-      title: "New movie release",
-      message: "Avengers: Secret Wars is now available to stream",
-      time: "2 hours ago",
-      read: false,
-      image: "https://image.tmdb.org/t/p/w500/1E5baAaEse26fej7uHcjOgEE2t2.jpg",
-    },
-    {
-      id: 2,
-      title: "Subscription update",
-      message: "Your premium subscription will renew in 3 days",
-      time: "1 day ago",
-      read: false,
-      image: null,
-    },
-    {
-      id: 3,
-      title: "Continue watching",
-      message: 'You left "Inception" at 01:24:15. Continue watching?',
-      time: "3 days ago",
-      read: true,
-      image: "https://image.tmdb.org/t/p/w500/9gk7adHYeDvHkCSEqAvQNLV5Uge.jpg",
-    },
-  ];
+interface Notification {
+  id: number;
+  title: string;
+  message: string;
+  time: string;
+  read: boolean;
+  image: string | null;
+  type: 'upcoming' | 'new_release';
+}
+
+export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps) {
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      if (!user) return; // Don't fetch if no user
+
+      try {
+        setLoading(true);
+        // Fetch upcoming movies
+        const upcomingRes = await axios.get('/movie/upcoming');
+        const newReleasesRes = await axios.get('/movie/now_playing');
+
+        const upcomingNotifications = upcomingRes.data.results.slice(0, 5).map((movie: any) => ({
+          id: movie.id,
+          title: 'Upcoming Release',
+          message: `${movie.title} will be released on ${new Date(movie.release_date).toLocaleDateString()}`,
+          time: `Release: ${new Date(movie.release_date).toLocaleDateString()}`,
+          read: false,
+          image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+          type: 'upcoming' as const
+        }));
+
+        const newReleaseNotifications = newReleasesRes.data.results.slice(0, 5).map((movie: any) => ({
+          id: movie.id,
+          title: 'New Release',
+          message: `${movie.title} is now available to watch`,
+          time: `Released: ${new Date(movie.release_date).toLocaleDateString()}`,
+          read: false,
+          image: movie.poster_path ? `https://image.tmdb.org/t/p/w500${movie.poster_path}` : null,
+          type: 'new_release' as const
+        }));
+
+        setNotifications([...upcomingNotifications, ...newReleaseNotifications]);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (isOpen && user) {
+      fetchNotifications();
+    }
+  }, [isOpen, user]);
+
+  if (!user) return null; // Don't render anything if no user
 
   return (
     <Transition appear show={isOpen} as={Fragment}>
@@ -67,7 +97,7 @@ export function NotificationDialog({
               leaveTo="opacity-0 -translate-y-4"
             >
               <Dialog.Panel className="w-[400px] max-w-md transform overflow-hidden rounded-lg bg-[#141414] border border-gray-800/50 shadow-xl transition-all">
-                <NotificationContent notifications={notifications} />
+                <NotificationContent notifications={notifications} loading={loading} />
               </Dialog.Panel>
             </Transition.Child>
           </div>
@@ -92,7 +122,7 @@ export function NotificationDialog({
                     <div className="w-12 h-1 bg-gray-600 rounded-full" />
                   </div>
 
-                  <NotificationContent notifications={notifications} />
+                  <NotificationContent notifications={notifications} loading={loading} />
                 </div>
               </Dialog.Panel>
             </Transition.Child>
@@ -104,13 +134,29 @@ export function NotificationDialog({
 }
 
 // Helper component for notification content
-function NotificationContent({ notifications }: { notifications: any[] }) {
+function NotificationContent({ 
+  notifications, 
+  loading 
+}: { 
+  notifications: Notification[];
+  loading: boolean;
+}) {
+  if (loading) {
+    return (
+      <div className="p-4">
+        <div className="flex items-center justify-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-500 border-t-transparent" />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4">
       <Dialog.Title className="text-lg font-medium text-white mb-4 flex items-center justify-between">
         <span>Notifications</span>
         <span className="text-xs text-gray-400 font-normal">
-          {notifications.filter((n) => !n.read).length} new
+          {notifications.filter(n => !n.read).length} new
         </span>
       </Dialog.Title>
       <div className="space-y-4 max-h-[60vh] md:max-h-[400px] overflow-y-auto">
@@ -131,7 +177,11 @@ function NotificationContent({ notifications }: { notifications: any[] }) {
                   />
                 ) : (
                   <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center">
-                    <Bell className="w-6 h-6 text-gray-600" />
+                    {notification.type === 'upcoming' ? (
+                      <CalendarCheck className="w-6 h-6 text-gray-600" />
+                    ) : (
+                      <Film className="w-6 h-6 text-gray-600" />
+                    )}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
