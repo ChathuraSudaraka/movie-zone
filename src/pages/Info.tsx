@@ -11,11 +11,13 @@ import { MovieProcess } from "../components/info/MovieProcess";
 import { TVProcess } from "../components/info/TVProcess";
 import { useVideoModal } from '../context/VideoModalContext';
 import { Clapperboard } from "lucide-react";
+import { useWatchHistory } from '../hooks/useWatchHistory';
 
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const { openModal } = useVideoModal();
+  const { addToWatchHistory } = useWatchHistory();
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -124,6 +126,26 @@ function Info() {
     }
   };
 
+  const handleWatch = async () => {
+    if (!content || !type) return;
+
+    // Start playing video immediately
+    handlePlayClick();
+
+    // Track watch history in the background
+    try {
+      await addToWatchHistory({
+        id: content.id,
+        title: content.media_type === 'tv' ? content.name || 'Unknown TV Show' : content.title || 'Unknown Movie',
+        poster_path: content.poster_path || '',
+        media_type: (content.media_type === 'movie' || content.media_type === 'tv') ? content.media_type : (type === 'movie' || type === 'tv') ? type : 'movie'
+      }).catch(console.error); // Catch error silently to not interrupt viewing
+    } catch (error) {
+      // Error is handled silently to not interrupt the user experience
+      console.error('Background watch history update failed:', error);
+    }
+  };
+
   if (loading) {
     return <LoadingSkeleton />;
   }
@@ -203,7 +225,7 @@ function Info() {
                 </button>
               )}
               <button
-                onClick={handlePlayClick}
+                onClick={handleWatch}
                 className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
               >
                 <Clapperboard className="text-xl fill-white text-neutral-800 sm:text-2xl group-hover:scale-110 transition duration-300" />

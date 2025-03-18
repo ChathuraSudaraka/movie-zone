@@ -1,5 +1,6 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider, browserLocalPersistence, setPersistence } from 'firebase/auth';
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager } from 'firebase/firestore';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -13,6 +14,14 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
+// Initialize Firestore with better offline support
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({
+    tabManager: persistentMultipleTabManager(),
+    cacheSizeBytes: 50 * 1024 * 1024 // 50 MB cache size
+  })
+});
+
 // Set persistence to LOCAL
 setPersistence(auth, browserLocalPersistence);
 
@@ -21,4 +30,4 @@ provider.setCustomParameters({
   prompt: 'select_account'
 });
 
-export { auth, provider as googleProvider };
+export { auth, db, provider as googleProvider };
