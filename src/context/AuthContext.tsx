@@ -3,7 +3,6 @@ import {
   User, 
   signInWithPopup,
   signInWithRedirect, 
-  browserPopupRedirectResolver,
   signOut,
   getRedirectResult 
 } from 'firebase/auth';

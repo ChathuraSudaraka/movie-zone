@@ -1,22 +1,9 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
-import {
-  Camera,
-  User,
-  Eye,
-  Bell,
-  Film,
-  Clock,
-  ThumbsUp,
-  History,
-} from "lucide-react";
+import { Camera, User, Eye, Bell, Film, ThumbsUp, History } from "lucide-react";
 import { doc, getDoc, updateDoc, setDoc } from "firebase/firestore";
 import { db } from "../config/firebase";
-import type {
-  WatchHistoryItem,
-  ActivityItem,
-  UserPreferences,
-} from "../types/user";
+import type { ActivityItem, UserPreferences } from "../types/user";
 import { PLACEHOLDER_IMAGE } from "../utils/constants";
 import { useWatchHistory } from "../hooks/useWatchHistory";
 import { useNavigate } from "react-router-dom";
@@ -37,7 +24,7 @@ export function Profile() {
     defaultPlaybackQuality: "auto",
   });
   const [loading, setLoading] = useState(true);
-  const [displayName, setDisplayName] = useState(user?.displayName || '');
+  const [displayName, setDisplayName] = useState(user?.displayName || "");
   const [isSaving, setIsSaving] = useState(false);
   const navigate = useNavigate();
 
@@ -100,15 +87,15 @@ export function Profile() {
 
     try {
       setIsSaving(true);
-      const userDoc = doc(db, 'users', user.uid);
+      const userDoc = doc(db, "users", user.uid);
       await updateDoc(userDoc, {
         displayName,
-        updatedAt: new Date().toISOString()
+        updatedAt: new Date().toISOString(),
       });
       // Optional: Update Firebase auth profile
       // await updateProfile(user, { displayName });
     } catch (error) {
-      console.error('Error updating profile:', error);
+      console.error("Error updating profile:", error);
     } finally {
       setIsSaving(false);
     }
@@ -202,7 +189,7 @@ export function Profile() {
                     disabled={isSaving}
                     className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
+                    {isSaving ? "Saving..." : "Save Changes"}
                   </button>
                 </form>
               </div>
