@@ -25,5 +25,4 @@ dist-ssr
 
 # Environment variables
 .env
-.tsconfig.app.tsbuildinfo
-.tsconfig.node.tsbuildinfo
+*.tsbuildinfo
