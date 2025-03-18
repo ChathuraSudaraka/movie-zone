@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from "../../config/supabase";
+import { Mail } from 'lucide-react';
 
 export function Register() {
   const [email, setEmail] = useState("");
@@ -25,18 +26,29 @@ export function Register() {
         password,
         options: {
           data: {
-            display_name: name,
+            full_name: name,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         }
       });
 
       if (error) throw error;
+
+      if (data.user && data.user.identities?.length === 0) {
+        setError("This email is already registered. Please sign in instead.");
+        return;
+      }
       
-      if (data.user && !data.user.confirmed_at) {
+      if (data.user) {
+        // Create profile entry
+        await supabase.from('profiles').upsert({
+          id: data.user.id,
+          full_name: name,
+          email: email,
+          updated_at: new Date().toISOString(),
+        });
+
         setIsEmailSent(true);
-      } else {
-        navigate("/auth/login");
       }
     } catch (error: any) {
       setError(error.message || "Registration failed");
@@ -65,16 +77,64 @@ export function Register() {
     }
   };
 
+  const resendConfirmationEmail = async () => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) throw error;
+      
+      // Show success message
+      setError("Confirmation email has been resent!");
+    } catch (error: any) {
+      setError(error.message || "Failed to resend confirmation email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (isEmailSent) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
         <div className="max-w-md w-full space-y-8 bg-zinc-900/80 p-8 rounded-lg border border-zinc-800">
-          <div className="text-center">
-            <h2 className="text-3xl font-bold text-white mb-4">Check your email</h2>
-            <p className="text-gray-400">
-              We've sent you an email confirmation link to {email}.<br />
-              Please check your email to complete registration.
-            </p>
+          <div className="text-center space-y-6">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-600/10 text-red-500">
+              <Mail className="w-8 h-8" />
+            </div>
+            <div>
+              <h2 className="text-3xl font-bold text-white">Check your email</h2>
+              <p className="mt-2 text-gray-400">
+                We've sent a confirmation link to:
+              </p>
+              <p className="mt-1 text-xl font-medium text-white">{email}</p>
+            </div>
+            <div className="text-sm text-gray-400 space-y-2">
+              <p>Click the link in the email to verify your address.</p>
+              <p>If you don't see the email, check your spam folder.</p>
+            </div>
+            <div className="space-y-4">
+              <button
+                onClick={resendConfirmationEmail}
+                disabled={loading}
+                className="text-red-500 hover:text-red-400 text-sm"
+              >
+                {loading ? 'Sending...' : 'Resend confirmation email'}
+              </button>
+              <button
+                onClick={() => setIsEmailSent(false)}
+                className="block w-full text-gray-400 hover:text-white text-sm"
+              >
+                Use a different email address
+              </button>
+            </div>
+            {error && (
+              <div className="text-sm text-red-500">
+                {error}
+              </div>
+            )}
           </div>
         </div>
       </div>

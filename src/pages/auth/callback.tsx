@@ -13,12 +13,17 @@ export default function AuthCallback() {
         const type = queryParams.get('type');
 
         if (type === 'email_confirmation') {
-          // Handle email confirmation
-          await supabase.auth.onAuthStateChange((event) => {
-            if (event === 'SIGNED_IN') {
-              navigate('/', { replace: true });
-            }
+          const { error } = await supabase.auth.verifyOtp({
+            email: queryParams.get('email') || '',
+            token: queryParams.get('token') || '',
+            type: 'email',
           });
+
+          if (error) throw error;
+          
+          // Show success message and redirect
+          navigate('/auth/login?verified=true');
+          return;
         }
 
         // Try to get session from Supabase
@@ -62,7 +67,7 @@ export default function AuthCallback() {
 
       } catch (error) {
         console.error('Auth callback error:', error);
-        navigate('/auth/login', { replace: true });
+        navigate('/auth/login?error=verification_failed');
       }
     };
 
