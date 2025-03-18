@@ -20,15 +20,6 @@ interface Notification {
   uniqueId?: string;
 }
 
-interface NotificationItem {
-  id: number;
-  title: string;
-  message: string;
-  type: 'movie' | 'tv';
-  posterPath?: string;
-  timestamp: string;
-}
-
 export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps) {
   const { user } = useAuth();
   const [notifications, setNotifications] = useState<Notification[]>([]);
