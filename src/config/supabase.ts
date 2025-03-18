@@ -13,7 +13,9 @@ export const signInWithGoogle = async () => {
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
-      }
+      },
+      scopes: 'email profile',
+      skipBrowserRedirect: false,
     }
   });
 }
