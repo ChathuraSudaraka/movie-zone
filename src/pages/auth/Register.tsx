@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from "../../config/supabase";
@@ -12,7 +12,6 @@ export function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
-  const navigate = useNavigate();
   const { } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
