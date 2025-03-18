@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
@@ -13,16 +13,21 @@ import { Login } from "./pages/auth/Login";
 import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { Profile } from "./pages/Profile";
-import { Contact } from "./pages/Contact";
+import { Contact } from "./components/tabs/Contact";
+import AuthCallback from './pages/auth/callback';
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
+  const location = useLocation();
+
+  // Add this to check if we're on auth pages
+  const isAuthPage = location.pathname.startsWith('/auth/');
 
   return (
     <div className="relative h-screen bg-[#141414]">
-      <Header />
+      {!isAuthPage && <Header />}
       <VideoModal isOpen={isOpen} onClose={closeModal} embedUrl={embedUrl} />
-      <main className="relative">
+      <main className={`relative ${!isAuthPage ? '' : ''}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<Movies />} />
@@ -35,6 +40,7 @@ function AppContent() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>
       </main>
     </div>

@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
-import { doc, arrayUnion, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../config/firebase';
+import { supabase } from '../config/supabase';
 import { useAuth } from '../context/AuthContext';
 import type { WatchHistoryItem } from '../types/user';
 
@@ -47,29 +46,25 @@ export function useWatchHistory() {
     }
 
     try {
-      // Load from localStorage first for instant display
-      const cachedData = localStorage.getItem(`watchHistory-${user.uid}`);
-      if (cachedData) {
-        const cached = JSON.parse(cachedData);
-        setWatchHistory(cached);
-        setLoading(false); // Set loading false immediately after cache load
-      }
+      const { data, error } = await supabase
+        .from('watch_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('watched_at', { ascending: false });
 
-      // Then fetch fresh data in background
-      const userDoc = doc(db, 'users', user.uid);
-      const docSnap = await getDoc(userDoc);
+      if (error) throw error;
       
-      if (docSnap.exists()) {
-        const data = docSnap.data().watchHistory || [];
-        const sortedHistory = data.sort((a: WatchHistoryItem, b: WatchHistoryItem) => 
-          new Date(b.watchedAt).getTime() - new Date(a.watchedAt).getTime()
-        );
-        
-        setWatchHistory(sortedHistory);
-        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(sortedHistory));
-      }
+      const formattedData: WatchHistoryItem[] = (data || []).map(item => ({
+        id: item.media_id,
+        title: item.title,
+        posterPath: item.poster_path ? `https://image.tmdb.org/t/p/w500${item.poster_path}` : null,
+        mediaType: item.media_type,
+        watchedAt: item.watched_at
+      }));
+
+      setWatchHistory(formattedData);
     } catch (error) {
-      console.warn('Using cached data:', error);
+      console.error('Error fetching watch history:', error);
     } finally {
       setLoading(false);
     }
@@ -83,35 +78,22 @@ export function useWatchHistory() {
   }) => {
     if (!user) return;
 
-    const timestamp = new Date().toISOString();
-    const watchItem: WatchHistoryItem = {
-      id: String(mediaItem.id),
-      title: mediaItem.title || 'Untitled',
-      posterPath: mediaItem.poster_path 
-        ? `https://image.tmdb.org/t/p/w500${mediaItem.poster_path}`
-        : '',
-      mediaType: mediaItem.media_type,
-      watchedAt: timestamp
-    };
-
     try {
-      // Update local state and cache first
-      setWatchHistory(prev => {
-        const newHistory = [watchItem, ...prev.filter(item => item.id !== watchItem.id)];
-        localStorage.setItem(`watchHistory-${user.uid}`, JSON.stringify(newHistory));
-        return newHistory;
-      });
+      const { error } = await supabase
+        .from('watch_history')
+        .upsert({
+          user_id: user.id,
+          media_id: String(mediaItem.id),
+          title: mediaItem.title,
+          poster_path: mediaItem.poster_path,
+          media_type: mediaItem.media_type,
+          watched_at: new Date().toISOString()
+        });
 
-      // Update Firestore
-      const userDoc = doc(db, 'users', user.uid);
-      await setDoc(userDoc, {
-        watchHistory: arrayUnion(watchItem),
-        lastUpdated: timestamp
-      }, { merge: true });
-
+      if (error) throw error;
+      await fetchWatchHistory();
     } catch (error) {
       console.error('Error adding to watch history:', error);
-      // The local update is already done, so the user still sees their history
     }
   };
 
@@ -119,13 +101,13 @@ export function useWatchHistory() {
     if (!user) return;
     
     try {
-      // Clear local first for immediate feedback
-      localStorage.removeItem(`watchHistory-${user.uid}`);
+      const { error } = await supabase
+        .from('watch_history')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (error) throw error;
       setWatchHistory([]);
-      
-      // Then update Firestore
-      const userDoc = doc(db, 'users', user.uid);
-      await setDoc(userDoc, { watchHistory: [] }, { merge: true });
     } catch (error) {
       console.error('Error clearing history:', error);
     }
@@ -151,20 +133,20 @@ export function useWatchHistory() {
     if (navigator.onLine && user) {
       const syncPendingUpdates = async () => {
         const pendingUpdates = JSON.parse(localStorage.getItem('pendingWatchHistoryUpdates') || '[]');
-        const userUpdates = pendingUpdates.filter((update: any) => update.userId === user.uid);
+        const userUpdates = pendingUpdates.filter((update: any) => update.userId === user.id);
         
         if (userUpdates.length > 0) {
           try {
-            const userDoc = doc(db, 'users', user.uid);
             await retryOperation(() => 
-              setDoc(userDoc, {
-                watchHistory: watchHistory,
-                lastUpdated: new Date().toISOString()
-              }, { merge: true })
+              Promise.resolve(
+                supabase
+                  .from('watch_history')
+                  .upsert(userUpdates)
+              )
             );
             
             localStorage.setItem('pendingWatchHistoryUpdates', JSON.stringify(
-              pendingUpdates.filter((update: any) => update.userId !== user.uid)
+              pendingUpdates.filter((update: any) => update.userId !== user.id)
             ));
           } catch (error) {
             console.error('Error syncing pending updates:', error);

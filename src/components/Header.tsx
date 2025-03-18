@@ -10,7 +10,7 @@ import {
 import { baseUrl } from "@/utils/requests";
 import { Movie } from "../types/movie";
 import { NotificationDialog } from "./common/NotificationDialog";
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from "../context/AuthContext";
 
 interface SearchResult extends Movie {
   media_type: "movie" | "tv" | string;
@@ -27,7 +27,7 @@ function Header() {
   const [showUserMenu, setShowUserMenu] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -108,13 +108,8 @@ function Header() {
     setShowSuggestions(false);
   };
 
-  const handleLogout = async () => {
-    try {
-      await logout();
-      navigate('/');
-    } catch (error) {
-      console.error('Failed to logout:', error);
-    }
+  const handleSignOut = async () => {
+    await signOut();
   };
 
   return (
@@ -206,7 +201,7 @@ function Header() {
           >
             <SearchIcon className="h-5 w-5" />
           </button>
-          
+
           {user && ( // Only show notification button for logged-in users
             <button
               className="hover:scale-110 transition relative"
@@ -216,7 +211,7 @@ function Header() {
               <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-600 rounded-full"></span>
             </button>
           )}
-          
+
           <NotificationDialog
             isOpen={isNotificationOpen}
             onClose={() => setIsNotificationOpen(false)}
@@ -230,9 +225,14 @@ function Header() {
               {user ? (
                 <>
                   <img
-                    src={user.photoURL || `https://ui-avatars.com/api/?name=${user.displayName || 'User'}`}
-                    alt={user.displayName || 'User'}
-                    className="h-6 w-6 rounded-full"
+                    src={
+                      user?.user_metadata?.avatar_url ||
+                      `https://ui-avatars.com/api/?name=${
+                        user?.email || "User"
+                      }&size=200`
+                    }
+                    alt={user?.email || "Profile"}
+                    className="h-10 w-10 rounded-full"
                   />
                   <ChevronDownIcon
                     className={`h-4 w-4 transition-transform duration-200 ${
@@ -250,24 +250,30 @@ function Header() {
                 {user ? (
                   <div className="py-2">
                     <div className="px-4 py-3 border-b border-zinc-700">
-                      <p className="text-sm text-white">{user.displayName || 'User'}</p>
-                      <p className="text-xs text-gray-400 truncate">{user.email}</p>
+                      <p className="text-sm text-white">
+                        {user.user_metadata?.full_name ||
+                          user.email?.split("@")[0] ||
+                          "User"}
+                      </p>
+                      <p className="text-xs text-gray-400 truncate">
+                        {user.email}
+                      </p>
                     </div>
                     <div className="py-1">
                       <button
-                        onClick={() => navigate('/profile')}
+                        onClick={() => navigate("/profile")}
                         className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
                       >
                         Profile Settings
                       </button>
                       <button
-                        onClick={() => navigate('/my-list')}
+                        onClick={() => navigate("/my-list")}
                         className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
                       >
                         My List
                       </button>
                       <button
-                        onClick={handleLogout}
+                        onClick={handleSignOut}
                         className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
                       >
                         Sign Out

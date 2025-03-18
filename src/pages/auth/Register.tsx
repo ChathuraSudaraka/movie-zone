@@ -2,44 +2,59 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from 'react-icons/fc';
 import { useAuth } from '../../context/AuthContext';
+import { supabase } from "../../config/supabase";
 
 export function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { signInWithGoogle } = useAuth();
+  const { } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
     try {
-      // Replace with your actual auth logic
-      // const response = await registerUser(email, password, name);
-      console.log("Register attempt:", { email, password, name });
-      navigate("/browse"); // Redirect to main page after registration
-    } catch (err) {
-      setError("Registration failed. Please try again.");
-      console.error(err);
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            display_name: name,
+          }
+        }
+      });
+
+      if (error) throw error;
+      if (data) navigate("/auth/login");
+    } catch (error: any) {
+      setError(error.message || "Registration failed");
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleGoogleSignUp = async () => {
     try {
-      setError(''); // Clear any existing errors
-      await signInWithGoogle();
-      navigate('/');
+      setError('');
+      setLoading(true);
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`
+        }
+      });
+
+      if (error) throw error;
     } catch (error: any) {
-      if (error.code === 'auth/popup-closed-by-user') {
-        // User closed the popup, don't show error
-        return;
-      }
-      setError(
-        error.message || 'Failed to sign up with Google. Please try again.'
-      );
+      setError('Failed to sign up with Google');
       console.error('Sign up error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -109,17 +124,19 @@ export function Register() {
             <button
               type="submit"
               className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition"
+              disabled={loading}
             >
-              Create account
+              {loading ? 'Creating account...' : 'Create account'}
             </button>
 
             <button
               type="button"
               onClick={handleGoogleSignUp}
               className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md border border-zinc-700 transition"
+              disabled={loading}
             >
               <FcGoogle className="w-5 h-5" />
-              Sign up with Google
+              {loading ? 'Signing up...' : 'Sign up with Google'}
             </button>
           </div>
         </form>

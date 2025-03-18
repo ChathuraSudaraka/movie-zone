@@ -1,7 +1,7 @@
 export interface WatchHistoryItem {
   id: string;
   title: string;
-  posterPath: string;
+  posterPath: string | null;
   mediaType: 'movie' | 'tv';
   watchedAt: string;
 }
