@@ -1,9 +1,13 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { FcGoogle } from 'react-icons/fc';
-import { useAuth } from '../../context/AuthContext';
+import { FcGoogle } from "react-icons/fc";
 import { supabase } from "../../config/supabase";
-import { Mail } from 'lucide-react';
+import { Mail, Eye, EyeOff } from "lucide-react";
+import {
+  validateEmail,
+  validatePassword,
+  validateName,
+} from "../../utils/validation";
 
 export function Register() {
   const [email, setEmail] = useState("");
@@ -12,45 +16,55 @@ export function Register() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
-  const { } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const validateForm = () => {
+    const emailError = validateEmail(email);
+    const passwordError = validatePassword(password);
+    const nameError = validateName(name);
+
     setError("");
+    if (emailError) setError(emailError);
+    else if (passwordError) setError(passwordError);
+    else if (nameError) setError(nameError);
+
+    return !emailError && !passwordError && !nameError;
+  };
+
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!validateForm()) return;
 
     try {
       setLoading(true);
-      const { data, error } = await supabase.auth.signUp({
+
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: {
-            full_name: name,
-          },
+          data: { full_name: name },
           emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
+        },
       });
 
-      if (error) throw error;
-
-      if (data.user && data.user.identities?.length === 0) {
-        setError("This email is already registered. Please sign in instead.");
+      if (error) {
+        if (error.message.includes("already registered")) {
+          setError("This email is already registered");
+        } else {
+          throw error;
+        }
         return;
       }
-      
-      if (data.user) {
-        // Create profile entry
-        await supabase.from('profiles').upsert({
-          id: data.user.id,
-          full_name: name,
-          email: email,
-          updated_at: new Date().toISOString(),
-        });
 
+      if (user) {
         setIsEmailSent(true);
       }
     } catch (error: any) {
-      setError(error.message || "Registration failed");
+      console.error("Registration error:", error);
+      setError("Failed to create account");
     } finally {
       setLoading(false);
     }
@@ -58,19 +72,17 @@ export function Register() {
 
   const handleGoogleSignUp = async () => {
     try {
-      setError('');
       setLoading(true);
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`
-        }
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
       if (error) throw error;
-    } catch (error: any) {
-      setError('Failed to sign up with Google');
-      console.error('Sign up error:', error);
+    } catch (error) {
+      setError("Failed to sign up with Google");
     } finally {
       setLoading(false);
     }
@@ -80,13 +92,12 @@ export function Register() {
     try {
       setLoading(true);
       const { error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email,
       });
 
       if (error) throw error;
-      
-      // Show success message
+
       setError("Confirmation email has been resent!");
     } catch (error: any) {
       setError(error.message || "Failed to resend confirmation email");
@@ -104,7 +115,9 @@ export function Register() {
               <Mail className="w-8 h-8" />
             </div>
             <div>
-              <h2 className="text-3xl font-bold text-white">Check your email</h2>
+              <h2 className="text-3xl font-bold text-white">
+                Check your email
+              </h2>
               <p className="mt-2 text-gray-400">
                 We've sent a confirmation link to:
               </p>
@@ -120,7 +133,7 @@ export function Register() {
                 disabled={loading}
                 className="text-red-500 hover:text-red-400 text-sm"
               >
-                {loading ? 'Sending...' : 'Resend confirmation email'}
+                {loading ? "Sending..." : "Resend confirmation email"}
               </button>
               <button
                 onClick={() => setIsEmailSent(false)}
@@ -129,11 +142,7 @@ export function Register() {
                 Use a different email address
               </button>
             </div>
-            {error && (
-              <div className="text-sm text-red-500">
-                {error}
-              </div>
-            )}
+            {error && <div className="text-sm text-red-500">{error}</div>}
           </div>
         </div>
       </div>
@@ -156,10 +165,13 @@ export function Register() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+        <form onSubmit={handleRegister} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="name"
+                className="text-sm font-medium text-gray-300"
+              >
                 Full Name
               </label>
               <input
@@ -173,7 +185,10 @@ export function Register() {
               />
             </div>
             <div>
-              <label htmlFor="email" className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="email"
+                className="text-sm font-medium text-gray-300"
+              >
                 Email
               </label>
               <input
@@ -187,18 +202,34 @@ export function Register() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="text-sm font-medium text-gray-300">
+              <label
+                htmlFor="password"
+                className="text-sm font-medium text-gray-300"
+              >
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="mt-1 block w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
-                placeholder="Create a password"
-                required
-              />
+              <div className="relative mt-1">
+                <input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded bg-zinc-800 border border-zinc-700 px-3 py-2 text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+                  placeholder="Create a password"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                >
+                  {showPassword ? (
+                    <EyeOff className="w-5 h-5" />
+                  ) : (
+                    <Eye className="w-5 h-5" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -208,7 +239,7 @@ export function Register() {
               className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition"
               disabled={loading}
             >
-              {loading ? 'Creating account...' : 'Create account'}
+              {loading ? "Creating account..." : "Create account"}
             </button>
 
             <button
@@ -218,7 +249,7 @@ export function Register() {
               disabled={loading}
             >
               <FcGoogle className="w-5 h-5" />
-              {loading ? 'Signing up...' : 'Sign up with Google'}
+              {loading ? "Signing up..." : "Sign up with Google"}
             </button>
           </div>
         </form>

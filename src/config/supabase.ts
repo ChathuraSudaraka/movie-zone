@@ -6,19 +6,32 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export const signInWithGoogle = async () => {
+  // First check if user exists and get their auth provider
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (user) {
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('auth_provider')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.auth_provider === 'email') {
+      throw new Error('This email is registered with password. Please use email/password to sign in.');
+    }
+  }
+
   return await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
-      redirectTo: `${window.location.origin}/auth/callback`,
       queryParams: {
         access_type: 'offline',
         prompt: 'consent',
       },
-      scopes: 'email profile',
-      skipBrowserRedirect: false,
+      redirectTo: `${window.location.origin}/auth/callback`,
     }
   });
-}
+};
 
 export const signOut = async () => {
   return await supabase.auth.signOut();

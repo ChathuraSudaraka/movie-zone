@@ -1,0 +1,10 @@
+[functions]
+[functions.send-email]
+verify_jwt = false
+```
+
+Also, make sure to deploy the Edge Function with proper environment variables:
+
+```bash
+supabase secrets set --env-file .env
+supabase functions deploy send-email --no-verify-jwt
