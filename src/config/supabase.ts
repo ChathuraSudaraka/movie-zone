@@ -65,6 +65,8 @@ export const initializeUserProfile = async (userId: string, userData: any) => {
       .select('*')
       .eq('id', userId);
       
+    if (profileError) throw profileError;
+      
     // Create profile if it doesn't exist
     if (!profileData || profileData.length === 0) {
       const { error } = await supabase
@@ -83,6 +85,8 @@ export const initializeUserProfile = async (userId: string, userData: any) => {
       .from('user_preferences')
       .select('*')
       .eq('user_id', userId);
+      
+    if (preferencesError) throw preferencesError;
       
     if (!preferencesData || preferencesData.length === 0) {
       const { error } = await supabase
