@@ -1,9 +1,6 @@
 import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2 } from "lucide-react";
-
-const API_URL = import.meta.env.PROD 
-  ? import.meta.env.VITE_PROD_API_URL 
-  : import.meta.env.VITE_API_URL;
+import { supabase } from "@/config/supabase";
 
 export function Contact() {
   const [formData, setFormData] = useState({
@@ -22,33 +19,18 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      const response = await fetch(`${API_URL}/api/contact`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke('contact-form', {
+        body: {
           ...formData,
-          // Add timestamp for tracking
           timestamp: new Date().toISOString(),
-        }),
-        credentials: "include",
+        }
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || "Failed to send message");
-      }
-
-      if (data.success) {
-        setStatus("success");
-        setFormData({ name: "", email: "", subject: "", message: "" });
-        setErrorMessage("");
-      } else {
-        throw new Error(data.error || "Failed to send message");
-      }
+      if (error) throw new Error(error.message);
+      
+      setStatus("success");
+      setFormData({ name: "", email: "", subject: "", message: "" });
+      setErrorMessage("");
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");
@@ -58,12 +40,9 @@ export function Contact() {
           : "Failed to send message. Please try again."
       );
     } finally {
-      // Reset status after 5 seconds
       setTimeout(() => {
-        if (status !== "idle") {
-          setStatus("idle");
-          setErrorMessage("");
-        }
+        setStatus("idle");
+        setErrorMessage("");
       }, 5000);
     }
   };

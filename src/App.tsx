@@ -14,20 +14,20 @@ import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { Profile } from "./pages/Profile";
 import { Contact } from "./components/tabs/Contact";
-import AuthCallback from './pages/auth/callback';
+import AuthCallback from "./pages/auth/callback";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
   const location = useLocation();
 
   // Add this to check if we're on auth pages
-  const isAuthPage = location.pathname.startsWith('/auth/');
+  const isAuthPage = location.pathname.startsWith("/auth/");
 
   return (
     <div className="relative h-screen bg-[#141414]">
       {!isAuthPage && <Header />}
       <VideoModal isOpen={isOpen} onClose={closeModal} embedUrl={embedUrl} />
-      <main className={`relative ${!isAuthPage ? '' : ''}`}>
+      <main className={`relative ${!isAuthPage ? "" : ""}`}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/movies" element={<Movies />} />

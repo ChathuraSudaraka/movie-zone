@@ -3,117 +3,130 @@ import { Movie } from "../types/movie";
 import { FaPlay, FaPlus, FaCheck } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@mui/material";
-
-const FALLBACK_IMAGE =
-  "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
-
-function MovieCard({
-  item,
-  onRemove,
-}: {
-  item: Movie;
-  onRemove: (e: React.MouseEvent, id: number) => void;
-}) {
-  const [isHovered, setIsHovered] = useState(false);
-  const [imgError, setImgError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
-  const navigate = useNavigate();
-
-  const handleClick = () => {
-    window.scrollTo(0, 0);
-    navigate(`/info/${item.media_type}/${item.id}`);
-  };
-
-  const imageUrl =
-    imgError || !item.poster_path
-      ? FALLBACK_IMAGE
-      : `https://image.tmdb.org/t/p/w500${item.poster_path}`;
-
-  return (
-    <div
-      className="relative min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
-                 transition-all duration-300 ease-in-out group"
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      onClick={handleClick}
-      style={{ willChange: "transform" }}
-    >
-      {!isLoaded && (
-        <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
-      )}
-
-      <img
-        src={imageUrl}
-        alt={item.title}
-        loading="lazy"
-        decoding="async"
-        onError={() => setImgError(true)}
-        onLoad={() => setIsLoaded(true)}
-        className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${
-                     isHovered ? "scale-105 brightness-75" : ""
-                   }
-                   ${isLoaded ? "opacity-100" : "opacity-0"}`}
-      />
-
-      <div
-        className={`absolute inset-0 flex flex-col justify-end p-4 
-                   transition-opacity duration-300 ${
-                     isHovered ? "opacity-100" : "opacity-0"
-                   }`}
-      >
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              className="flex items-center justify-center w-10 h-10 rounded-full 
-                       bg-white/90 hover:bg-white transition group-hover:scale-110"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClick();
-              }}
-            >
-              <FaPlay className="h-5 w-5 text-black pl-0.5" />
-            </button>
-            <button
-              onClick={(e) => onRemove(e, item.id)}
-              className="flex items-center justify-center w-10 h-10 rounded-full 
-                      bg-[#2a2a2a]/60 hover:bg-[#2a2a2a] transition group-hover:scale-110"
-              title="Remove from My List"
-            >
-              <FaCheck className="text-white text-sm" />
-            </button>
-          </div>
-          <h3 className="text-white font-semibold drop-shadow-lg line-clamp-1">
-            {item.title}
-          </h3>
-        </div>
-      </div>
-    </div>
-  );
-}
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../config/supabase";
+import { MovieCard } from "../components/MovieCard";
 
 function MyList() {
   const [myList, setMyList] = useState<Movie[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { user } = useAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    document.title = "My List - MovieZone";
-    // Load saved movies from localStorage
-    const savedList = localStorage.getItem("netflix-mylist");
-    if (savedList) {
-      setMyList(JSON.parse(savedList));
-    }
-    // Simulate loading delay (optional - remove if not needed)
-    setTimeout(() => setIsLoading(false), 1000);
-  }, []);
+  const fetchMyList = async () => {
+    try {
+      setIsLoading(true);
+      const { data, error } = await supabase
+        .from("user_lists")
+        .select("movie_id, title, poster_path, media_type, added_at")
+        .eq("user_id", user?.id)
+        .order("added_at", { ascending: false });
 
-  const removeFromList = (e: React.MouseEvent, movieId: number) => {
-    e.stopPropagation(); // Prevent triggering the parent div's onClick
-    const updatedList = myList.filter((item) => item.id !== movieId);
-    setMyList(updatedList);
-    localStorage.setItem("netflix-mylist", JSON.stringify(updatedList));
+      if (error) throw error;
+
+      const formattedList = data.map(
+        (item) =>
+          ({
+            id: item.movie_id,
+            title: item.title,
+            poster_path: item.poster_path,
+            media_type: item.media_type,
+            adult: false,
+            backdrop_path: "",
+            genre_ids: [],
+            original_language: "",
+            original_title: item.title,
+            overview: "",
+            popularity: 0,
+            release_date: "",
+            video: false,
+            vote_average: 0,
+            vote_count: 0,
+          } as Movie)
+      );
+
+      setMyList(formattedList);
+    } catch (error) {
+      console.error("Error fetching my list:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  // Update useEffect to properly handle dependencies
+  useEffect(() => {
+    if (user) {
+      fetchMyList();
+    }
+  }, [user?.id]); // Add proper dependency
+
+  // Add subscription for real-time updates
+  useEffect(() => {
+    if (!user) return;
+
+    const subscription = supabase
+      .channel("user_lists_changes")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "user_lists",
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          if (payload.new && "movies" in payload.new) {
+            setMyList(payload.new.movies || []);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
+  }, [user]);
+
+  const removeFromList = async (e: React.MouseEvent, movieId: number) => {
+    e.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from("user_lists")
+        .delete()
+        .eq("user_id", user?.id)
+        .eq("movie_id", movieId);
+
+      if (error) throw error;
+      setMyList((prev) => prev.filter((item) => item.id !== movieId));
+    } catch (error) {
+      console.error("Error removing from list:", error);
+    }
+  };
+
+  if (!user) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#141414] text-white px-4">
+        <div className="max-w-md w-full text-center space-y-6 py-16">
+          <div className="mx-auto w-24 h-24 rounded-full bg-[#2f2f2f] flex items-center justify-center mb-8">
+            <FaPlus className="w-12 h-12 text-[#686868]" />
+          </div>
+          <h1 className="text-3xl md:text-4xl font-bold">
+            Sign in to access your list
+          </h1>
+          <p className="text-lg text-[#686868]">
+            Keep track of what you want to watch by adding movies and shows to
+            your list.
+          </p>
+          <button
+            onClick={() => navigate("/auth/login")}
+            className="bg-red-600 text-white px-8 py-3 rounded-md font-medium hover:bg-red-700 transition duration-300"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -189,7 +202,12 @@ function MyList() {
         </h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {myList.map((item) => (
-            <MovieCard key={item.id} item={item} onRemove={removeFromList} />
+            <MovieCard
+              key={item.id}
+              movie={item}
+              showRemoveButton={true}
+              onListUpdate={fetchMyList}
+            />
           ))}
         </div>
       </div>

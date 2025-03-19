@@ -13,12 +13,12 @@ interface UserProfileProps {
   isSaving: boolean;
 }
 
-export function UserProfile({ 
-  user, 
-  displayName, 
-  setDisplayName, 
-  handleSaveProfile, 
-  isSaving 
+export function UserProfile({
+  user,
+  displayName,
+  setDisplayName,
+  handleSaveProfile,
+  isSaving,
 }: UserProfileProps) {
   const {
     watchHistory,
@@ -67,7 +67,11 @@ export function UserProfile({
           {watchHistory.length > 0 && (
             <button
               onClick={() => {
-                if (window.confirm("Are you sure you want to clear your watch history?")) {
+                if (
+                  window.confirm(
+                    "Are you sure you want to clear your watch history?"
+                  )
+                ) {
                   clearHistory();
                 }
               }}
@@ -175,7 +179,6 @@ export function UserProfile({
       </div>
 
       <div>
-        <h2 className="text-xl font-semibold text-white mb-4">Watch History</h2>
         <div className="space-y-4">{renderWatchHistory()}</div>
       </div>
     </div>

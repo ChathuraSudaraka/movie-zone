@@ -12,12 +12,16 @@ import { TVProcess } from "../components/info/TVProcess";
 import { useVideoModal } from '../context/VideoModalContext';
 import { Clapperboard } from "lucide-react";
 import { useWatchHistory } from '../hooks/useWatchHistory';
+import toast from "react-hot-toast";
+import { useAuth } from "../context/AuthContext";
+import { supabase } from "../config/supabase";
 
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
+  const { user } = useAuth();
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -88,27 +92,68 @@ function Info() {
     }
   }, [content]);
 
-  const handleMyList = () => {
-    if (!content) return;
+  const checkIfInList = async () => {
+    if (!content || !user) return;
 
-    const savedList = localStorage.getItem('netflix-mylist');
-    let myList: Movie[] = savedList ? JSON.parse(savedList) : [];
+    try {
+      const { data, error } = await supabase
+        .from('user_lists')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('movie_id', content.id)
+        .maybeSingle();
 
-    if (isInMyList) {
-      // Remove from list
-      myList = myList.filter(item => item.id !== content.id);
-      setIsInMyList(false);
-    } else {
-      // Add to list
-      myList.push({
-        ...content,
-        media_type: type // ensure media_type is stored
-      });
-      setIsInMyList(true);
+      if (error) throw error;
+      setIsInMyList(!!data);
+    } catch (error) {
+      console.error('Error checking list status:', error);
+    }
+  };
+
+  const handleMyList = async () => {
+    if (!content || !user) {
+      navigate('/auth/login');
+      return;
     }
 
-    localStorage.setItem('netflix-mylist', JSON.stringify(myList));
+    try {
+      if (isInMyList) {
+        // Remove from list
+        const { error: deleteError } = await supabase
+          .from('user_lists')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('movie_id', content.id);
+
+        if (deleteError) throw deleteError;
+        setIsInMyList(false);
+        toast.success('Removed from your list');
+      } else {
+        // Add to list
+        const { error: insertError } = await supabase
+          .from('user_lists')
+          .insert({
+            user_id: user.id,
+            movie_id: content.id,
+            title: content.title,
+            poster_path: content.poster_path,
+            media_type: content.media_type || type
+          });
+
+        if (insertError) throw insertError;
+        setIsInMyList(true);
+        toast.success('Added to your list');
+      }
+    } catch (error) {
+      console.error('Error updating list:', error);
+      toast.error('Failed to update list');
+    }
   };
+
+  // Update useEffect to check list status
+  useEffect(() => {
+    checkIfInList();
+  }, [content, user]);
 
   const getVideoEmbedUrl = () => {
     if (!content?.imdb_id) return '';

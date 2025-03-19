@@ -8,7 +8,6 @@ import {
   validatePassword,
   validateName,
 } from "../../utils/validation";
-import { sendEmail } from "../../utils/email";
 
 export function Register() {
   const [email, setEmail] = useState("");
@@ -18,6 +17,7 @@ export function Register() {
   const [loading, setLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
 
   const validateForm = () => {
     const emailError = validateEmail(email);
@@ -38,52 +38,73 @@ export function Register() {
 
     try {
       setLoading(true);
+      setEmailSending(true);
 
-      // Register with Supabase without email confirmation
-      const { data, error } = await supabase.auth.signUp({
+      // Generate a verification token
+      const verificationToken = crypto.randomUUID();
+
+      // First, try to send the verification email
+      const { error: functionError } = await supabase.functions.invoke(
+        "mail-sender",
+        {
+          body: {
+            to: email,
+            subject: "Verify your MovieZone account",
+            template:
+              "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ConfirmEmailTemplate.html",
+            data: {
+              name: name,
+              verificationUrl: `${
+                window.location.origin
+              }/auth/verify?token=${verificationToken}&email=${encodeURIComponent(
+                email
+              )}`,
+            },
+          },
+        }
+      );
+
+      if (functionError) {
+        throw new Error(
+          `Failed to send verification email: ${functionError.message}`
+        );
+      }
+
+      // If email sent successfully, create the user
+      const { data: userData, error: userError } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          data: { full_name: name },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        }
+          data: {
+            full_name: name,
+            verification_token: verificationToken,
+          },
+          emailRedirectTo: null, // Disable default Supabase email
+        },
       });
 
-      if (error) throw error;
+      if (userError) throw userError;
 
-      if (data?.user) {
-        try {
-          // Create profile
-          await supabase.from('profiles').upsert({
-            id: data.user.id,
-            full_name: name,
-            email: email,
-            auth_provider: 'email',
-            updated_at: new Date().toISOString(),
-          });
+      if (userData?.user) {
+        // Create profile
+        await supabase.from("profiles").insert({
+          id: userData.user.id,
+          full_name: name,
+          email: email,
+          email_verified: false,
+          auth_provider: "email",
+          verification_token: verificationToken,
+          updated_at: new Date().toISOString(),
+        });
 
-          // Send verification email using our Edge Function
-          await sendEmail({
-            to: email,
-            subject: 'Verify your MovieZone account',
-            template: 'confirm-email',
-            data: {
-              name,
-              confirmationUrl: `${window.location.origin}/auth/verify?token=${data.user.id}&email=${email}`
-            }
-          });
-
-          setIsEmailSent(true);
-        } catch (emailError) {
-          console.error('Error sending verification email:', emailError);
-          setError('Account created but failed to send verification email. Please contact support.');
-        }
+        setIsEmailSent(true);
       }
     } catch (error: any) {
-      console.error('Registration error:', error);
-      setError(error.message || 'Failed to create account');
+      console.error("Registration error:", error);
+      setError(error.message || "Failed to create account");
     } finally {
       setLoading(false);
+      setEmailSending(false);
     }
   };
 
@@ -108,16 +129,33 @@ export function Register() {
   const resendConfirmationEmail = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.resend({
-        type: "signup",
-        email,
-      });
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (error) throw error;
+      if (!user) throw new Error("No user found");
 
-      setError("Confirmation email has been resent!");
+      const { error: functionError } = await supabase.functions.invoke(
+        "mail-sender",
+        {
+          body: {
+            to: email,
+            subject: "Verify your MovieZone account",
+            data: {
+              name: name,
+              verificationUrl: `${window.location.origin}/auth/verify?user_id=${
+                user.id
+              }&email=${encodeURIComponent(email)}`,
+            },
+          },
+        }
+      );
+
+      if (functionError) throw functionError;
+
+      setError("Verification email has been resent!");
     } catch (error: any) {
-      setError(error.message || "Failed to resend confirmation email");
+      setError(error.message || "Failed to resend verification email");
     } finally {
       setLoading(false);
     }
@@ -256,7 +294,11 @@ export function Register() {
               className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition"
               disabled={loading}
             >
-              {loading ? "Creating account..." : "Create account"}
+              {loading
+                ? emailSending
+                  ? "Sending verification email..."
+                  : "Creating account..."
+                : "Create account"}
             </button>
 
             <button
