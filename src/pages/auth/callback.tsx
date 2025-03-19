@@ -22,15 +22,15 @@ export default function AuthCallback() {
           if (updateError) throw updateError;
 
           // Send welcome email
-          await sendEmail({
-            to: email,
-            subject: 'Welcome to MovieZone',
-            template: 'welcome',
-            data: {
-              name: email.split('@')[0],
-              loginUrl: `${window.location.origin}/auth/login`
-            }
-          });
+          // await sendEmail({
+          //   to: email,
+          //   subject: 'Welcome to MovieZone',
+          //   template: 'welcome',
+          //   data: {
+          //     name: email.split('@')[0],
+          //     loginUrl: `${window.location.origin}/auth/login`
+          //   }
+          // });
 
           navigate('/auth/login?verified=true');
           return;
