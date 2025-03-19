@@ -172,8 +172,8 @@ function Info() {
       media_id: content.id.toString(),
       media_type: mediaData.media_type,
       metadata: {
-        posterPath: content.poster_path,
-      },
+        poster_path: content.poster_path || undefined,
+      }
     }).catch((error) => {
       console.error("Failed to track watch activity:", error);
     });
