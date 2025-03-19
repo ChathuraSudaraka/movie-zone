@@ -1,4 +1,4 @@
-import { Settings, Monitor, Volume2, Globe } from 'lucide-react';
+import { Settings, Monitor, Globe } from 'lucide-react';
 import { UserPreferences } from '@/types/user';
 
 interface PreferencesProps {

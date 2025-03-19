@@ -23,20 +23,19 @@ export function Contact() {
       // Simulate API call for demo purposes
       await new Promise(resolve => setTimeout(resolve, 1500));
       
-      // Real implementation would use Supabase Functions
-      // await supabase.functions.invoke("contact-form", {
-      //   method: "POST",
-      //   body: {
-      //     to: "support@moviezone.com",
-      //     subject: `Contact Form: ${formData.subject}`,
-      //     options: {
-      //       name: formData.name,
-      //       email: formData.email,
-      //       subject: formData.subject,
-      //       message: formData.message,
-      //     },
-      //   },
-      // });
+      await supabase.functions.invoke("contact-form", {
+        method: "POST",
+        body: {
+          to: "chathurasudaraka@eversoft.lk",
+          subject: `Contact Form: ${formData.subject}`,
+          options: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          },
+        },
+      });
 
       setStatus("success");
       toast.success("Message sent successfully!");

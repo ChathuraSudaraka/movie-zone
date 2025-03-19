@@ -262,18 +262,101 @@ export function Profile() {
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          {[
-            { label: 'Movies Watched', value: '27', icon: Activity },
-            { label: 'In Watchlist', value: '12', icon: UserIcon },
-          ].map((stat, index) => (
-            <div key={index} className="bg-zinc-900/80 rounded-xl p-4 text-center">
+          <StatisticsCards userId={user?.id} />
+        </div>
+      </div>
+
+      {/* Password Change Modal */}
+      {showPasswordChange && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-zinc-900 rounded-xl p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-4">Change Password</h2>
+            {/* Password change form would go here */}
+            <div className="flex justify-end gap-4">
+              <button 
+                className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
+                onClick={() => setShowPasswordChange(false)}
+              >
+                Cancel
+              </button>
+              <button className="px-4 py-2 bg-red-600 text-white rounded-lg">
+                Update Password
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// New component to handle statistics fetching and display
+function StatisticsCards({ userId }: { userId?: string }) {
+  const [stats, setStats] = useState({
+    watched: '0',
+    watchlist: '0'
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!userId) {
+        setLoading(false);
+        return;
+      }
+      
+      try {
+        // Fetch watched movies count from watch_history table
+        const { data: watchedData, error: watchedError } = await supabase
+          .from('watch_history')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userId);
+        
+        // Fetch watchlist count from user_lists table
+        const { data: watchlistData, error: watchlistError } = await supabase
+          .from('user_lists')
+          .select('*', { count: 'exact' })
+          .eq('user_id', userId);
+        
+        if (watchedError) throw watchedError;
+        if (watchlistError) throw watchlistError;
+        
+        setStats({
+          watched: String(watchedData?.length || 0),
+          watchlist: String(watchlistData?.length || 0)
+        });
+      } catch (error) {
+        console.error('Error fetching stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchStats();
+  }, [userId]);
+  
+  const statsData = [
+    { label: 'Movies Watched', value: stats.watched, icon: Activity },
+    { label: 'In Watchlist', value: stats.watchlist, icon: UserIcon }
+  ];
+  
+  return (
+    <>
+      {statsData.map((stat, index) => (
+        <div key={index} className="bg-zinc-900/80 rounded-xl p-4 text-center">
+          {loading ? (
+            <div className="flex justify-center items-center h-24">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-red-500 border-t-transparent"></div>
+            </div>
+          ) : (
+            <>
               <stat.icon className="w-6 h-6 text-red-500 mx-auto mb-2" />
               <p className="text-2xl font-bold text-white">{stat.value}</p>
               <p className="text-sm text-gray-400">{stat.label}</p>
-            </div>
-          ))}
+            </>
+          )}
         </div>
-      </div>
-    </div>
+      ))}
+    </>
   );
 }
