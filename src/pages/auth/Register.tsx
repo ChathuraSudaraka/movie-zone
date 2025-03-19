@@ -52,9 +52,9 @@ export function Register() {
             full_name: name,
             verification_token: verificationToken,
           },
-          emailRedirectTo: null,
+          // emailRedirectTo: null,
           // Disable Supabase's built-in email verification
-          emailConfirm: false,
+          // emailConfirm: false,
         },
       });
 
