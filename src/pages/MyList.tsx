@@ -180,11 +180,13 @@ function MyList() {
 
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
-      <div className="px-2 py-6 md:px-3 lg:px-4">
-        <h1 className="mb-6 text-xl font-semibold text-white md:text-2xl lg:text-3xl">
+      <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
+        <h1 className="mb-4 sm:mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl 
+                    font-semibold text-white">
           My List
         </h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 
+                     gap-2 sm:gap-3 md:gap-4">
           {myList.map((item) => (
             <MovieCard
               key={item.id}

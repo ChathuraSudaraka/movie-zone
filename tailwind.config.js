@@ -12,6 +12,9 @@ export default {
       padding: {
         'safe': 'env(safe-area-inset-bottom)',
       },
+      screens: {
+        'xs': '475px',
+      },
     },
   },
   variants: {

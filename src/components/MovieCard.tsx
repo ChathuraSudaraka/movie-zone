@@ -100,8 +100,9 @@ export function MovieCard({ movie, showRemoveButton = false, onListUpdate }: Mov
 
   return (
     <div
-      className="relative min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
-                 transition-all duration-300 ease-in-out group"
+      className="relative min-w-[140px] sm:min-w-[160px] md:min-w-[180px] lg:min-w-[200px] 
+                 aspect-[2/3] sm:aspect-[2/3] cursor-pointer transition-all duration-300 
+                 ease-in-out group"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
@@ -117,14 +118,15 @@ export function MovieCard({ movie, showRemoveButton = false, onListUpdate }: Mov
         decoding="async"
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
-        className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${isHovered ? "scale-105 brightness-75" : ""}
+        className={`rounded-md object-cover w-full h-full transition-all duration-300 
+                   ${isHovered ? "scale-105 brightness-75" : ""}
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
 
       <div
-        className={`absolute inset-0 flex flex-col justify-between p-4 
-                   transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"}`}
+        className={`absolute inset-0 flex flex-col justify-between p-2 sm:p-4 
+                   transition-opacity duration-300 
+                   ${isHovered ? "opacity-100" : "opacity-0 sm:opacity-0"}`}
       >
         <div className="flex items-center gap-2">
           {isWatched && (
@@ -134,17 +136,17 @@ export function MovieCard({ movie, showRemoveButton = false, onListUpdate }: Mov
           )}
         </div>
         
-        <div className="flex flex-col gap-2">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-1 sm:gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <button
-              className="flex items-center justify-center w-10 h-10 rounded-full 
+              className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full 
                        bg-white/90 hover:bg-white transition group-hover:scale-110"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCardClick();
               }}
             >
-              <FaPlay className="h-5 w-5 text-black pl-0.5" />
+              <FaPlay className="h-3 w-3 sm:h-5 sm:w-5 text-black pl-0.5" />
             </button>
             {showRemoveButton ? (
               <button
@@ -173,7 +175,8 @@ export function MovieCard({ movie, showRemoveButton = false, onListUpdate }: Mov
               </button>
             )}
           </div>
-          <h3 className="text-white font-semibold drop-shadow-lg line-clamp-1">
+          <h3 className="text-sm sm:text-base text-white font-semibold drop-shadow-lg 
+                       line-clamp-1 sm:line-clamp-2">
             {movie.title}
           </h3>
         </div>

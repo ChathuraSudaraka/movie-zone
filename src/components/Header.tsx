@@ -115,17 +115,16 @@ function Header() {
   return (
     <header
       className={`${
-        isScrolled
-          ? "bg-[#141414]"
-          : "bg-gradient-to-b from-black/80 to-transparent"
+        isScrolled ? "bg-[#141414]" : "bg-gradient-to-b from-black/80 to-transparent"
       } fixed top-0 z-50 w-full transition-colors duration-300`}
     >
       <div className="flex w-full items-center justify-between h-[35px] px-4 md:px-8">
         {/* Left side */}
-        <div className="flex items-center space-x-8">
+        <div className="flex items-center gap-4 sm:gap-8">
           <p
             onClick={() => navigate("/")}
-            className="text-2xl font-bold cursor-pointer text-red-600 hover:text-red-500 transition"
+            className="text-lg sm:text-xl md:text-2xl font-bold cursor-pointer 
+                     text-red-600 hover:text-red-500 transition"
           >
             MovieZone
           </p>
@@ -157,20 +156,22 @@ function Header() {
           {/* Mobile Navigation */}
           <div className="relative lg:hidden">
             <button
-              className="flex items-center space-x-1.5 text-sm font-medium text-white"
+              className="flex items-center gap-1 text-sm font-medium text-white/90 
+                       hover:text-white py-1 px-2"
               onClick={() => setShowMobileMenu(!showMobileMenu)}
             >
               <span>Browse</span>
               <ChevronDownIcon
-                className={`w-4 h-4 transition duration-200 ${
-                  showMobileMenu ? "rotate-180" : "rotate-0"
-                }`}
+                className={`w-4 h-4 transition-transform duration-200 
+                         ${showMobileMenu ? "rotate-180" : ""}`}
               />
             </button>
 
             {showMobileMenu && (
-              <div className="absolute top-8 left-0 bg-black/95 border border-gray-700 p-2 w-56 rounded-md animate-fade-in">
-                <div className="flex flex-col space-y-2">
+              <div className="absolute top-full left-0 mt-1 w-48 sm:w-64 
+                           bg-black/95 border border-zinc-700 rounded-md shadow-lg 
+                           overflow-hidden animate-in fade-in slide-in-from-top-4">
+                <div className="py-2">
                   {navigation.map((item) => (
                     <button
                       key={item.name}
@@ -178,13 +179,17 @@ function Header() {
                         navigate(item.href);
                         setShowMobileMenu(false);
                       }}
-                      className={`px-3 py-2 text-sm rounded-md transition ${
-                        location.pathname === item.href
-                          ? "bg-red-600/20 text-white font-medium"
-                          : "text-[#e5e5e5] hover:bg-white/10"
-                      }`}
+                      className={`w-full flex items-center px-4 py-3 text-left text-sm transition-colors
+                        ${
+                          location.pathname === item.href
+                            ? "bg-red-600/10 text-white font-medium"
+                            : "text-gray-300 hover:bg-white/5 hover:text-white"
+                        }`}
                     >
                       {item.name}
+                      {location.pathname === item.href && (
+                        <div className="ml-auto w-1 h-4 bg-red-600 rounded-full" />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -194,21 +199,23 @@ function Header() {
         </div>
 
         {/* Right side */}
-        <div className="flex items-center space-x-6">
+        <div className="flex items-center gap-2 sm:gap-4 md:gap-6">
+          {/* Search Button */}
           <button
-            className="hover:scale-110 transition"
+            className="p-1.5 sm:p-2 hover:bg-white/10 rounded-full transition-colors"
             onClick={() => setShowSearch(true)}
           >
-            <SearchIcon className="h-5 w-5" />
+            <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </button>
 
-          {user && ( // Only show notification button for logged-in users
+          {/* Notifications */}
+          {user && (
             <button
-              className="hover:scale-110 transition relative"
+              className="p-2 hover:bg-white/10 rounded-full transition-colors relative"
               onClick={() => setIsNotificationOpen(true)}
             >
-              <BellIcon className="h-5 w-5" />
-              <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-600 rounded-full"></span>
+              <BellIcon className="w-5 h-5 text-white" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full" />
             </button>
           )}
 
@@ -219,7 +226,7 @@ function Header() {
 
           <div className="relative">
             <button
-              className="flex items-center space-x-2 p-1 rounded-full hover:bg-gray-800 transition-colors duration-200"
+              className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-colors"
               onClick={() => setShowUserMenu(!showUserMenu)}
             >
               {user ? (
@@ -232,65 +239,69 @@ function Header() {
                       }&size=200`
                     }
                     alt={user?.email || "Profile"}
-                    className="h-10 w-10 rounded-full"
+                    className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
                   />
                   <ChevronDownIcon
-                    className={`h-4 w-4 transition-transform duration-200 ${
+                    className={`w-4 h-4 text-white transition-transform duration-200 ${
                       showUserMenu ? "rotate-180" : ""
                     }`}
                   />
                 </>
               ) : (
-                <UserCircle2 className="h-6 w-6 text-gray-300" />
+                <UserCircle2 className="w-6 h-6 text-gray-300" />
               )}
             </button>
 
             {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-md bg-zinc-900 border border-zinc-800 shadow-xl animate-fade-in z-50">
+              <div className="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-md bg-black/95 border border-zinc-800 shadow-xl animate-in fade-in slide-in-from-top-2">
                 {user ? (
-                  <div className="py-2">
-                    <div className="px-4 py-3 border-b border-zinc-700">
-                      <p className="text-sm text-white">
+                  <div className="divide-y divide-zinc-800">
+                    <div className="px-4 py-3">
+                      <p className="text-sm font-medium text-white truncate">
                         {user.user_metadata?.full_name ||
-                          user.email?.split("@")[0] ||
-                          "User"}
+                          user.email?.split("@")[0]}
                       </p>
-                      <p className="text-xs text-gray-400 truncate">
+                      <p className="text-xs text-gray-400 truncate mt-0.5">
                         {user.email}
                       </p>
                     </div>
                     <div className="py-1">
-                      <button
-                        onClick={() => navigate("/profile")}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
-                      >
-                        Profile Settings
-                      </button>
-                      <button
-                        onClick={() => navigate("/my-list")}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
-                      >
-                        My List
-                      </button>
+                      {[
+                        { label: "Profile Settings", href: "/profile" },
+                        { label: "My List", href: "/my-list" },
+                      ].map((item) => (
+                        <button
+                          key={item.label}
+                          onClick={() => {
+                            navigate(item.href);
+                            setShowUserMenu(false);
+                          }}
+                          className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                        >
+                          {item.label}
+                        </button>
+                      ))}
                       <button
                         onClick={handleSignOut}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
+                        className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
                       >
                         Sign Out
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="py-2">
+                  <div className="py-1">
                     <Link
                       to="/auth/login"
-                      className="block px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                      onClick={() => setShowUserMenu(false)}
                     >
                       Sign In
                     </Link>
                     <Link
                       to="/auth/register"
-                      className="block px-4 py-2 text-sm text-gray-200 hover:bg-red-600/10 hover:text-white transition"
+                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
+                      onClick={() => setShowUserMenu(false)}
                     >
                       Register
                     </Link>
@@ -304,8 +315,9 @@ function Header() {
 
       {/* Search Modal */}
       {showSearch && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 bg-black/60">
-          <div className="relative w-full max-w-2xl bg-[#141414] p-6 rounded-lg">
+        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 
+                     px-4 sm:px-6 bg-black/60">
+          <div className="relative w-full max-w-lg sm:max-w-2xl bg-[#141414] p-4 sm:p-6 rounded-lg">
             <button
               className="absolute right-4 top-4 text-gray-400 hover:text-white"
               onClick={() => {
