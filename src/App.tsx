@@ -15,6 +15,7 @@ import { AuthProvider } from "./context/AuthContext";
 import { Profile } from "./pages/Profile";
 import { Contact } from "./components/tabs/Contact";
 import AuthCallback from "./pages/auth/callback";
+import { ForgotPassword } from "./pages/auth/ForgotPassword";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -39,6 +40,7 @@ function AppContent() {
           <Route path="/info/:type/:id" element={<Info />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
+          <Route path="/auth/forgot-password" element={<ForgotPassword />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/auth/callback" element={<AuthCallback />} />
         </Routes>

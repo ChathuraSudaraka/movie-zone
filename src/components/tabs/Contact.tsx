@@ -20,24 +20,45 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      // Simulate API call for demo purposes
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      // For now, let's use a simpler approach to avoid SMTP issues
+      // Store the contact form in Supabase database instead
+      const { error: contactError } = await supabase
+        .from('contact_messages')
+        .insert({
+          name: formData.name,
+          email: formData.email,
+          subject: formData.subject,
+          message: formData.message,
+          created_at: new Date().toISOString()
+        });
 
-      await supabase.functions.invoke("contact-form", {
-        method: "POST",
-        body: {
-          to: "chathurasudaraka@eversoft.lk",
-          subject: `Contact Form: ${formData.subject}`,
-          template:
-            "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ContactFormTemplate.html",
-          options: {
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message,
+      if (contactError) {
+        console.error("Database error:", contactError);
+        throw new Error("Failed to submit contact form");
+      }
+
+      // Try to send email, but don't fail if it doesn't work
+      try {
+        await supabase.functions.invoke("mail-sender", {
+          method: "POST",
+          body: {
+            to: "support@moviezone.com",
+            subject: `Contact Form: ${formData.subject}`,
+            template:
+              "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template/ContactFormTemplate.html",
+            data: {
+              name: formData.name,
+              email: formData.email,
+              subject: formData.subject,
+              message: formData.message,
+              verificationUrl: "#"
+            },
           },
-        },
-      });
+        });
+      } catch (emailError) {
+        // Log but don't throw since we already stored in database
+        console.error("Email sending failed:", emailError);
+      }
 
       setStatus("success");
       toast.success("Message sent successfully!");
@@ -45,12 +66,12 @@ export function Contact() {
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");
-      toast.error("Failed to send message");
       setErrorMessage(
         error instanceof Error
           ? error.message
-          : "Failed to send message. Please try again."
+          : "Sorry, we couldn't send your message right now. Please try again later."
       );
+      toast.error("Failed to send message");
     } finally {
       setTimeout(() => setStatus("idle"), 5000);
     }

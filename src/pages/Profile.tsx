@@ -188,7 +188,8 @@ export function Profile() {
                   <LogOut className="w-4 h-4" />
                   Sign Out
                 </button>
-                {user?.user_metadata?.auth_provider === 'email' && (
+                {/* Only show the Change Password button if the user didn't sign in with a provider like Google */}
+                {!user?.app_metadata?.provider && (
                   <button
                     onClick={() => setShowPasswordChange(true)}
                     className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700
