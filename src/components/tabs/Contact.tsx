@@ -21,13 +21,15 @@ export function Contact() {
 
     try {
       // Simulate API call for demo purposes
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+
       await supabase.functions.invoke("contact-form", {
         method: "POST",
         body: {
           to: "chathurasudaraka@eversoft.lk",
           subject: `Contact Form: ${formData.subject}`,
+          template:
+            "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ContactFormTemplate.html",
           options: {
             name: formData.name,
             email: formData.email,
@@ -63,7 +65,8 @@ export function Contact() {
 
       <div>
         <p className="text-gray-400 mb-6">
-          Have a question or feedback? We'd love to hear from you. Fill out the form below and we'll get back to you as soon as possible.
+          Have a question or feedback? We'd love to hear from you. Fill out the
+          form below and we'll get back to you as soon as possible.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
