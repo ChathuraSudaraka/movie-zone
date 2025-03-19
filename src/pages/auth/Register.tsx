@@ -258,7 +258,7 @@ export function Register() {
         <button
           type="button"
           onClick={handleGoogleSignUp}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-900 rounded-md border border-gray-200 transition hover:bg-gray-100"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md border border-zinc-700 transition"
           disabled={loading}
         >
           <FcGoogle className="w-5 h-5" />

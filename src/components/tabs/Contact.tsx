@@ -39,10 +39,10 @@ export function Contact() {
 
       // Try to send email, but don't fail if it doesn't work
       try {
-        await supabase.functions.invoke("mail-sender", {
+        await supabase.functions.invoke("contact-form", {
           method: "POST",
           body: {
-            to: "support@moviezone.com",
+            to: "chathurasudaraka@eversoft.lk",
             subject: `Contact Form: ${formData.subject}`,
             template:
               "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template/ContactFormTemplate.html",
