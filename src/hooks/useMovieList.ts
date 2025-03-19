@@ -89,6 +89,76 @@ export function useMovieList() {
     }
   };
 
+  // Add a new optimistic update method
+  const toggleListItem = async (movie: Movie): Promise<boolean> => {
+    if (!user) {
+      // Redirect or show login prompt
+      return false;
+    }
+    
+    // Check if movie is in list
+    const isCurrentlyInList = movieList.some(m => m.id === movie.id);
+    
+    // Optimistically update local state
+    if (isCurrentlyInList) {
+      setMovieList(movieList.filter(m => m.id !== movie.id));
+    } else {
+      setMovieList([
+        {
+          ...movie,
+          // Ensure all required fields are present
+          adult: movie.adult || false,
+          backdrop_path: movie.backdrop_path || "",
+          genre_ids: movie.genre_ids || [],
+          original_language: movie.original_language || "",
+          original_title: movie.original_title || movie.title,
+          overview: movie.overview || "",
+          popularity: movie.popularity || 0,
+          release_date: movie.release_date || "",
+          video: movie.video || false,
+          vote_average: movie.vote_average || 0,
+          vote_count: movie.vote_count || 0
+        },
+        ...movieList
+      ]);
+    }
+    
+    try {
+      if (isCurrentlyInList) {
+        // Remove from database
+        const { error } = await supabase
+          .from('user_lists')
+          .delete()
+          .eq('user_id', user.id)
+          .eq('movie_id', movie.id);
+          
+        if (error) throw error;
+      } else {
+        // Add to database
+        const { error } = await supabase
+          .from('user_lists')
+          .insert({
+            user_id: user.id,
+            movie_id: movie.id,
+            title: movie.title,
+            poster_path: movie.poster_path,
+            media_type: movie.media_type || 'movie',
+            added_at: new Date().toISOString()
+          });
+          
+        if (error) throw error;
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error toggling list item:', error);
+      
+      // Revert optimistic update on error
+      await fetchMovieList();
+      return false;
+    }
+  };
+
   useEffect(() => {
     fetchMovieList();
   }, [user]);
@@ -99,6 +169,7 @@ export function useMovieList() {
     isInList,
     addToList,
     removeFromList,
+    toggleListItem, // Add the new method
     refreshList: fetchMovieList
   };
 }

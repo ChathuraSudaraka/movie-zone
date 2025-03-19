@@ -8,12 +8,18 @@ export interface WatchHistoryItem {
 
 export interface ActivityItem {
   id: string;
-  type: 'watch' | 'like' | 'add_to_list' | string;
+  type: 'watch' | 'like' | 'add_to_list' | 'rate' | 'review' | 'share' | 'view' | 'finish_series' | string;
   title: string;
   media_id?: string;
   media_type?: string;
   timestamp: string;
   user_id: string;
+  metadata?: {
+    rating?: string;
+    content?: string;
+    platform?: string;
+    progress?: number;
+  };
 }
 
 export interface UserPreferences {
@@ -21,7 +27,7 @@ export interface UserPreferences {
   pushNotifications: boolean;
   newReleaseAlerts: boolean;
   watchlistUpdates: boolean;
-  recommendationEmails: boolean;
+  recommendationEmails: true;
   language: string;
   autoplayTrailers: boolean;
   defaultPlaybackQuality: string;
