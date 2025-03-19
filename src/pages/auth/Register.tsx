@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { supabase } from "../../config/supabase";
-import { Mail, Eye, EyeOff } from "lucide-react";
+import { Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
 import {
   validateEmail,
   validatePassword,
@@ -10,6 +10,7 @@ import {
 } from "../../utils/validation";
 
 export function Register() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -39,11 +40,12 @@ export function Register() {
     try {
       setLoading(true);
       setEmailSending(true);
+      setError("");
 
       // Generate a verification token
       const verificationToken = crypto.randomUUID();
 
-      // First, create the user with email verification disabled
+      // Create the user account
       const { data: userData, error: userError } = await supabase.auth.signUp({
         email,
         password,
@@ -52,61 +54,70 @@ export function Register() {
             full_name: name,
             verification_token: verificationToken,
           },
-          // emailRedirectTo: null,
-          // Disable Supabase's built-in email verification
-          // emailConfirm: false,
         },
       });
 
       if (userError) throw userError;
+      if (!userData?.user) throw new Error("Failed to create user account");
 
-      if (!userData?.user) {
-        throw new Error("Failed to create user account");
+      // Try to create the profile in the database
+      try {
+        // Sign in to get proper permissions for profile creation
+        await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        
+        await supabase.from("profiles").insert({
+          id: userData.user.id,
+          full_name: name,
+          email_verified: false,
+          verification_token: verificationToken,
+          updated_at: new Date().toISOString(),
+        });
+      } catch (profileError) {
+        console.error("Profile creation error:", profileError);
+        // Continue even if profile creation fails
       }
 
-      // Create profile record
-      await supabase.from("profiles").insert({
-        id: userData.user.id,
-        full_name: name,
-        email: email,
-        email_verified: false,
-        auth_provider: "email",
-        verification_token: verificationToken,
-        updated_at: new Date().toISOString(),
-      });
-
-      // Send the custom verification email
-      const { error: functionError } = await supabase.functions.invoke(
-        "mail-sender",
-        {
-          method: "POST",
-          body: {
-            to: email,
-            subject: "Verify your MovieZone account",
-            template:
-              "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ConfirmEmailTemplate.html",
-            options: {
-              name: name,
-              verificationUrl: `${
-                window.location.origin
-              }/auth/verify?token=${verificationToken}&email=${encodeURIComponent(
-                email
-              )}`,
+      // Send verification email
+      try {
+        await supabase.functions.invoke(
+          "mail-sender",
+          {
+            method: "POST",
+            body: {
+              to: email,
+              subject: "Verify your MovieZone account",
+              template:
+                "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ConfirmEmailTemplate.html",
+              data: {
+                name,
+                verificationUrl: `${
+                  window.location.origin
+                }/auth/verify?token=${verificationToken}&email=${encodeURIComponent(
+                  email
+                )}`,
+              },
             },
-          },
-        }
-      );
-
-      if (functionError) {
-        throw new Error(
-          `Failed to send verification email: ${functionError.message}`
+          }
         );
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+        // Don't throw error here, just show a warning
       }
 
+      // Show email verification screen regardless of email sending status
       setIsEmailSent(true);
     } catch (error: any) {
       console.error("Registration error:", error);
-      setError(error.message || "Failed to create account");
+      
+      // Provide user-friendly error messages
+      if (error.message.includes("already registered")) {
+        setError("This email is already registered. Please sign in instead.");
+      } else {
+        setError(error.message || "Failed to create account");
+      }
     } finally {
       setLoading(false);
       setEmailSending(false);
@@ -116,16 +127,26 @@ export function Register() {
   const handleGoogleSignUp = async () => {
     try {
       setLoading(true);
-      const { error } = await supabase.auth.signInWithOAuth({
+      setError("");
+      
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
+          queryParams: {
+            access_type: 'offline',
+            prompt: 'consent',
+          },
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
-    } catch (error) {
-      setError("Failed to sign up with Google");
+      
+      // No need for further handling as the user will be redirected to Google
+      // The callback logic will handle profile creation after successful sign-in
+    } catch (error: any) {
+      console.error("Google sign up error:", error);
+      setError(error.message || "Failed to sign up with Google");
     } finally {
       setLoading(false);
     }
@@ -134,31 +155,33 @@ export function Register() {
   const resendConfirmationEmail = async () => {
     try {
       setLoading(true);
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (!user) throw new Error("No user found");
-
-      const { error: functionError } = await supabase.functions.invoke(
+      setError("");
+      
+      // Generate a new verification token
+      const verificationToken = crypto.randomUUID();
+      
+      // Update the verification token in the database
+      await supabase.from("profiles")
+        .update({ verification_token: verificationToken })
+        .eq("email", email);
+      
+      // Send new verification email
+      await supabase.functions.invoke(
         "mail-sender",
         {
           body: {
             to: email,
             subject: "Verify your MovieZone account",
             data: {
-              name: name,
-              verificationUrl: `${window.location.origin}/auth/verify?user_id=${
-                user.id
-              }&email=${encodeURIComponent(email)}`,
+              name,
+              verificationUrl: `${window.location.origin}/auth/verify?token=${verificationToken}&email=${encodeURIComponent(email)}`,
             },
           },
         }
       );
 
-      if (functionError) throw functionError;
-
-      setError("Verification email has been resent!");
+      // Show success message
+      setError("Verification email has been resent! Please check your inbox.");
     } catch (error: any) {
       setError(error.message || "Failed to resend verification email");
     } finally {
@@ -220,12 +243,37 @@ export function Register() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded">
-            {error}
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <p>{error}</p>
           </div>
         )}
 
-        <form onSubmit={handleRegister} className="mt-8 space-y-6">
+        <div className="flex items-center my-4">
+          <hr className="flex-grow border-zinc-800" />
+          <span className="px-4 text-sm text-gray-400">OR</span>
+          <hr className="flex-grow border-zinc-800" />
+        </div>
+
+        {/* Google Sign Up Button */}
+        <button
+          type="button"
+          onClick={handleGoogleSignUp}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-white text-gray-900 rounded-md border border-gray-200 transition hover:bg-gray-100"
+          disabled={loading}
+        >
+          <FcGoogle className="w-5 h-5" />
+          {loading ? "Processing..." : "Continue with Google"}
+        </button>
+
+        {/* Form divider */}
+        <div className="flex items-center my-4">
+          <hr className="flex-grow border-zinc-800" />
+          <span className="px-4 text-sm text-gray-400">OR</span>
+          <hr className="flex-grow border-zinc-800" />
+        </div>
+
+        <form onSubmit={handleRegister} className="space-y-6">
           <div className="space-y-4">
             <div>
               <label
@@ -296,7 +344,7 @@ export function Register() {
           <div className="space-y-4">
             <button
               type="submit"
-              className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-md transition"
+              className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-md transition font-medium"
               disabled={loading}
             >
               {loading
@@ -305,22 +353,12 @@ export function Register() {
                   : "Creating account..."
                 : "Create account"}
             </button>
-
-            <button
-              type="button"
-              onClick={handleGoogleSignUp}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-md border border-zinc-700 transition"
-              disabled={loading}
-            >
-              <FcGoogle className="w-5 h-5" />
-              {loading ? "Signing up..." : "Sign up with Google"}
-            </button>
           </div>
         </form>
 
         <p className="text-center text-sm text-gray-400">
           Already have an account?{" "}
-          <Link to="/auth/login" className="text-red-500 hover:text-red-400">
+          <Link to="/auth/login" className="text-red-500 hover:text-red-400 font-medium">
             Sign in
           </Link>
         </p>

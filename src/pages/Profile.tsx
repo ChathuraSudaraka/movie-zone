@@ -1,6 +1,16 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
-import { Camera, User, Settings, MessageSquare, LogOut, Mail, User as UserIcon, Activity, Bell } from "lucide-react";
+import {
+  Camera,
+  User,
+  Settings,
+  MessageSquare,
+  LogOut,
+  Mail,
+  User as UserIcon,
+  Activity,
+  Bell,
+} from "lucide-react";
 import { supabase } from "../config/supabase";
 import { ActivityItem, UserPreferences } from "../types/user";
 import { uploadAvatar, updateUserProfile } from "../config/supabase";
@@ -44,27 +54,27 @@ export function Profile() {
   useEffect(() => {
     const fetchActivities = async () => {
       if (!user) return;
-      
+
       try {
         setLoading(true);
         // Replace this with your actual data fetching logic
         const { data, error } = await supabase
-          .from('user_activities')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false });
-          
+          .from("user_activities")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false });
+
         if (error) throw error;
-        
+
         setActivities(data || []);
       } catch (error) {
-        console.error('Error fetching activities:', error);
-        toast.error('Failed to load activity data');
+        console.error("Error fetching activities:", error);
+        toast.error("Failed to load activity data");
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchActivities();
   }, [user]);
 
@@ -150,12 +160,17 @@ export function Profile() {
             <div className="relative">
               <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full overflow-hidden border-4 border-red-600">
                 <img
-                  src={user?.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${user?.email || "User"}&size=200`}
+                  src={
+                    user?.user_metadata?.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${
+                      user?.email || "User"
+                    }&size=200`
+                  }
                   alt="Profile"
                   className="w-full h-full object-cover"
                 />
               </div>
-              <label 
+              <label
                 className="absolute bottom-0 right-0 p-2 bg-red-600 rounded-full cursor-pointer
                          hover:bg-red-700 transition-colors duration-200"
               >
@@ -173,7 +188,7 @@ export function Profile() {
             {/* User Info */}
             <div className="flex-1 text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
-                {user?.user_metadata?.full_name || 'Your Name'}
+                {user?.user_metadata?.full_name || "Your Name"}
               </h1>
               <p className="text-gray-400 flex items-center justify-center sm:justify-start gap-2">
                 <Mail className="w-4 h-4" />
@@ -207,20 +222,22 @@ export function Profile() {
         <div className="bg-zinc-900/80 rounded-xl p-4">
           <div className="flex space-x-4 overflow-x-auto">
             {[
-              { id: 'profile', label: 'Profile', icon: User },
-              { id: 'security', label: 'Security', icon: User },
-              { id: 'preferences', label: 'Preferences', icon: Settings },
-              { id: 'notifications', label: 'Notifications', icon: Bell },
-              { id: 'activity', label: 'Activity', icon: Activity },
-              { id: 'contact', label: 'Contact', icon: MessageSquare },
+              { id: "profile", label: "Profile", icon: User },
+              { id: "security", label: "Security", icon: User },
+              { id: "preferences", label: "Preferences", icon: Settings },
+              { id: "notifications", label: "Notifications", icon: Bell },
+              { id: "activity", label: "Activity", icon: Activity },
+              { id: "contact", label: "Contact", icon: MessageSquare },
             ].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap
-                  ${activeTab === tab.id 
-                    ? 'bg-red-600 text-white' 
-                    : 'text-gray-400 hover:bg-zinc-800'}`}
+                  ${
+                    activeTab === tab.id
+                      ? "bg-red-600 text-white"
+                      : "text-gray-400 hover:bg-zinc-800"
+                  }`}
               >
                 <tab.icon className="w-4 h-4" />
                 {tab.label}
@@ -231,7 +248,7 @@ export function Profile() {
 
         {/* Tab Content */}
         <div className="bg-zinc-900/80 rounded-xl p-6">
-          {activeTab === 'profile' && (
+          {activeTab === "profile" && (
             <UserProfile
               user={user}
               displayName={displayName}
@@ -240,25 +257,18 @@ export function Profile() {
               isSaving={isSaving}
             />
           )}
-          {activeTab === 'security' && (
-            <Security />
-          )}
-          {activeTab === 'preferences' && (
+          {activeTab === "security" && <Security />}
+          {activeTab === "preferences" && (
             <Preferences
               preferences={preferences}
               updatePreferences={updatePreferences}
             />
           )}
-          {activeTab === 'notifications' && (
-            <Notifications />
+          {activeTab === "notifications" && <Notifications />}
+          {activeTab === "activity" && (
+            <ActivityTab activities={activities} loading={loading} />
           )}
-          {activeTab === 'activity' && (
-            <ActivityTab
-              activities={activities}
-              loading={loading}
-            />
-          )}
-          {activeTab === 'contact' && <Contact />}
+          {activeTab === "contact" && <Contact />}
         </div>
 
         {/* Statistics Cards */}
@@ -271,10 +281,12 @@ export function Profile() {
       {showPasswordChange && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-zinc-900 rounded-xl p-6 max-w-md w-full">
-            <h2 className="text-xl font-bold text-white mb-4">Change Password</h2>
+            <h2 className="text-xl font-bold text-white mb-4">
+              Change Password
+            </h2>
             {/* Password change form would go here */}
             <div className="flex justify-end gap-4">
-              <button 
+              <button
                 className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
                 onClick={() => setShowPasswordChange(false)}
               >
@@ -294,8 +306,8 @@ export function Profile() {
 // New component to handle statistics fetching and display
 function StatisticsCards({ userId }: { userId?: string }) {
   const [stats, setStats] = useState({
-    watched: '0',
-    watchlist: '0'
+    watched: "0",
+    watchlist: "0",
   });
   const [loading, setLoading] = useState(true);
 
@@ -305,42 +317,42 @@ function StatisticsCards({ userId }: { userId?: string }) {
         setLoading(false);
         return;
       }
-      
+
       try {
         // Fetch watched movies count from watch_history table
         const { data: watchedData, error: watchedError } = await supabase
-          .from('watch_history')
-          .select('*', { count: 'exact' })
-          .eq('user_id', userId);
-        
+          .from("watch_history")
+          .select("*", { count: "exact" })
+          .eq("user_id", userId);
+
         // Fetch watchlist count from user_lists table
         const { data: watchlistData, error: watchlistError } = await supabase
-          .from('user_lists')
-          .select('*', { count: 'exact' })
-          .eq('user_id', userId);
-        
+          .from("user_lists")
+          .select("*", { count: "exact" })
+          .eq("user_id", userId);
+
         if (watchedError) throw watchedError;
         if (watchlistError) throw watchlistError;
-        
+
         setStats({
           watched: String(watchedData?.length || 0),
-          watchlist: String(watchlistData?.length || 0)
+          watchlist: String(watchlistData?.length || 0),
         });
       } catch (error) {
-        console.error('Error fetching stats:', error);
+        console.error("Error fetching stats:", error);
       } finally {
         setLoading(false);
       }
     };
-    
+
     fetchStats();
   }, [userId]);
-  
+
   const statsData = [
-    { label: 'Movies Watched', value: stats.watched, icon: Activity },
-    { label: 'In Watchlist', value: stats.watchlist, icon: UserIcon }
+    { label: "Movies Watched", value: stats.watched, icon: Activity },
+    { label: "In Watchlist", value: stats.watchlist, icon: UserIcon },
   ];
-  
+
   return (
     <>
       {statsData.map((stat, index) => (

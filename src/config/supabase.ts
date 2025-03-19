@@ -6,21 +6,6 @@ const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
 export const signInWithGoogle = async () => {
-  // First check if user exists and get their auth provider
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (user) {
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('auth_provider')
-      .eq('id', user.id)
-      .single();
-
-    if (profile?.auth_provider === 'email') {
-      throw new Error('This email is registered with password. Please use email/password to sign in.');
-    }
-  }
-
   return await supabase.auth.signInWithOAuth({
     provider: 'google',
     options: {
@@ -71,13 +56,36 @@ export const updateUserProfile = async (userId: string, updates: { avatar_url?: 
 };
 
 export const handleAuthCallback = async () => {
-  const { data: { session }, error } = await supabase.auth.getSession()
-  if (error) throw error
-  return session
-}
+  try {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) throw error;
+    
+    // If user successfully authenticated, initialize their profile
+    if (session?.user) {
+      console.log('User authenticated, metadata:', session.user.user_metadata);
+      
+      // For Google auth, the picture is in user_metadata
+      const userData = {
+        ...session.user.user_metadata,
+        email: session.user.email,
+        provider: session.user.app_metadata?.provider,
+        app_metadata: session.user.app_metadata
+      };
+      
+      await initializeUserProfile(session.user.id, userData);
+    }
+    
+    return session;
+  } catch (error) {
+    console.error('Error in auth callback:', error);
+    throw error;
+  }
+};
 
 export const initializeUserProfile = async (userId: string, userData: any) => {
   try {
+    console.log('Initializing user profile with data:', userData);
+    
     // First check if profile exists
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -85,18 +93,48 @@ export const initializeUserProfile = async (userId: string, userData: any) => {
       .eq('id', userId);
       
     if (profileError) throw profileError;
-      
+    
+    // For Google users, get their profile picture
+    const provider = userData?.provider || userData?.app_metadata?.provider;
+    const isGoogleUser = provider === 'google';
+    const avatarUrl = isGoogleUser ? userData.picture : null;
+    
+    console.log('User profile data:', { isGoogleUser, avatarUrl, provider });
+    
     // Create profile if it doesn't exist
     if (!profileData || profileData.length === 0) {
+      console.log('Creating new profile for user:', userId);
+      
       const { error } = await supabase
         .from('profiles')
         .insert({
           id: userId,
-          full_name: userData?.full_name || userData?.email?.split('@')[0] || 'User',
+          full_name: userData?.full_name || userData?.name || userData?.email?.split('@')[0] || 'User',
+          avatar_url: avatarUrl, // Store Google profile picture in avatar_url
           updated_at: new Date().toISOString()
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error creating profile:', error);
+        throw error;
+      }
+    } 
+    // If profile exists but doesn't have avatar_url and this is a Google user with a picture
+    else if (isGoogleUser && userData.picture && profileData[0] && !profileData[0].avatar_url) {
+      console.log('Updating existing profile with Google avatar for user:', userId);
+      
+      const { error } = await supabase
+        .from('profiles')
+        .update({ 
+          avatar_url: userData.picture,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', userId);
+        
+      if (error) {
+        console.error('Error updating profile with avatar:', error);
+        throw error;
+      }
     }
     
     // Create user preferences if they don't exist

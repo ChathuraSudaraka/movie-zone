@@ -115,7 +115,9 @@ function Header() {
   return (
     <header
       className={`${
-        isScrolled ? "bg-[#141414]" : "bg-gradient-to-b from-black/80 to-transparent"
+        isScrolled
+          ? "bg-[#141414]"
+          : "bg-gradient-to-b from-black/80 to-transparent"
       } fixed top-0 z-50 w-full transition-colors duration-300`}
     >
       <div className="flex w-full items-center justify-between h-[35px] px-4 md:px-8">
@@ -168,9 +170,11 @@ function Header() {
             </button>
 
             {showMobileMenu && (
-              <div className="absolute top-full left-0 mt-1 w-48 sm:w-64 
+              <div
+                className="absolute top-full left-0 mt-1 w-48 sm:w-64 
                            bg-black/95 border border-zinc-700 rounded-md shadow-lg 
-                           overflow-hidden animate-in fade-in slide-in-from-top-4">
+                           overflow-hidden animate-in fade-in slide-in-from-top-4"
+              >
                 <div className="py-2">
                   {navigation.map((item) => (
                     <button
@@ -241,6 +245,7 @@ function Header() {
                     alt={user?.email || "Profile"}
                     className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
                   />
+                  
                   <ChevronDownIcon
                     className={`w-4 h-4 text-white transition-transform duration-200 ${
                       showUserMenu ? "rotate-180" : ""
@@ -315,8 +320,10 @@ function Header() {
 
       {/* Search Modal */}
       {showSearch && (
-        <div className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 
-                     px-4 sm:px-6 bg-black/60">
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center pt-16 sm:pt-20 
+                     px-4 sm:px-6 bg-black/60"
+        >
           <div className="relative w-full max-w-lg sm:max-w-2xl bg-[#141414] p-4 sm:p-6 rounded-lg">
             <button
               className="absolute right-4 top-4 text-gray-400 hover:text-white"
