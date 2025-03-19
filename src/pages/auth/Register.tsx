@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { supabase } from "../../config/supabase";
 import { Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -8,9 +7,9 @@ import {
   validatePassword,
   validateName,
 } from "../../utils/validation";
+import { Link } from "react-router-dom";
 
 export function Register() {
-  const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
@@ -129,7 +128,7 @@ export function Register() {
       setLoading(true);
       setError("");
       
-      const { data, error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           queryParams: {
