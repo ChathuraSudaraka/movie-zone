@@ -10,6 +10,7 @@ import {
   User as UserIcon,
   Activity,
   Bell,
+  Shield,
 } from "lucide-react";
 import { supabase } from "../config/supabase";
 import { ActivityItem, UserPreferences } from "../types/user";
@@ -209,7 +210,8 @@ export function Profile() {
                 <img
                   src={
                     user?.user_metadata?.avatar_url ||
-                    `https://ui-avatars.com/api/?name=${user?.email || "User"
+                    `https://ui-avatars.com/api/?name=${
+                      user?.email || "User"
                     }&size=200`
                   }
                   alt="Profile"
@@ -269,7 +271,7 @@ export function Profile() {
           <div className="flex space-x-4 overflow-x-auto">
             {[
               { id: "profile", label: "Profile", icon: User },
-              { id: "security", label: "Security", icon: User },
+              { id: "security", label: "Security", icon: Shield },
               { id: "preferences", label: "Preferences", icon: Settings },
               { id: "notifications", label: "Notifications", icon: Bell },
               { id: "activity", label: "Activity", icon: Activity },
@@ -279,9 +281,10 @@ export function Profile() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap
-                  ${activeTab === tab.id
-                    ? "bg-red-600 text-white"
-                    : "text-gray-400 hover:bg-zinc-800"
+                  ${
+                    activeTab === tab.id
+                      ? "bg-red-600 text-white"
+                      : "text-gray-400 hover:bg-zinc-800"
                   }`}
               >
                 <tab.icon className="w-4 h-4" />

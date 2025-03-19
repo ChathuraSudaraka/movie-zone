@@ -2,7 +2,7 @@ import { FormEvent, useState } from "react";
 import { User } from "@supabase/supabase-js";
 import { useWatchHistory } from "../../hooks/useWatchHistory";
 import { PLACEHOLDER_IMAGE } from "../../utils/constants";
-import { History, Trash2 } from "lucide-react";
+import { History, Trash2, User2Icon } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 interface UserProfileProps {
@@ -51,36 +51,44 @@ export function UserProfile({
     return (
       <div className="space-y-6">
         {/* Header with controls */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-xl font-semibold text-white">Watch History</h2>
-            <select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value as any)}
-              className="bg-zinc-800 text-white text-sm rounded-md px-3 py-1.5 border border-zinc-700"
-            >
-              <option value="all">All</option>
-              <option value="movie">Movies</option>
-              <option value="tv">TV Shows</option>
-            </select>
+        <div className="mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2.5 border-b border-zinc-800">
+            <div className="flex items-center gap-3">
+              <History className="w-5 h-5 text-red-500" />
+              <h2 className="text-xl font-semibold text-white">
+                Watch History
+              </h2>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value as any)}
+                className="bg-zinc-800 text-white text-sm rounded-md px-3 py-1.5 border border-zinc-700 focus:border-red-500 focus:ring-red-500 transition duration-200 
+                focus:outline-none"
+                aria-label="Filter watch history"
+              >
+                <option value="all">All</option>
+                <option value="movie">Movies</option>
+                <option value="tv">TV Shows</option>
+              </select>
+            </div>
+
+            {watchHistory.length > 0 && (
+              <button
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      "Are you sure you want to clear your watch history?"
+                    )
+                  ) {
+                    clearHistory();
+                  }
+                }}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600/10 text-red-500 rounded-md hover:bg-red-600/20 transition"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear History
+              </button>
+            )}
           </div>
-          {watchHistory.length > 0 && (
-            <button
-              onClick={() => {
-                if (
-                  window.confirm(
-                    "Are you sure you want to clear your watch history?"
-                  )
-                ) {
-                  clearHistory();
-                }
-              }}
-              className="flex items-center gap-2 px-3 py-1.5 text-sm bg-red-600/10 text-red-500 rounded-md hover:bg-red-600/20 transition"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear History
-            </button>
-          )}
         </div>
 
         {/* History Grid */}
@@ -144,9 +152,12 @@ export function UserProfile({
   return (
     <div className="grid gap-6 md:grid-cols-2">
       <div className="space-y-6">
-        <h2 className="text-xl font-semibold text-white mb-4">
-          Profile Information
-        </h2>
+        <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
+          <User2Icon className="w-6 h-6 text-red-500" />
+          <h2 className="text-xl font-semibold text-white">
+            Profile Information
+          </h2>
+        </div>
         <form onSubmit={handleSaveProfile} className="space-y-4">
           <div className="space-y-2">
             <label className="text-sm font-medium text-gray-400">

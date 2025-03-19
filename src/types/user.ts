@@ -20,6 +20,7 @@ export interface ActivityItem {
     platform?: string;
     progress?: number;
     poster_path?: string;
+    page?: number;
   };
 }
 
