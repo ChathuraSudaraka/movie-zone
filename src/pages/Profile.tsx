@@ -50,28 +50,75 @@ export function Profile() {
     }
   }, [user]);
 
-  // Fetch user activities
+  // Fetch user activities - ensuring compatibility with different table states
   useEffect(() => {
     const fetchActivities = async () => {
       if (!user) return;
 
       try {
         setLoading(true);
-        // Replace this with your actual data fetching logic
-        const { data, error } = await supabase
+
+        // Check if the table exists by querying it
+        const { error: countError } = await supabase
           .from("user_activities")
-          .select("*")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false });
+          .select("*", { count: "exact", head: true });
 
-        if (error) throw error;
+        if (countError) {
+          console.log("Error checking user_activities table:", countError);
+          // Fallback to watch history
+          await fetchWatchHistory();
+        } else {
+          // Table exists, fetch activities
+          const { data, error } = await supabase
+            .from("user_activities")
+            .select("id, type, title, media_id, media_type, timestamp, user_id")
+            .eq("user_id", user?.id || "")
+            .order("timestamp", { ascending: false });
 
-        setActivities(data || []);
+          if (error) {
+            console.error("Error fetching activities:", error);
+            await fetchWatchHistory();
+          } else {
+            setActivities(data || []);
+          }
+        }
       } catch (error) {
-        console.error("Error fetching activities:", error);
-        toast.error("Failed to load activity data");
+        console.error("Error in activity fetching:", error);
+        setActivities([]);
       } finally {
         setLoading(false);
+      }
+    };
+
+    // Helper function to fetch watch history as fallback
+    const fetchWatchHistory = async () => {
+      try {
+        const { data: watchHistoryData, error: watchHistoryError } =
+          await supabase
+            .from("watch_history")
+            .select("media_id, title, media_type, watched_at")
+            .eq("user_id", user?.id || "")
+            .order("watched_at", { ascending: false });
+
+        if (watchHistoryError) throw watchHistoryError;
+
+        // Convert watch history to activity format
+        const formattedActivities = (watchHistoryData || []).map(
+          (item, index) => ({
+            id: `watch-${item.media_id}-${index}`,
+            type: "watch",
+            title: item.title,
+            media_id: item.media_id,
+            media_type: item.media_type,
+            timestamp: item.watched_at,
+            user_id: user?.id || "",
+          })
+        );
+
+        setActivities(formattedActivities);
+      } catch (error) {
+        console.error("Error fetching watch history:", error);
+        setActivities([]);
       }
     };
 
@@ -162,8 +209,7 @@ export function Profile() {
                 <img
                   src={
                     user?.user_metadata?.avatar_url ||
-                    `https://ui-avatars.com/api/?name=${
-                      user?.email || "User"
+                    `https://ui-avatars.com/api/?name=${user?.email || "User"
                     }&size=200`
                   }
                   alt="Profile"
@@ -233,10 +279,9 @@ export function Profile() {
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-colors whitespace-nowrap
-                  ${
-                    activeTab === tab.id
-                      ? "bg-red-600 text-white"
-                      : "text-gray-400 hover:bg-zinc-800"
+                  ${activeTab === tab.id
+                    ? "bg-red-600 text-white"
+                    : "text-gray-400 hover:bg-zinc-800"
                   }`}
               >
                 <tab.icon className="w-4 h-4" />

@@ -107,7 +107,7 @@ export function Register() {
       }
 
       // Show email verification screen regardless of email sending status
-      setIsEmailSent(true);
+      setIsEmailSent(false);
     } catch (error: any) {
       console.error("Registration error:", error);
       

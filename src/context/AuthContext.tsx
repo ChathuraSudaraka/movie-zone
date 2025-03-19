@@ -1,13 +1,15 @@
 import { createContext, useContext, useEffect, useState } from "react";
-import { supabase } from "../config/supabase";
+import { supabase, deleteUserAccount } from "../config/supabase";
 import { User } from "@supabase/supabase-js";
 import { useNavigate } from "react-router-dom";
+import toast from "react-hot-toast";
 
 interface AuthContextType {
   user: User | null;
   loading: boolean;
   signOut: () => Promise<void>;
   updateProfile: (data: { full_name?: string; avatar_url?: string }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -15,6 +17,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   signOut: async () => {},
   updateProfile: async () => {},
+  deleteAccount: async () => {},
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -56,6 +59,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const deleteAccount = async () => {
+    if (!user) return;
+    
+    try {
+      // Show a loading toast
+      toast.loading('Deleting account...');
+      
+      try {
+        // Delete the user account (using RPC)
+        await deleteUserAccount(user.id);
+        
+        // Sign out after deletion
+        await supabase.auth.signOut();
+        
+        // Dismiss loading toast and show success
+        toast.dismiss();
+        toast.success('Your account has been deleted');
+        
+        // Navigate to home page
+        navigate('/');
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        toast.dismiss();
+        toast.error('Failed to delete account. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error in account deletion process:', error);
+      toast.dismiss();
+      toast.error('An unexpected error occurred');
+    }
+  };
+
   useEffect(() => {
     // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -72,7 +107,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      loading, 
+      signOut, 
+      updateProfile,
+      deleteAccount 
+    }}>
       {!loading && children}
     </AuthContext.Provider>
   );

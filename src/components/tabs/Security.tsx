@@ -1,13 +1,17 @@
 import { useState } from 'react';
-import { Shield, Key, Lock } from 'lucide-react';
+import { Shield, Key, Lock, AlertTriangle } from 'lucide-react';
 import { supabase } from '../../config/supabase';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 export function Security() {
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const { deleteAccount } = useAuth();
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,6 +43,27 @@ export function Security() {
       toast.error('Failed to update password');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleDeleteAccountClick = () => {
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteAccount = async () => {
+    if (deleteConfirmText !== "DELETE") {
+      toast.error('Please type DELETE to confirm account deletion');
+      return;
+    }
+
+    try {
+      await deleteAccount();
+      // Navigation happens in the deleteAccount function
+    } catch (error) {
+      console.error('Error in account deletion:', error);
+    } finally {
+      setShowDeleteConfirm(false);
+      setDeleteConfirmText('');
     }
   };
 
@@ -123,7 +148,79 @@ export function Security() {
             Enable two-factor authentication for an extra layer of security. When enabled, you'll need to provide a verification code in addition to your password when signing in.
           </p>
         </div>
+
+        {/* Delete Account Section */}
+        <div className="bg-zinc-900/50 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-red-500" />
+              <h3 className="text-lg font-medium text-white">Delete Account</h3>
+            </div>
+          </div>
+          
+          <p className="text-gray-400 mb-4">
+            This action permanently deletes your account and all associated data. This cannot be undone.
+          </p>
+          
+          <button
+            onClick={handleDeleteAccountClick}
+            className="px-4 py-2 bg-red-600/20 text-red-500 border border-red-600/20 rounded-md hover:bg-red-600/30 transition"
+          >
+            Delete My Account
+          </button>
+        </div>
       </div>
+
+      {/* Delete Account Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 rounded-xl p-6 max-w-md w-full">
+            <div className="flex items-center gap-3 text-red-500 mb-4">
+              <AlertTriangle className="w-6 h-6" />
+              <h2 className="text-xl font-bold">Delete Account</h2>
+            </div>
+            
+            <p className="text-gray-300 mb-4">
+              This will permanently delete your account, including:
+            </p>
+            
+            <ul className="list-disc list-inside text-gray-400 mb-6 space-y-1">
+              <li>Your profile and personal information</li>
+              <li>Your watch history</li>
+              <li>Your watchlist</li>
+              <li>Your preferences and settings</li>
+            </ul>
+            
+            <p className="text-gray-300 mb-4 font-medium">
+              Type DELETE to confirm this irreversible action:
+            </p>
+            
+            <input
+              type="text"
+              value={deleteConfirmText}
+              onChange={(e) => setDeleteConfirmText(e.target.value)}
+              className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white mb-6"
+              placeholder="Type DELETE here"
+            />
+            
+            <div className="flex justify-end gap-4">
+              <button 
+                className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
+                onClick={() => setShowDeleteConfirm(false)}
+              >
+                Cancel
+              </button>
+              <button 
+                className="px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50"
+                disabled={deleteConfirmText !== 'DELETE'}
+                onClick={confirmDeleteAccount}
+              >
+                Delete Account
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

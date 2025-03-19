@@ -188,3 +188,69 @@ export const initializeProfile = async (userId: string, userData: { email: strin
     return false;
   }
 };
+
+export const deleteUserAccount = async (userId: string) => {
+  try {
+    // First delete all related data
+    // 1. Delete watch history
+    await supabase
+      .from('watch_history')
+      .delete()
+      .eq('user_id', userId);
+
+    // 2. Delete user lists (watchlist)
+    await supabase
+      .from('user_lists')
+      .delete()
+      .eq('user_id', userId);
+
+    // 3. Delete user preferences
+    await supabase
+      .from('user_preferences')
+      .delete()
+      .eq('user_id', userId);
+
+    // 4. Delete user activities (if the table exists)
+    try {
+      await supabase
+        .from('user_activities')
+        .delete()
+        .eq('user_id', userId);
+    } catch (e) {
+      console.log("Could not delete user activities, may not exist:", e);
+    }
+
+    // 5. Delete contact messages
+    await supabase
+      .from('contact_messages')
+      .delete()
+      .eq('email', userId);
+
+    // 6. Delete user profile
+    await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+      
+    // 7. Delete avatar from storage
+    try {
+      await supabase
+        .storage
+        .from('avatars')
+        .remove([`avatars/${userId}.jpg`, `avatars/${userId}.png`, `avatars/${userId}.jpeg`, `avatars/${userId}.gif`]);
+    } catch (storageErr) {
+      console.log("Storage operation failed, continuing:", storageErr);
+    }
+
+    // 8. Call the RPC function to delete the user from auth system
+    // No need to attempt admin API which will fail with 403
+    const { error } = await supabase.rpc('delete_user');
+    
+    if (error) throw error;
+
+    return true;
+  } catch (error) {
+    console.error('Error deleting user account:', error);
+    throw error;
+  }
+};

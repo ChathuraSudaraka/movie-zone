@@ -25,6 +25,7 @@
     "@types/node": "^22.10.0",
     "autoprefixer": "^10.4.20",
     "axios": "^1.7.7",
+    "date-fns": "^4.1.0",
     "dotenv": "^16.4.7",
     "fastify": "^5.2.1",
     "firebase": "^11.4.0",

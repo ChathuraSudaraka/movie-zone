@@ -8,11 +8,12 @@ export interface WatchHistoryItem {
 
 export interface ActivityItem {
   id: string;
-  type: 'watch' | 'like' | 'add_to_list';
+  type: 'watch' | 'like' | 'add_to_list' | string;
   title: string;
-  mediaType: 'movie' | 'tv';
+  media_id?: string;
+  media_type?: string;
   timestamp: string;
-  posterPath: string;
+  user_id: string;
 }
 
 export interface UserPreferences {
@@ -23,5 +24,5 @@ export interface UserPreferences {
   recommendationEmails: boolean;
   language: string;
   autoplayTrailers: boolean;
-  defaultPlaybackQuality: 'auto' | '720p' | '1080p' | '4k';
+  defaultPlaybackQuality: string;
 }
