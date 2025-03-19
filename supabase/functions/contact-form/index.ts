@@ -1,34 +1,55 @@
+// Follow this setup guide to integrate the Deno language server with your editor:
+// https://deno.land/manual/getting_started/setup_your_environment
+// This enables autocomplete, go to definition, etc.
+
+// Setup type definitions for built-in Supabase Runtime APIs
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createTransport } from "npm:nodemailer"
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Max-Age': '86400',
+};
+
+interface EmailRequest {
+  to: string;
+  subject: string;
+  template: string;
+  options: {
+    name: string;
+    email: string;
+    subject: string;
+    message: string;
+  };
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
-    const { name, email, subject, message } = await req.json()
+    const { to, subject, template, options } = await req.json() as EmailRequest;
+    console.log('Received request:', { to, subject, options });
 
-    if (!name || !email || !subject || !message) {
-      throw new Error('Missing required fields')
+    // Fetch template
+    const templateResponse = await fetch(template);
+    if (!templateResponse.ok) {
+      throw new Error('Failed to fetch email template');
     }
 
-    // Get the template content
-    const templateUrl = 'https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template/ContactFormTemplate.html';
-    const templateResponse = await fetch(templateUrl);
-    let template = await templateResponse.text();
+    let templateHtml = await templateResponse.text();
 
     // Replace template variables
-    template = template
-      .replace('${name}', name)
-      .replace('${email}', email)
-      .replace('${subject}', subject)
-      .replace('${message}', message)
+    templateHtml = templateHtml
+      .replace('${name}', options.name)
+      .replace('${email}', options.email)
+      .replace('${subject}', options.subject)
+      .replace('${message}', options.message)
       .replace('${new Date().getFullYear()}', new Date().getFullYear().toString());
 
     const transporter = createTransport({
@@ -39,27 +60,23 @@ serve(async (req) => {
         user: Deno.env.get('SMTP_USER'),
         pass: Deno.env.get('SMTP_PASS'),
       },
-    })
-
-    await transporter.verify()
+    });
 
     const info = await transporter.sendMail({
       from: `"MovieZone Contact" <${Deno.env.get('SMTP_FROM')}>`,
-      to: Deno.env.get('ADMIN_EMAIL'),
-      replyTo: email,
-      subject: `Contact Form: ${subject}`,
-      html: template
-    })
+      to: to,
+      subject: subject,
+      html: templateHtml
+    });
+
+    console.log('Email sent:', info.messageId);
 
     return new Response(
       JSON.stringify({ success: true, messageId: info.messageId }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 200 
-      }
-    )
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
@@ -69,6 +86,18 @@ serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 500 
       }
-    )
+    );
   }
-})
+});
+
+/* To invoke locally:
+
+  1. Run supabase start (see: https://supabase.com/docs/reference/cli/supabase-start)
+  2. Make an HTTP request:
+
+  curl -i --location --request POST 'http://127.0.0.1:54321/functions/v1/mail-sender' \
+    --header 'Authorization: Bearer ' \
+    --header 'Content-Type: application/json' \
+    --data '{"name":"Functions"}'
+
+*/

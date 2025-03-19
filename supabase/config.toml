@@ -317,10 +317,26 @@ entrypoint = "./functions/mail-sender/index.ts"
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/mail-sender/*.html" ]
 
-[functions.contact-form]
-verify_jwt = false
-
 [functions.mail-sender.secrets]
+SMTP_HOST = "smtp.zoho.com"
+SMTP_PORT = "587"
+SMTP_USER = "chathurasudaraka@eversoft.lk"
+SMTP_PASS = "ikeFMQ94P59h"
+SMTP_FROM = "chathurasudaraka@eversoft.lk"
+ADMIN_EMAIL = "chathurasudaraka@eversoft.lk"
+
+[functions.contact-form]
+enabled = true
+verify_jwt = true
+import_map = "./functions/contact-form/deno.json"
+# Uncomment to specify a custom file path to the entrypoint.
+# Supported file extensions are: .ts, .js, .mjs, .jsx, .tsx
+entrypoint = "./functions/contact-form/index.ts"
+# Specifies static files to be bundled with the function. Supports glob patterns.
+# For example, if you want to serve static HTML pages in your function:
+# static_files = [ "./functions/contact-form/*.html" ]
+
+[functions.contact-form]
 SMTP_HOST = "smtp.zoho.com"
 SMTP_PORT = "587"
 SMTP_USER = "chathurasudaraka@eversoft.lk"

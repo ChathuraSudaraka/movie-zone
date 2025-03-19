@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Movie } from "../types/movie";
-import { FaPlay, FaPlus, FaCheck } from "react-icons/fa";
+import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@mui/material";
 import { useAuth } from "../context/AuthContext";
@@ -86,22 +86,6 @@ function MyList() {
       supabase.removeChannel(subscription);
     };
   }, [user]);
-
-  const removeFromList = async (e: React.MouseEvent, movieId: number) => {
-    e.stopPropagation();
-    try {
-      const { error } = await supabase
-        .from("user_lists")
-        .delete()
-        .eq("user_id", user?.id)
-        .eq("movie_id", movieId);
-
-      if (error) throw error;
-      setMyList((prev) => prev.filter((item) => item.id !== movieId));
-    } catch (error) {
-      console.error("Error removing from list:", error);
-    }
-  };
 
   if (!user) {
     return (

@@ -19,18 +19,24 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      const { data, error } = await supabase.functions.invoke('contact-form', {
+      await supabase.functions.invoke("contact-form", {
+        method: "POST",
         body: {
-          ...formData,
-          timestamp: new Date().toISOString(),
-        }
+          to: "chathurasudaraka@eversoft.lk",
+          subject: `Contact Form: ${formData.subject}`,
+          template:
+            "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ContactFormTemplate.html",
+          options: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message,
+          },
+        },
       });
 
-      if (error) throw new Error(error.message);
-      
       setStatus("success");
       setFormData({ name: "", email: "", subject: "", message: "" });
-      setErrorMessage("");
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");
@@ -40,10 +46,7 @@ export function Contact() {
           : "Failed to send message. Please try again."
       );
     } finally {
-      setTimeout(() => {
-        setStatus("idle");
-        setErrorMessage("");
-      }, 5000);
+      setTimeout(() => setStatus("idle"), 5000);
     }
   };
 
