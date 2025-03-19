@@ -43,16 +43,49 @@ export function Register() {
       // Generate a verification token
       const verificationToken = crypto.randomUUID();
 
-      // First, try to send the verification email
+      // First, create the user with email verification disabled
+      const { data: userData, error: userError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          data: {
+            full_name: name,
+            verification_token: verificationToken,
+          },
+          emailRedirectTo: null,
+          // Disable Supabase's built-in email verification
+          emailConfirm: false,
+        },
+      });
+
+      if (userError) throw userError;
+
+      if (!userData?.user) {
+        throw new Error("Failed to create user account");
+      }
+
+      // Create profile record
+      await supabase.from("profiles").insert({
+        id: userData.user.id,
+        full_name: name,
+        email: email,
+        email_verified: false,
+        auth_provider: "email",
+        verification_token: verificationToken,
+        updated_at: new Date().toISOString(),
+      });
+
+      // Send the custom verification email
       const { error: functionError } = await supabase.functions.invoke(
         "mail-sender",
         {
+          method: "POST",
           body: {
             to: email,
             subject: "Verify your MovieZone account",
             template:
               "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ConfirmEmailTemplate.html",
-            data: {
+            options: {
               name: name,
               verificationUrl: `${
                 window.location.origin
@@ -70,35 +103,7 @@ export function Register() {
         );
       }
 
-      // If email sent successfully, create the user
-      const { data: userData, error: userError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            full_name: name,
-            verification_token: verificationToken,
-          },
-          emailRedirectTo: null, // Disable default Supabase email
-        },
-      });
-
-      if (userError) throw userError;
-
-      if (userData?.user) {
-        // Create profile
-        await supabase.from("profiles").insert({
-          id: userData.user.id,
-          full_name: name,
-          email: email,
-          email_verified: false,
-          auth_provider: "email",
-          verification_token: verificationToken,
-          updated_at: new Date().toISOString(),
-        });
-
-        setIsEmailSent(true);
-      }
+      setIsEmailSent(true);
     } catch (error: any) {
       console.error("Registration error:", error);
       setError(error.message || "Failed to create account");

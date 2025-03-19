@@ -60,13 +60,29 @@ serve(async (req) => {
         user: Deno.env.get('SMTP_USER'),
         pass: Deno.env.get('SMTP_PASS'),
       },
+      // Add these options for better compatibility
+      tls: {
+        rejectUnauthorized: false
+      },
+      pool: true,
+      maxConnections: 1,
+      rateDelta: 20000,
+      rateLimit: 5
     });
 
+    // Verify connection before sending
+    await transporter.verify();
+    
     const info = await transporter.sendMail({
-      from: `"MovieZone Contact" <${Deno.env.get('SMTP_FROM')}>`,
+      from: Deno.env.get('SMTP_FROM'), // Use exact email from SMTP credentials
       to: to,
+      replyTo: options.email, // Add reply-to for responses
       subject: subject,
-      html: templateHtml
+      html: templateHtml,
+      headers: {
+        'X-MC-PreserveRecipients': 'false',
+        'Precedence': 'Bulk'
+      }
     });
 
     console.log('Email sent:', info.messageId);

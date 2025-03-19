@@ -3,7 +3,8 @@
 // This enables autocomplete, go to definition, etc.
 
 // Setup type definitions for built-in Supabase Runtime APIs
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+/// <reference types="https://deno.land/x/webidl/lib.deno_webidl.d.ts" />
+/// <reference lib="deno.ns" />
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createTransport } from "npm:nodemailer";
@@ -13,9 +14,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface EmailRequest {
+  to: string;
+  subject: string;
+  template: string;
+  data: {
+    name: string;
+    verificationUrl: string;
+  };
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, { status: 204, headers: corsHeaders });
   }
 
   try {
@@ -24,20 +35,22 @@ serve(async (req) => {
     console.log('SMTP_PORT:', Deno.env.get('SMTP_PORT'));
     console.log('SMTP_FROM:', Deno.env.get('SMTP_FROM'));
 
-    const { to, subject, data } = await req.json();
-    console.log('Received request:', { to, subject, data: { ...data, verificationUrl: '(hidden)' } });
+    const { to, subject, template, data } = await req.json() as EmailRequest;
+    console.log('Received verification request for:', { to, name: data.name });
 
-    // Validate required fields
-    if (!to || !subject || !data?.name || !data?.verificationUrl) {
-      throw new Error('Missing required fields: ' + 
-        [
-          !to && 'to',
-          !subject && 'subject',
-          !data?.name && 'name',
-          !data?.verificationUrl && 'verificationUrl'
-        ].filter(Boolean).join(', ')
-      );
+    // Fetch email template
+    const templateResponse = await fetch(template);
+    if (!templateResponse.ok) {
+      throw new Error('Failed to fetch email template');
     }
+
+    let templateHtml = await templateResponse.text();
+
+    // Replace template variables
+    templateHtml = templateHtml
+      .replace('${name}', data.name)
+      .replace('${confirmationUrl}', data.verificationUrl)
+      .replace(/\$\{new Date\(\)\.getFullYear\(\)\}/g, new Date().getFullYear().toString());
 
     const transporter = createTransport({
       host: Deno.env.get('SMTP_HOST'),
@@ -65,47 +78,17 @@ serve(async (req) => {
       from: `"MovieZone" <${Deno.env.get('SMTP_FROM')}>`,
       to,
       subject,
-      html: `
-        <!DOCTYPE html>
-        <html>
-          <head>
-            <style>
-              body { font-family: Arial, sans-serif; }
-              .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-              .button { 
-                display: inline-block;
-                padding: 12px 24px;
-                background-color: #DC2626;
-                color: white !important;
-                text-decoration: none;
-                border-radius: 4px;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h2>Welcome to MovieZone!</h2>
-              <p>Hi ${data.name},</p>
-              <p>Please verify your email address by clicking the button below:</p>
-              <p style="text-align: center;">
-                <a href="${data.verificationUrl}" class="button">Verify Email</a>
-              </p>
-              <p>Or copy and paste this link:</p>
-              <p>${data.verificationUrl}</p>
-            </div>
-          </body>
-        </html>
-      `,
+      html: templateHtml
     });
 
-    console.log('Email sent successfully:', info.messageId);
+    console.log('Verification email sent:', info.messageId);
 
     return new Response(
-      JSON.stringify({ message: 'Email sent successfully', id: info.messageId }),
+      JSON.stringify({ success: true, messageId: info.messageId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Failed to send email:', error);
+    console.error('Error sending verification email:', error);
     return new Response(
       JSON.stringify({ 
         error: error.message,
