@@ -17,7 +17,6 @@ export function Register() {
   const [loading, setLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [emailSending, setEmailSending] = useState(false);
 
   const validateForm = () => {
     const emailError = validateEmail(email);
@@ -38,40 +37,30 @@ export function Register() {
 
     try {
       setLoading(true);
-      setEmailSending(true);
       setError("");
 
-      // Generate a verification token
-      const verificationToken = crypto.randomUUID();
-
-      // Create the user account
+      // Use Supabase's built-in auth system with email confirmation
       const { data: userData, error: userError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
             full_name: name,
-            verification_token: verificationToken,
           },
+          // Enable built-in email verification
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (userError) throw userError;
       if (!userData?.user) throw new Error("Failed to create user account");
 
-      // Try to create the profile in the database
+      // Create the profile in the database after signup
       try {
-        // Sign in to get proper permissions for profile creation
-        await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        
         await supabase.from("profiles").insert({
           id: userData.user.id,
           full_name: name,
           email_verified: false,
-          verification_token: verificationToken,
           updated_at: new Date().toISOString(),
         });
       } catch (profileError) {
@@ -79,39 +68,10 @@ export function Register() {
         // Continue even if profile creation fails
       }
 
-      // Send verification email
-      try {
-        await supabase.functions.invoke(
-          "mail-sender",
-          {
-            method: "POST",
-            body: {
-              to: email,
-              subject: "Verify your MovieZone account",
-              template:
-                "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template//ConfirmEmailTemplate.html",
-              data: {
-                name,
-                verificationUrl: `${
-                  window.location.origin
-                }/auth/verify?token=${verificationToken}&email=${encodeURIComponent(
-                  email
-                )}`,
-              },
-            },
-          }
-        );
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
-        // Don't throw error here, just show a warning
-      }
-
-      // Show email verification screen regardless of email sending status
-      setIsEmailSent(false);
+      // Show email verification screen
+      setIsEmailSent(true);
     } catch (error: any) {
       console.error("Registration error:", error);
-      
-      // Provide user-friendly error messages
       if (error.message.includes("already registered")) {
         setError("This email is already registered. Please sign in instead.");
       } else {
@@ -119,7 +79,6 @@ export function Register() {
       }
     } finally {
       setLoading(false);
-      setEmailSending(false);
     }
   };
 
@@ -127,22 +86,19 @@ export function Register() {
     try {
       setLoading(true);
       setError("");
-      
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
+            access_type: "offline",
+            prompt: "consent",
           },
           redirectTo: `${window.location.origin}/auth/callback`,
         },
       });
 
       if (error) throw error;
-      
-      // No need for further handling as the user will be redirected to Google
-      // The callback logic will handle profile creation after successful sign-in
     } catch (error: any) {
       console.error("Google sign up error:", error);
       setError(error.message || "Failed to sign up with Google");
@@ -151,33 +107,18 @@ export function Register() {
     }
   };
 
+  // Handles resending the verification email using Supabase's built-in method
   const resendConfirmationEmail = async () => {
     try {
       setLoading(true);
       setError("");
-      
-      // Generate a new verification token
-      const verificationToken = crypto.randomUUID();
-      
-      // Update the verification token in the database
-      await supabase.from("profiles")
-        .update({ verification_token: verificationToken })
-        .eq("email", email);
-      
-      // Send new verification email
-      await supabase.functions.invoke(
-        "mail-sender",
-        {
-          body: {
-            to: email,
-            subject: "Verify your MovieZone account",
-            data: {
-              name,
-              verificationUrl: `${window.location.origin}/auth/verify?token=${verificationToken}&email=${encodeURIComponent(email)}`,
-            },
-          },
-        }
-      );
+
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
+
+      if (error) throw error;
 
       // Show success message
       setError("Verification email has been resent! Please check your inbox.");
@@ -247,12 +188,6 @@ export function Register() {
             <p>{error}</p>
           </div>
         )}
-
-        <div className="flex items-center my-4">
-          <hr className="flex-grow border-zinc-800" />
-          <span className="px-4 text-sm text-gray-400">OR</span>
-          <hr className="flex-grow border-zinc-800" />
-        </div>
 
         {/* Google Sign Up Button */}
         <button
@@ -347,9 +282,7 @@ export function Register() {
               disabled={loading}
             >
               {loading
-                ? emailSending
-                  ? "Sending verification email..."
-                  : "Creating account..."
+                ? "Creating account..."
                 : "Create account"}
             </button>
           </div>
@@ -357,7 +290,10 @@ export function Register() {
 
         <p className="text-center text-sm text-gray-400">
           Already have an account?{" "}
-          <Link to="/auth/login" className="text-red-500 hover:text-red-400 font-medium">
+          <Link
+            to="/auth/login"
+            className="text-red-500 hover:text-red-400 font-medium"
+          >
             Sign in
           </Link>
         </p>

@@ -163,31 +163,6 @@ export function Profile() {
     }
   };
 
-  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      if (!user?.id || !e.target.files || !e.target.files[0]) return;
-
-      const file = e.target.files[0];
-      const maxSize = 2 * 1024 * 1024; // 2MB
-
-      if (file.size > maxSize) {
-        toast.error("File size must be less than 2MB");
-        return;
-      }
-
-      setIsSaving(true);
-      const publicUrl = await uploadAvatar(file, user.id);
-      await updateUserProfile(user.id, { avatar_url: publicUrl });
-      toast.success("Avatar updated successfully");
-      window.location.reload();
-    } catch (error) {
-      console.error("Error uploading avatar:", error);
-      toast.error("Failed to upload avatar");
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
@@ -218,19 +193,6 @@ export function Profile() {
                   className="w-full h-full object-cover"
                 />
               </div>
-              <label
-                className="absolute bottom-0 right-0 p-2 bg-red-600 rounded-full cursor-pointer
-                         hover:bg-red-700 transition-colors duration-200"
-              >
-                <Camera className="w-4 h-4 text-white" />
-                <input
-                  type="file"
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  disabled={isSaving}
-                />
-              </label>
             </div>
 
             {/* User Info */}

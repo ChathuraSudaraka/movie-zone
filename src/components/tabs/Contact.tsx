@@ -20,26 +20,9 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      // For now, let's use a simpler approach to avoid SMTP issues
-      // Store the contact form in Supabase database instead
-      const { error: contactError } = await supabase
-        .from('contact_messages')
-        .insert({
-          name: formData.name,
-          email: formData.email,
-          subject: formData.subject,
-          message: formData.message,
-          created_at: new Date().toISOString()
-        });
-
-      if (contactError) {
-        console.error("Database error:", contactError);
-        throw new Error("Failed to submit contact form");
-      }
-
-      // Try to send email, but don't fail if it doesn't work
+      // Try to send the email directly via the mail-sender edge function
       try {
-        await supabase.functions.invoke("contact-form", {
+        await supabase.functions.invoke("mail-sender", {
           method: "POST",
           body: {
             to: "chathurasudaraka@eversoft.lk",
@@ -51,18 +34,17 @@ export function Contact() {
               email: formData.email,
               subject: formData.subject,
               message: formData.message,
-              verificationUrl: "#"
             },
           },
         });
-      } catch (emailError) {
-        // Log but don't throw since we already stored in database
-        console.error("Email sending failed:", emailError);
-      }
 
-      setStatus("success");
-      toast.success("Message sent successfully!");
-      setFormData({ name: "", email: "", subject: "", message: "" });
+        setStatus("success");
+        toast.success("Message sent successfully!");
+        setFormData({ name: "", email: "", subject: "", message: "" });
+      } catch (emailError) {
+        console.error("Email sending failed:", emailError);
+        throw new Error("Failed to send message. Please try again later.");
+      }
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");

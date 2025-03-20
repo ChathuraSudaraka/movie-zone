@@ -1,8 +1,10 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, AlertCircle } from "lucide-react";
 import { supabase } from "../../config/supabase";
+import { validateEmail } from "../../utils/validation";
+import toast from 'react-hot-toast';
 
 export function Login() {
   const [email, setEmail] = useState("");
@@ -10,24 +12,77 @@ export function Login() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showResendVerification, setShowResendVerification] = useState(false);
   const navigate = useNavigate();
+
+  const validateForm = () => {
+    const emailError = validateEmail(email);
+    
+    if (emailError) {
+      setError(emailError);
+      return false;
+    }
+    
+    if (!password) {
+      setError("Password is required");
+      return false;
+    }
+    
+    return true;
+  };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!validateForm()) return;
+    
     try {
       setLoading(true);
       setError("");
+      setShowResendVerification(false);
 
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (error) {
+        // Check if the error is due to email not being verified
+        if (error.message.includes("Email not confirmed")) {
+          setError("Please verify your email before logging in.");
+          setShowResendVerification(true);
+          return;
+        }
+        throw error;
+      }
+
+      // Check if user has a profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', data.user.id)
+        .single();
+      
+      // Create profile if it doesn't exist
+      if (profileError && profileError.code === 'PGRST116') {
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          full_name: data.user.user_metadata.full_name || '',
+          email_verified: true,
+          updated_at: new Date().toISOString(),
+        });
+      }
 
       navigate("/");
+      toast.success('Successfully logged in');
     } catch (error: any) {
+      console.error('Login error:', error);
       setError(error.message || "Failed to sign in");
+      
+      // Check for common errors and provide user-friendly messages
+      if (error.message.includes("Invalid login credentials")) {
+        setError("Incorrect email or password. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -36,6 +91,8 @@ export function Login() {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
+      setError("");
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
@@ -44,8 +101,29 @@ export function Login() {
       });
 
       if (error) throw error;
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Google sign in error:", error);
       setError("Failed to sign in with Google");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      setLoading(true);
+      
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+      });
+      
+      if (error) throw error;
+      
+      toast.success("Verification email sent. Please check your inbox.");
+    } catch (error: any) {
+      console.error("Error sending verification email:", error);
+      setError(error.message || "Failed to send verification email");
     } finally {
       setLoading(false);
     }
@@ -62,8 +140,19 @@ export function Login() {
         </div>
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-2 rounded">
-            {error}
+          <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded flex items-start gap-2">
+            <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
+            <div>
+              <p>{error}</p>
+              {showResendVerification && (
+                <button 
+                  onClick={handleResendVerification}
+                  className="text-sm text-red-400 hover:text-red-300 mt-2 underline"
+                >
+                  Resend verification email
+                </button>
+              )}
+            </div>
           </div>
         )}
 

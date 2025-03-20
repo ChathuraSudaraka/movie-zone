@@ -1,129 +1,106 @@
 // Follow this setup guide to integrate the Deno language server with your editor:
 // https://deno.land/manual/getting_started/setup_your_environment
 // This enables autocomplete, go to definition, etc.
-
 // Setup type definitions for built-in Supabase Runtime APIs
-/// <reference types="https://deno.land/x/webidl/lib.deno_webidl.d.ts" />
-/// <reference lib="deno.ns" />
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import nodemailer from "npm:nodemailer@6.6.3";
+import Handlebars from "npm:handlebars@4.7.6";
+import { corsHeaders } from "../_shared/cors.ts";
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createTransport } from "npm:nodemailer";
+// Simplified transporter setup
+const transporter = nodemailer.createTransport({
+  host: "smtp.zoho.com",
+  port: 465,
+  secure: true,
+  auth: {
+    user: Deno.env.get("ZOHO_USER"),
+    pass: Deno.env.get("ZOHO_PASS")
+  }
+});
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-interface EmailRequest {
-  to: string;
-  subject: string;
-  template: string;
-  data: {
-    name: string;
-    email?: string;
-    message?: string;
-    subject?: string;
-    verificationUrl: string;
-  };
+// Enhanced template fetching with multiple fallbacks
+async function fetchTemplate(templateUrl) {
+  try {
+    const response = await fetch(templateUrl);
+    if (!response.ok) throw new Error(`Failed to fetch template: ${response.statusText}`);
+    return await response.text();
+  } catch (error) {
+    console.error("Template fetch error:", error);
+    
+    // Check which template we should return based on the URL
+    if (templateUrl.includes("ConfirmEmailTemplate")) {
+      return `<!DOCTYPE html><html><body>
+        <h1>Email Verification</h1>
+        <p>Hello {{name}},</p>
+        <p>Thank you for signing up! Please verify your email address by clicking the link below:</p>
+        <p><a href="{{verificationUrl}}">Verify Email Address</a></p>
+        <p>If you didn't create an account, you can safely ignore this email.</p>
+      </body></html>`;
+    } else if (templateUrl.includes("ResetPasswordTemplate")) {
+      return `<!DOCTYPE html><html><body>
+        <h1>Password Reset</h1>
+        <p>Hello {{name}},</p>
+        <p>We received a request to reset your password. Click the link below to set a new password:</p>
+        <p><a href="{{resetUrl}}">Reset Password</a></p>
+        <p>If you didn't request a password reset, you can safely ignore this email.</p>
+      </body></html>`;
+    } else {
+      // Default fallback for contact form or other templates
+      return `<!DOCTYPE html><html><body>
+        <h1>Message from {{name}}</h1>
+        <p><strong>Email:</strong> {{email}}</p>
+        <p><strong>Subject:</strong> {{subject}}</p>
+        <p><strong>Message:</strong></p>
+        <p>{{message}}</p>
+      </body></html>`;
+    }
+  }
 }
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { status: 204, headers: corsHeaders });
-  }
+// CORS headers for consistent use
+const headers = { ...corsHeaders, "Content-Type": "application/json" };
 
+Deno.serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") return new Response("ok", { headers });
+  
   try {
-    const requestData = await req.json() as EmailRequest;
-    const { to, subject, template, data } = requestData;
+    // Parse and validate request
+    const data = await req.json();
     
-    console.log('Received email request for:', { to, subject, name: data.name });
-
-    // Fetch email template
-    const templateResponse = await fetch(template);
-    if (!templateResponse.ok) {
-      throw new Error('Failed to fetch email template');
+    if (!data.to || !data.subject) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields: to and subject" }),
+        { status: 400, headers }
+      );
     }
-
-    let templateHtml = await templateResponse.text();
-
-    // Replace template variables
-    templateHtml = templateHtml
-      .replace(/\${name}/g, data.name)
-      .replace(/\${email}/g, data.email || '')
-      .replace(/\${message}/g, data.message || '')
-      .replace(/\${subject}/g, data.subject || '')
-      .replace(/\${confirmationUrl}/g, data.verificationUrl || '#')
-      .replace(/\$\{new Date\(\)\.getFullYear\(\)\}/g, new Date().getFullYear().toString());
-
-    // Log SMTP configuration (without password)
-    console.log('SMTP Configuration:', {
-      host: Deno.env.get('SMTP_HOST'),
-      port: Number(Deno.env.get('SMTP_PORT')),
-      secure: Boolean(Deno.env.get('SMTP_SECURE') || 'true'),
-      user: Deno.env.get('SMTP_USER'),
-      from: Deno.env.get('SMTP_FROM')
-    });
-
-    // Configure SMTP transporter with more options
-    const transporter = createTransport({
-      host: Deno.env.get('SMTP_HOST'),
-      port: Number(Deno.env.get('SMTP_PORT')) || 465,
-      secure: Boolean(Deno.env.get('SMTP_SECURE') || 'true'), // true for 465, false for other ports
-      auth: {
-        user: Deno.env.get('SMTP_USER'),
-        pass: Deno.env.get('SMTP_PASS'),
-      },
-      tls: {
-        rejectUnauthorized: false, // Accept self-signed certificates
-        ciphers: 'SSLv3' // Try older cipher suite for compatibility
-      },
-      debug: true // Add debug output
-    });
-
-    // Test SMTP connection first
-    try {
-      console.log('Verifying SMTP connection...');
-      await transporter.verify();
-      console.log('SMTP connection verified successfully');
-    } catch (verifyError) {
-      console.error('SMTP verification failed:', verifyError);
-      throw new Error(`SMTP connection failed: ${verifyError.message}`);
-    }
-
-    // Use the SMTP_FROM environment variable - this should be configured in your Supabase Dashboard
-    // Make sure this email address is allowed to send from your SMTP server
-    const fromAddress = Deno.env.get('SMTP_FROM') || "no-reply@moviezone.com";
-
+    
+    // Prepare and send email
+    const templateHtml = await fetchTemplate(data.template || 'https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template/ContactFormTemplate.html');
+    const compiledHtml = Handlebars.compile(templateHtml)(data.data || {});
+    
+    // Determine the "from" address - can be customized by clients if needed
+    const fromAddress = data.from || '"MovieZone" <chathurasudaraka@eversoft.lk>';
+    
     const info = await transporter.sendMail({
-      from: `"MovieZone Support" <${fromAddress}>`,
-      to,
-      subject,
-      html: templateHtml,
-      // Add reply-to header with the sender's email to allow direct replies
-      replyTo: data.email || fromAddress
+      from: fromAddress,
+      to: data.to,
+      subject: data.subject,
+      html: compiledHtml,
+      // Support CC and BCC if provided
+      ...(data.cc && { cc: data.cc }),
+      ...(data.bcc && { bcc: data.bcc }),
     });
-
-    console.log('Email sent successfully:', info.messageId);
-
+    
     return new Response(
       JSON.stringify({ success: true, messageId: info.messageId }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers }
     );
   } catch (error) {
-    console.error('Error sending email:', error);
+    console.error("Error sending email:", error);
     return new Response(
-      JSON.stringify({ 
-        error: error.message,
-        code: error.code,
-        command: error.command,
-        responseCode: error.responseCode,
-        stack: error.stack,
-        details: error.toString()
-      }),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 500
-      }
+      JSON.stringify({ success: false, error: error.message || "Error sending email" }),
+      { status: 500, headers }
     );
   }
 });
