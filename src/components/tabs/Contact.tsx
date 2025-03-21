@@ -2,17 +2,17 @@ import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2, MessageSquare } from "lucide-react";
 import { supabase } from "../../config/supabase";
 import toast from "react-hot-toast";
+import { useAuth } from "../../context/AuthContext";
 
 export function Contact() {
+  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
+    name: user?.user_metadata?.full_name || "",
+    email: user?.email || "",
     subject: "",
     message: "",
   });
-  const [status, setStatus] = useState<
-    "idle" | "loading" | "success" | "error"
-  >("idle");
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
@@ -20,31 +20,43 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      // Try to send the email directly via the mail-sender edge function
-      try {
-        await supabase.functions.invoke("mail-sender", {
-          method: "POST",
-          body: {
-            to: "chathurasudaraka@eversoft.lk",
-            subject: `Contact Form: ${formData.subject}`,
-            template:
-              "https://yqggxjuqaplmklqpcwsx.supabase.co/storage/v1/object/public/email-template/ContactFormTemplate.html",
-            data: {
-              name: formData.name,
-              email: formData.email,
-              subject: formData.subject,
-              message: formData.message,
-            },
-          },
-        });
+      // Call mail-sender function directly for simplicity
+      const { data, error } = await supabase.functions.invoke('mail-sender', {
+        body: {
+          to: "chathurasudaraka@eversoft.lk", // Or use your admin email
+          subject: `Contact Form: ${formData.subject}`,
+          from: `"MovieZone Contact" <noreply@moviezone.com>`,
+          data: {
+            name: formData.name,
+            email: formData.email,
+            subject: formData.subject,
+            message: formData.message
+          }
+        }
+      });
 
-        setStatus("success");
-        toast.success("Message sent successfully!");
-        setFormData({ name: "", email: "", subject: "", message: "" });
-      } catch (emailError) {
-        console.error("Email sending failed:", emailError);
+      // Handle errors
+      if (error) {
+        console.error("Error sending email:", error);
+        throw new Error(`Failed to send message: ${error.message}`);
+      }
+      
+      if (!data?.success) {
+        console.error("Email sending failed:", data);
         throw new Error("Failed to send message. Please try again later.");
       }
+      
+      // Success
+      setStatus("success");
+      toast.success("Message sent successfully!");
+      
+      // Reset form except for name and email
+      setFormData((prev) => ({ 
+        ...prev, 
+        subject: "", 
+        message: "" 
+      }));
+      
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");
@@ -170,7 +182,7 @@ export function Contact() {
 
           {status === "success" && (
             <div className="p-4 bg-green-500/10 border border-green-500 text-green-500 rounded-md">
-              Message sent successfully!
+              Message sent successfully! We'll get back to you as soon as possible.
             </div>
           )}
 
