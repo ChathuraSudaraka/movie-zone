@@ -5,28 +5,22 @@ import { AlertCircle, Eye, EyeOff, CheckCircle, Loader2 } from "lucide-react";
 import { validatePassword } from "../../utils/validation";
 import toast from "react-hot-toast";
 
-// Add support for initial token
-interface ResetPasswordProps {
-  initialToken?: string | null;
-}
-
-export function ResetPassword({ initialToken }: ResetPasswordProps = {}) {
+export function ResetPassword() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(initialToken || null);
-  const [tokenError, setTokenError] = useState(false);
   const [initializing, setInitializing] = useState(true);
+  const [tokenError, setTokenError] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Extract token from URL when component mounts
+  // Check for session/auth state when component mounts
   useEffect(() => {
-    const checkTokenAndSession = async () => {
+    const checkAuthSession = async () => {
       try {
         // Log URL information for debugging
         const urlInfo = {
@@ -34,88 +28,58 @@ export function ResetPassword({ initialToken }: ResetPasswordProps = {}) {
           hash: window.location.hash,
           search: window.location.search,
           pathname: window.location.pathname,
-          state: location.state,
-          initialToken: initialToken || null
         };
         setDebugInfo(JSON.stringify(urlInfo, null, 2));
-        console.log("ResetPassword mounted, checking token:", urlInfo);
         
-        // If token was passed as prop, use it
-        if (initialToken) {
-          console.log("Using initial token provided as prop");
-          setAccessToken(initialToken);
+        // Check if there's a session already (user is authenticated)
+        const { data } = await supabase.auth.getSession();
+        
+        // If user is authenticated, they can reset their password
+        if (data.session) {
+          console.log("User has a valid session");
           setInitializing(false);
           return;
         }
         
-        // Check URL hash for token
+        // No session, but check if we have a type=recovery in the URL hash
         const hash = window.location.hash;
-        if (hash && hash.length > 1) {
-          try {
-            const hashParams = new URLSearchParams(hash.substring(1));
-            const token = hashParams.get("access_token") || 
-                          hashParams.get("token") || 
-                          hashParams.get("t");
-            
-            if (token) {
-              console.log("Found token in URL hash");
-              setAccessToken(token);
-              setInitializing(false);
-              return;
-            }
-          } catch (e) {
-            console.error("Error parsing hash params:", e);
-          }
-        }
-        
-        // Check query parameters
-        const queryParams = new URLSearchParams(window.location.search);
-        const queryToken = queryParams.get("token") || 
-                          queryParams.get("access_token") || 
-                          queryParams.get("t");
-        
-        if (queryToken) {
-          console.log("Found token in query parameters");
-          setAccessToken(queryToken);
-          setInitializing(false);
-          return;
-        }
-        
-        // Check session as last resort
-        if (!accessToken) {
-          console.log("No token parameters found, checking session");
+        if (hash) {
+          const hashParams = new URLSearchParams(hash.substring(1));
+          const type = hashParams.get("type");
           
-          const { data } = await supabase.auth.getSession();
-          if (data.session) {
-            console.log("User has an active session, allowing password reset");
-            setAccessToken("session-based");
+          if (type === "recovery") {
+            console.log("Recovery flow detected through URL hash params");
             setInitializing(false);
             return;
           }
         }
         
-        // If we reach here, no token was found
-        console.error("No reset token found in URL or session");
+        // Check for special error recovery route used by some Supabase implementations
+        const path = location.pathname;
+        if (path.includes("/auth/reset-password")) {
+          // Has URL parameters
+          if (location.search || location.hash) {
+            console.log("Reset password with URL parameters detected");
+            setInitializing(false);
+            return;
+          }
+        }
+        
+        // If we reach here, no valid recovery flow was detected
+        console.error("No valid recovery flow detected");
         setTokenError(true);
         setInitializing(false);
-      } catch (err) {
-        console.error("Error in token initialization:", err);
+      } catch (error) {
+        console.error("Error checking auth state:", error);
         setTokenError(true);
         setInitializing(false);
       }
     };
     
-    checkTokenAndSession();
-  }, [location, initialToken]);
+    checkAuthSession();
+  }, [location]);
 
-  // Validate form and provide helpful errors
   const validateForm = () => {
-    // Check token first
-    if (!accessToken) {
-      setError("Missing reset token. Please request a new password reset link.");
-      return false;
-    }
-    
     // Validate password
     const passwordError = validatePassword(password);
     if (passwordError) {
@@ -141,8 +105,7 @@ export function ResetPassword({ initialToken }: ResetPasswordProps = {}) {
     setError("");
     
     try {
-      // Update the user's password
-      console.log("Attempting to update password with token");
+      // Update the user's password using the Supabase SDK
       const { error } = await supabase.auth.updateUser({
         password
       });
@@ -158,19 +121,25 @@ export function ResetPassword({ initialToken }: ResetPasswordProps = {}) {
       }, 3000);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      setError(error.message || "Failed to reset password");
+      
+      // Handle specific error cases
+      if (error.message.includes("Auth session missing")) {
+        setError("Your password reset link has expired. Please request a new one.");
+      } else {
+        setError(error.message || "Failed to reset password");
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  // Show loading state while initializing
+  // Show loading state
   if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
         <div className="text-center space-y-4">
           <Loader2 className="w-12 h-12 text-red-500 animate-spin mx-auto" />
-          <h1 className="text-xl text-white">Loading reset form...</h1>
+          <h1 className="text-xl text-white">Loading...</h1>
         </div>
       </div>
     );
@@ -331,7 +300,7 @@ export function ResetPassword({ initialToken }: ResetPasswordProps = {}) {
 
           <button
             type="submit"
-            disabled={loading || !accessToken}
+            disabled={loading}
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Resetting..." : "Reset Password"}

@@ -32,9 +32,10 @@ export function ForgotPassword() {
     setError("");
     
     try {
-      // Simplify by redirecting directly to login page with code
+      // Use the correct redirectTo URL that matches your route structure
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/auth/login`,
+        // This URL must exactly match the URL configured in Supabase
+        redirectTo: `${window.location.origin}/auth/reset-password`,
       });
       
       if (error) throw error;

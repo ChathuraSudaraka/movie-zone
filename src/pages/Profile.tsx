@@ -1,7 +1,6 @@
 import { useState, useEffect, FormEvent } from "react";
 import { useAuth } from "../context/AuthContext";
 import {
-  Camera,
   User,
   Settings,
   MessageSquare,
@@ -14,7 +13,6 @@ import {
 } from "lucide-react";
 import { supabase } from "../config/supabase";
 import { ActivityItem, UserPreferences } from "../types/user";
-import { uploadAvatar, updateUserProfile } from "../config/supabase";
 import { UserProfile } from "../components/tabs/UserProfile";
 import { Preferences } from "../components/tabs/Preferences";
 import { Activity as ActivityTab } from "../components/tabs/activity";
