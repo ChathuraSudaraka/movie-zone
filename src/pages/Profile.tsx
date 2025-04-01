@@ -50,79 +50,90 @@ export function Profile() {
   }, [user]);
 
   // Fetch user activities - ensuring compatibility with different table states
-  useEffect(() => {
-    const fetchActivities = async () => {
-      if (!user) return;
+  const fetchActivities = async () => {
+    if (!user) return;
 
-      try {
-        setLoading(true);
+    try {
+      setLoading(true);
 
-        // Check if the table exists by querying it
-        const { error: countError } = await supabase
+      // Check if the table exists by querying it
+      const { error: countError } = await supabase
+        .from("user_activities")
+        .select("*", { count: "exact", head: true });
+
+      if (countError) {
+        console.log("Error checking user_activities table:", countError);
+        // Fallback to watch history
+        await fetchWatchHistory();
+      } else {
+        // Table exists, fetch activities
+        const { data, error } = await supabase
           .from("user_activities")
-          .select("*", { count: "exact", head: true });
+          .select("id, type, title, media_id, media_type, timestamp, user_id, metadata")
+          .eq("user_id", user?.id || "")
+          .order("timestamp", { ascending: false });
 
-        if (countError) {
-          console.log("Error checking user_activities table:", countError);
-          // Fallback to watch history
+        if (error) {
+          console.error("Error fetching activities:", error);
           await fetchWatchHistory();
         } else {
-          // Table exists, fetch activities
-          const { data, error } = await supabase
-            .from("user_activities")
-            .select("id, type, title, media_id, media_type, timestamp, user_id")
-            .eq("user_id", user?.id || "")
-            .order("timestamp", { ascending: false });
-
-          if (error) {
-            console.error("Error fetching activities:", error);
-            await fetchWatchHistory();
-          } else {
-            setActivities(data || []);
-          }
+          setActivities(data || []);
         }
-      } catch (error) {
-        console.error("Error in activity fetching:", error);
-        setActivities([]);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error("Error in activity fetching:", error);
+      setActivities([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    // Helper function to fetch watch history as fallback
-    const fetchWatchHistory = async () => {
-      try {
-        const { data: watchHistoryData, error: watchHistoryError } =
-          await supabase
-            .from("watch_history")
-            .select("media_id, title, media_type, watched_at")
-            .eq("user_id", user?.id || "")
-            .order("watched_at", { ascending: false });
+  // Helper function to fetch watch history as fallback
+  const fetchWatchHistory = async () => {
+    if (!user) return;
+    
+    try {
+      const { data: watchHistoryData, error: watchHistoryError } =
+        await supabase
+          .from("watch_history")
+          .select("media_id, title, media_type, watched_at")
+          .eq("user_id", user?.id || "")
+          .order("watched_at", { ascending: false });
 
-        if (watchHistoryError) throw watchHistoryError;
+      if (watchHistoryError) throw watchHistoryError;
 
-        // Convert watch history to activity format
-        const formattedActivities = (watchHistoryData || []).map(
-          (item, index) => ({
-            id: `watch-${item.media_id}-${index}`,
-            type: "watch",
-            title: item.title,
-            media_id: item.media_id,
-            media_type: item.media_type,
-            timestamp: item.watched_at,
-            user_id: user?.id || "",
-          })
-        );
+      // Convert watch history to activity format
+      const formattedActivities = (watchHistoryData || []).map(
+        (item, index) => ({
+          id: `watch-${item.media_id}-${index}`,
+          type: "watch",
+          title: item.title,
+          media_id: item.media_id,
+          media_type: item.media_type,
+          timestamp: item.watched_at,
+          user_id: user?.id || "",
+          metadata: {}
+        })
+      );
 
-        setActivities(formattedActivities);
-      } catch (error) {
-        console.error("Error fetching watch history:", error);
-        setActivities([]);
-      }
-    };
+      setActivities(formattedActivities);
+    } catch (error) {
+      console.error("Error fetching watch history:", error);
+      setActivities([]);
+    }
+  };
 
+  // Load activities when component mounts
+  useEffect(() => {
     fetchActivities();
   }, [user]);
+
+  // Handle activity deletion
+  const handleActivityDeleted = () => {
+    // Refetch activities after deletion
+    fetchActivities();
+    toast.success("Activity history updated");
+  };
 
   const updatePreferences = async (
     newPreferences: Partial<UserPreferences>
@@ -274,7 +285,11 @@ export function Profile() {
           )}
           {activeTab === "notifications" && <Notifications />}
           {activeTab === "activity" && (
-            <ActivityTab activities={activities} loading={loading} />
+            <ActivityTab 
+              activities={activities} 
+              loading={loading} 
+              onActivityDeleted={handleActivityDeleted}
+            />
           )}
           {activeTab === "contact" && <Contact />}
         </div>

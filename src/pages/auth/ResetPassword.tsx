@@ -15,116 +15,147 @@ export function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
   const [tokenError, setTokenError] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
+  const [validRecoveryFlow, setValidRecoveryFlow] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Check for session/auth state when component mounts
   useEffect(() => {
-    const checkAuthSession = async () => {
-      try {
-        // Log URL information for debugging
-        const urlInfo = {
-          fullUrl: window.location.href,
-          hash: window.location.hash,
-          search: window.location.search,
-          pathname: window.location.pathname,
-        };
-        setDebugInfo(JSON.stringify(urlInfo, null, 2));
+    const checkAccessValidity = async () => {
+      const urlInfo = {
+        fullUrl: window.location.href,
+        hash: window.location.hash,
+        search: window.location.search,
+        pathname: window.location.pathname,
+        referrer: document.referrer,
+      };
+      setDebugInfo(JSON.stringify(urlInfo, null, 2));
+      console.log("Debug URL info:", urlInfo);
+
+      // Check if there are any URL parameters indicating a password reset flow
+      const hasSearchParams = location.search && location.search.length > 1;
+      const hasHashParams = location.hash && location.hash.length > 1;
+
+      // If no URL parameters, redirect to forgot password
+      if (!hasSearchParams && !hasHashParams) {
+        console.log("No URL parameters found, user trying to access page directly");
+        navigate("/auth/forgot-password");
+        return;
+      }
+
+      // Check for token_hash or type=recovery in search params
+      const searchParams = new URLSearchParams(location.search);
+      const tokenHash = searchParams.get("token_hash");
+      const typeInSearch = searchParams.get("type");
+
+      // Check for parameters in hash
+      const hashParams = new URLSearchParams(location.hash.replace("#", ""));
+      const accessToken = hashParams.get("access_token");
+      const typeInHash = hashParams.get("type");
+
+      // Valid parameters found
+      if ((tokenHash && typeInSearch === "recovery") || 
+          (accessToken) || 
+          (typeInHash === "recovery")) {
         
-        // Check if there's a session already (user is authenticated)
+        console.log("Valid reset parameters found in URL");
+        
+        // Set up auth state change listener
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log("Auth state change event:", event);
+
+          if (event === "PASSWORD_RECOVERY") {
+            console.log("PASSWORD_RECOVERY event detected - valid recovery flow");
+            setValidRecoveryFlow(true);
+            setInitializing(false);
+          } else if (session) {
+            console.log("Existing session detected");
+            setValidRecoveryFlow(true);
+            setInitializing(false);
+          }
+        });
+        
+        // Check if we have a valid session
         const { data } = await supabase.auth.getSession();
-        
-        // If user is authenticated, they can reset their password
         if (data.session) {
           console.log("User has a valid session");
+          setValidRecoveryFlow(true);
           setInitializing(false);
-          return;
+          return () => subscription.unsubscribe();
         }
         
-        // No session, but check if we have a type=recovery in the URL hash
-        const hash = window.location.hash;
-        if (hash) {
-          const hashParams = new URLSearchParams(hash.substring(1));
-          const type = hashParams.get("type");
-          
-          if (type === "recovery") {
-            console.log("Recovery flow detected through URL hash params");
+        // Set timeout to check for event
+        setTimeout(() => {
+          if (initializing) {
+            console.log("No valid recovery flow detected after timeout");
+            setTokenError(true);
             setInitializing(false);
-            return;
           }
-        }
+        }, 2000);
         
-        // Check for special error recovery route used by some Supabase implementations
-        const path = location.pathname;
-        if (path.includes("/auth/reset-password")) {
-          // Has URL parameters
-          if (location.search || location.hash) {
-            console.log("Reset password with URL parameters detected");
-            setInitializing(false);
-            return;
-          }
-        }
-        
-        // If we reach here, no valid recovery flow was detected
-        console.error("No valid recovery flow detected");
-        setTokenError(true);
-        setInitializing(false);
-      } catch (error) {
-        console.error("Error checking auth state:", error);
+        return () => subscription.unsubscribe();
+      } else {
+        // Invalid parameters
+        console.log("URL parameters present but invalid");
         setTokenError(true);
         setInitializing(false);
       }
     };
-    
-    checkAuthSession();
-  }, [location]);
+
+    checkAccessValidity();
+  }, [location, navigate]);
 
   const validateForm = () => {
-    // Validate password
     const passwordError = validatePassword(password);
     if (passwordError) {
       setError(passwordError);
       return false;
     }
-    
-    // Check if passwords match
+
     if (password !== confirmPassword) {
       setError("Passwords do not match");
       return false;
     }
-    
+
     return true;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) return;
-    
+
     setLoading(true);
     setError("");
-    
+
     try {
-      // Update the user's password using the Supabase SDK
-      const { error } = await supabase.auth.updateUser({
-        password
+      console.log("Attempting to update user password");
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: password,
       });
-      
-      if (error) throw error;
-      
+
+      if (error) {
+        console.error("Password update error:", error);
+        throw error;
+      }
+
+      console.log("Password reset successful:", data);
       setIsSuccess(true);
       toast.success("Password has been reset successfully!");
-      
-      // Redirect to login after a delay
+
       setTimeout(() => {
         navigate("/auth/login");
       }, 3000);
     } catch (error: any) {
       console.error("Password reset error:", error);
-      
-      // Handle specific error cases
-      if (error.message.includes("Auth session missing")) {
-        setError("Your password reset link has expired. Please request a new one.");
+
+      if (
+        error.message.includes("Invalid") ||
+        error.message.includes("expired") ||
+        error.message.includes("token") ||
+        error.message.includes("session")
+      ) {
+        setTokenError(true);
       } else {
         setError(error.message || "Failed to reset password");
       }
@@ -133,7 +164,6 @@ export function ResetPassword() {
     }
   };
 
-  // Show loading state
   if (initializing) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
@@ -145,7 +175,6 @@ export function ResetPassword() {
     );
   }
 
-  // Show error when token is missing or invalid
   if (tokenError) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
@@ -163,19 +192,20 @@ export function ResetPassword() {
                 Please request a new password reset link.
               </p>
             </div>
-            
-            {/* For debugging - can be removed in production */}
+
             {debugInfo && (
               <div className="mt-4 p-4 bg-black/50 rounded-md text-left">
                 <details>
-                  <summary className="text-gray-400 cursor-pointer text-sm">Technical Details</summary>
+                  <summary className="text-gray-400 cursor-pointer text-sm">
+                    Technical Details
+                  </summary>
                   <pre className="text-xs text-gray-500 mt-2 overflow-auto">
                     {debugInfo}
                   </pre>
                 </details>
               </div>
             )}
-            
+
             <div className="flex justify-center space-x-4 mt-4">
               <Link
                 to="/auth/forgot-password"
@@ -196,7 +226,6 @@ export function ResetPassword() {
     );
   }
 
-  // Show success screen after password is reset
   if (isSuccess) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
@@ -226,7 +255,6 @@ export function ResetPassword() {
     );
   }
 
-  // Show password reset form
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#141414] px-4 py-12">
       <div className="max-w-md w-full space-y-8 bg-zinc-900/80 p-8 rounded-lg border border-zinc-800">
@@ -236,14 +264,14 @@ export function ResetPassword() {
             Enter your new password below
           </p>
         </div>
-        
+
         {error && (
           <div className="bg-red-500/10 border border-red-500 text-red-500 px-4 py-3 rounded flex items-start gap-2">
             <AlertCircle className="w-5 h-5 mt-0.5 flex-shrink-0" />
             <p>{error}</p>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit} className="mt-8 space-y-6">
           <div className="space-y-4">
             <div>
@@ -276,7 +304,7 @@ export function ResetPassword() {
                 </button>
               </div>
             </div>
-            
+
             <div>
               <label
                 htmlFor="confirmPassword"
@@ -306,7 +334,7 @@ export function ResetPassword() {
             {loading ? "Resetting..." : "Reset Password"}
           </button>
         </form>
-        
+
         <div className="text-center">
           <p className="mt-2 text-sm text-gray-400">
             <Link
