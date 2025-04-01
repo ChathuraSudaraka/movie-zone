@@ -17,6 +17,7 @@ import { Contact } from "./components/tabs/Contact";
 import { ForgotPassword } from "./pages/auth/ForgotPassword";
 import { ResetPassword } from "./pages/auth/ResetPassword";
 import { Callback } from "./pages/auth/callback";
+import { NotFound } from "./pages/NotFound";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -41,10 +42,13 @@ function AppContent() {
           <Route path="/info/:type/:id" element={<Info />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
-          <Route path="/auth/reset-password" element={<ResetPassword />} />
           <Route path="/auth/forgot-password" element={<ForgotPassword />} />
+          <Route path="/auth/reset-password" element={<ResetPassword />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/auth/callback" element={<Callback />} />
+          
+          {/* Catch-all route for 404 Not Found */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </main>
     </div>
