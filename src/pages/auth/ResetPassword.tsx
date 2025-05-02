@@ -15,7 +15,6 @@ export function ResetPassword() {
   const [initializing, setInitializing] = useState(true);
   const [tokenError, setTokenError] = useState(false);
   const [debugInfo, setDebugInfo] = useState<string>("");
-  const [validRecoveryFlow, setValidRecoveryFlow] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -31,58 +30,39 @@ export function ResetPassword() {
       setDebugInfo(JSON.stringify(urlInfo, null, 2));
       console.log("Debug URL info:", urlInfo);
 
-      // Check if there are any URL parameters indicating a password reset flow
-      const hasSearchParams = location.search && location.search.length > 1;
-      const hasHashParams = location.hash && location.hash.length > 1;
-
-      // If no URL parameters, redirect to forgot password
-      if (!hasSearchParams && !hasHashParams) {
-        console.log("No URL parameters found, user trying to access page directly");
-        navigate("/auth/forgot-password");
-        return;
-      }
-
-      // Check for token_hash or type=recovery in search params
-      const searchParams = new URLSearchParams(location.search);
-      const tokenHash = searchParams.get("token_hash");
-      const typeInSearch = searchParams.get("type");
-
       // Check for parameters in hash
       const hashParams = new URLSearchParams(location.hash.replace("#", ""));
       const accessToken = hashParams.get("access_token");
-      const typeInHash = hashParams.get("type");
+      const type = hashParams.get("type");
+      console.log("access_token from hash:", accessToken);
+      console.log("type from hash:", type);
 
       // Valid parameters found
-      if ((tokenHash && typeInSearch === "recovery") || 
-          (accessToken) || 
-          (typeInHash === "recovery")) {
-        
+      if (accessToken) {
         console.log("Valid reset parameters found in URL");
-        
+
         // Set up auth state change listener
         const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-          console.log("Auth state change event:", event);
+          console.log("Auth state change event:", event, session);
 
           if (event === "PASSWORD_RECOVERY") {
             console.log("PASSWORD_RECOVERY event detected - valid recovery flow");
-            setValidRecoveryFlow(true);
             setInitializing(false);
           } else if (session) {
-            console.log("Existing session detected");
-            setValidRecoveryFlow(true);
+            console.log("Existing session detected", session);
             setInitializing(false);
           }
         });
-        
+
         // Check if we have a valid session
         const { data } = await supabase.auth.getSession();
+        console.log("Session after getSession():", data.session);
         if (data.session) {
           console.log("User has a valid session");
-          setValidRecoveryFlow(true);
           setInitializing(false);
           return () => subscription.unsubscribe();
         }
-        
+
         // Set timeout to check for event
         setTimeout(() => {
           if (initializing) {
@@ -91,7 +71,7 @@ export function ResetPassword() {
             setInitializing(false);
           }
         }, 2000);
-        
+
         return () => subscription.unsubscribe();
       } else {
         // Invalid parameters

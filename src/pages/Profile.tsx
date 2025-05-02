@@ -110,7 +110,7 @@ export function Profile() {
           title: item.title,
           media_id: item.media_id,
           media_type: item.media_type,
-          timestamp: item.watched_at,
+          timestamp: item.watched_at, // important for deletion
           user_id: user?.id || "",
           metadata: {}
         })
@@ -288,7 +288,7 @@ export function Profile() {
             <ActivityTab 
               activities={activities} 
               loading={loading} 
-              onActivityDeleted={handleActivityDeleted}
+              onActivityDeleted={handleActivityDeleted} // Pass callback
             />
           )}
           {activeTab === "contact" && <Contact />}
@@ -343,23 +343,23 @@ function StatisticsCards({ userId }: { userId?: string }) {
 
       try {
         // Fetch watched movies count from watch_history table
-        const { data: watchedData, error: watchedError } = await supabase
+        const { count: watchedCount, error: watchedError } = await supabase
           .from("watch_history")
-          .select("*", { count: "exact" })
+          .select("*", { count: "exact", head: true })
           .eq("user_id", userId);
 
         // Fetch watchlist count from user_lists table
-        const { data: watchlistData, error: watchlistError } = await supabase
+        const { count: watchlistCount, error: watchlistError } = await supabase
           .from("user_lists")
-          .select("*", { count: "exact" })
+          .select("*", { count: "exact", head: true })
           .eq("user_id", userId);
 
         if (watchedError) throw watchedError;
         if (watchlistError) throw watchlistError;
 
         setStats({
-          watched: String(watchedData?.length || 0),
-          watchlist: String(watchlistData?.length || 0),
+          watched: String(watchedCount ?? 0),
+          watchlist: String(watchlistCount ?? 0),
         });
       } catch (error) {
         console.error("Error fetching stats:", error);

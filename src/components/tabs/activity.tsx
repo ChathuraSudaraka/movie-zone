@@ -14,13 +14,15 @@ import {
 import { Link } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
+import { supabase } from "../../config/supabase";
 
 interface ActivityProps {
   activities: ActivityItem[];
   loading: boolean;
+  onActivityDeleted?: () => void; // Add this prop
 }
 
-export function Activity({ activities, loading }: ActivityProps) {
+export function Activity({ activities, loading, onActivityDeleted }: ActivityProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
 
@@ -100,6 +102,7 @@ export function Activity({ activities, loading }: ActivityProps) {
       case "finish_series":
         return (
           <>
+
             Finished watching{" "}
             <span className="font-medium">{activity.title}</span> series
           </>
@@ -149,6 +152,32 @@ export function Activity({ activities, loading }: ActivityProps) {
   };
 
   const activityGroups = groupActivitiesByDate();
+
+  // Delete activity handler
+  const handleDelete = async (activity: ActivityItem) => {
+    try {
+      if (activity.id && !activity.id.toString().startsWith("watch-") && activity.type !== "watch") {
+        // Delete from user_activities table (real id)
+        const { error } = await supabase
+          .from("user_activities")
+          .delete()
+          .eq("id", activity.id);
+        if (error) throw error;
+      } else if (activity.type === "watch" && activity.media_id && activity.user_id && activity.timestamp) {
+        // Fallback: delete from watch_history table using user_id, media_id, watched_at
+        const { error } = await supabase
+          .from("watch_history")
+          .delete()
+          .eq("user_id", activity.user_id)
+          .eq("media_id", activity.media_id)
+          .eq("watched_at", activity.timestamp);
+        if (error) throw error;
+      }
+      if (onActivityDeleted) onActivityDeleted();
+    } catch (err) {
+      console.error("Failed to delete activity:", err);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -201,6 +230,14 @@ export function Activity({ activities, loading }: ActivityProps) {
                           View
                         </Link>
                       )}
+                      {/* Delete button */}
+                      <button
+                        onClick={() => handleDelete(activity)}
+                        className="ml-2 text-gray-400 hover:text-red-500 self-center flex-shrink-0"
+                        title="Delete activity"
+                      >
+                        ×
+                      </button>
                     </div>
                   ))}
                 </div>
