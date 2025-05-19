@@ -22,6 +22,11 @@ function Thumbnail({ movie, viewMode }: Props) {
   const [runtime, setRuntime] = useState<number | null>(null);
   const navigate = useNavigate();
 
+  const formatYear = (date: string | undefined) => {
+    if (!date) return '';
+    return new Date(date).getFullYear().toString();
+  };
+
   useEffect(() => {
     const fetchRuntime = async () => {
       if (viewMode === 'list' && movie.id) {
@@ -56,11 +61,9 @@ function Thumbnail({ movie, viewMode }: Props) {
 
   if (viewMode === "list") {
     return (
-      <div
-        className="group relative bg-gray-900/30 rounded-xl overflow-hidden transition-all duration-300
-                   border border-gray-800/50 hover:border-gray-700/50 backdrop-blur-sm
-                   hover:shadow-xl hover:shadow-black/20"
-      >
+      <div className="group relative bg-zinc-900/80 rounded-xl overflow-hidden transition-all duration-300
+                     border border-zinc-800/50 hover:border-zinc-700/50 hover:bg-zinc-900/90
+                     hover:shadow-xl hover:shadow-black/20">
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4">
           {/* Movie Poster */}
           <div className="relative h-[300px] sm:h-[200px] w-full sm:w-[140px] 
@@ -92,7 +95,7 @@ function Thumbnail({ movie, viewMode }: Props) {
                   {movie.title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-sm text-gray-400">
-                  <span>{new Date(movie.release_date).getFullYear()}</span>
+                  {movie.release_date && <span>{formatYear(movie.release_date)}</span>}
                   <span className="w-1 h-1 rounded-full bg-gray-600 hidden sm:block" />
                   <div className="flex items-center gap-1">
                     <BsStarFill className="w-4 h-4 text-yellow-500" />
@@ -141,12 +144,12 @@ function Thumbnail({ movie, viewMode }: Props) {
 
   return (
     <div
-      className="relative min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
-                 transition-all duration-300 ease-in-out group"
+      className="group relative cursor-pointer transition-transform duration-300 ease-in-out
+                 aspect-[2/3] w-full overflow-hidden rounded-md bg-zinc-900/50
+                 hover:z-20 hover:scale-105"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
-      style={{ willChange: "transform" }}
     >
       <img
         src={imageUrl}
@@ -155,49 +158,63 @@ function Thumbnail({ movie, viewMode }: Props) {
         decoding="async"
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
-        className={`rounded-sm object-cover md:rounded w-full h-full
-                   transition-all duration-300 ${isHovered ? "scale-105 brightness-75" : ""
-          }
+        className={`w-full h-full object-cover transition-all duration-300
+                   ${isHovered ? "scale-105 brightness-[0.3]" : "brightness-90"}
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
-        style={{
-          willChange: "transform",
-          transform: isHovered ? "scale(1.05)" : "scale(1)",
-          backfaceVisibility: "hidden",
-        }}
       />
 
       {!isLoaded && (
-        <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
+        <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
       )}
 
       <div
-        className={`absolute inset-0 flex flex-col justify-end p-4 
-                      transition-opacity duration-300 ${isHovered ? "opacity-100" : "opacity-0"
-          }`}
+        className={`absolute inset-0 flex flex-col justify-between p-3 transition-opacity duration-300 
+                   ${isHovered ? "opacity-100" : "opacity-0"}`}
       >
-        <div className="flex flex-col gap-2">
+        {/* Top section */}
+        <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <button
-              className="flex items-center justify-center w-10 h-10 rounded-full 
-                       bg-white/90 hover:bg-white transition group-hover:scale-110"
+              className="flex items-center justify-center w-9 h-9 rounded-full 
+                       bg-white hover:bg-white/90 transition transform-gpu
+                       group-hover:scale-105 active:scale-95"
               onClick={(e) => {
                 e.stopPropagation();
                 handleClick();
               }}
             >
-              <FaPlay className="h-5 w-5 text-black pl-0.5" />
+              <FaPlay className="w-4 h-4 text-black pl-0.5" />
             </button>
           </div>
+        </div>
 
-          <div>
-            <h3 className="text-sm font-semibold text-white md:text-base line-clamp-1">
-              {movie.title || movie.name}
-            </h3>
+        {/* Bottom section */}
+        <div className="space-y-1.5">
+          <h3 className="text-sm font-semibold text-white line-clamp-2">
+            {movie.title || movie.name}
+          </h3>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
             {movie.vote_average > 0 && (
-              <p className="text-xs text-green-400 font-medium">
+              <span className="text-green-400 font-medium">
                 {Math.round(movie.vote_average * 10)}% Match
-              </p>
+              </span>
             )}
+            {(movie.release_date || movie.first_air_date) && (
+              <span className="text-gray-400">
+                {formatYear(movie.release_date || movie.first_air_date)}
+              </span>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {movie.genre_ids?.slice(0, 2).map((genreId) => (
+              <span
+                key={genreId}
+                className="px-1.5 py-0.5 text-[10px] font-medium rounded-sm 
+                         bg-white/10 text-white/90"
+              >
+                {getGenreName(genreId)}
+              </span>
+            ))}
           </div>
         </div>
       </div>

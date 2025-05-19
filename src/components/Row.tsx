@@ -117,7 +117,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
 
   return (
     <div className="mb-12">
-      <div className="flex justify-between items-center px-4 md:px-8 lg:px-16 mb-4">
+      <div className="flex justify-between items-center px-4 md:px-8 lg:px-16">
         <h2 className="text-sm font-semibold text-[#e5e5e5] transition duration-200 hover:text-white md:text-2xl">
           {title}
         </h2>
@@ -145,7 +145,9 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
           className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
           {movies.map((movie) => (
-            <Thumbnail key={movie.id} movie={movie} viewMode="grid" />
+            <div className="flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px]">
+              <Thumbnail key={movie.id} movie={movie} viewMode="grid" />
+            </div>
           ))}
         </div>
       </div>
