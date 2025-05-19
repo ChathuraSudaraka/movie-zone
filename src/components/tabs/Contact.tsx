@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
+import emailjs from "@emailjs/browser";
 
 export function Contact() {
   const { user } = useAuth();
@@ -21,42 +22,35 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      // Use environment variables for Mailgun
-      const MAILGUN_DOMAIN =
-        import.meta.env.VITE_MAILGUN_DOMAIN || import.meta.env.MAILGUN_DOMAIN;
-      const MAILGUN_API_KEY =
-        import.meta.env.VITE_MAILGUN_API_KEY || import.meta.env.MAILGUN_API_KEY;
-      if (!MAILGUN_DOMAIN || !MAILGUN_API_KEY) {
+      // Use environment variables for EmailJS
+      const EMAILJS_SERVICE_ID =
+        import.meta.env.VITE_EMAILJS_SERVICE_ID ||
+        import.meta.env.EMAILJS_SERVICE_ID;
+      const EMAILJS_TEMPLATE_ID =
+        import.meta.env.VITE_EMAILJS_TEMPLATE_ID ||
+        import.meta.env.EMAILJS_TEMPLATE_ID;
+      const EMAILJS_PUBLIC_KEY =
+        import.meta.env.VITE_EMAILJS_PUBLIC_KEY ||
+        import.meta.env.EMAILJS_PUBLIC_KEY;
+      if (!EMAILJS_SERVICE_ID || !EMAILJS_TEMPLATE_ID || !EMAILJS_PUBLIC_KEY) {
         throw new Error(
-          "Mailgun configuration is missing. Please check your .env file."
+          "EmailJS configuration is missing. Please check your .env file."
         );
       }
-      const mailgunUrl = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
 
-      const form = new URLSearchParams();
-      form.append("from", `MovieZone Contact <noreply@${MAILGUN_DOMAIN}>`);
-      form.append("to", "chathurasudaraka@eversoft.lk");
-      form.append("subject", `Contact Form: ${formData.subject}`);
-      form.append(
-        "text",
-        `Name: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\nMessage: ${formData.message}`
+      const templateParams = {
+        name: formData.name,
+        email: formData.email,
+        subject: formData.subject,
+        message: formData.message,
+      };
+
+      await emailjs.send(
+        EMAILJS_SERVICE_ID,
+        EMAILJS_TEMPLATE_ID,
+        templateParams,
+        EMAILJS_PUBLIC_KEY
       );
-
-      const response = await fetch(mailgunUrl, {
-        method: "POST",
-        headers: {
-          Authorization: "Basic " + btoa(`api:${MAILGUN_API_KEY}`),
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-        body: form.toString(),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(
-          errorData.message || "Failed to send message. Please try again later."
-        );
-      }
 
       setStatus("success");
       toast.success("Message sent successfully!");
