@@ -1,6 +1,5 @@
 import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2, MessageSquare } from "lucide-react";
-import { supabase } from "../../config/supabase";
 import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -12,7 +11,9 @@ export function Contact() {
     subject: "",
     message: "",
   });
-  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [status, setStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: FormEvent) => {
@@ -20,43 +21,46 @@ export function Contact() {
     setStatus("loading");
 
     try {
-      // Call mail-sender function directly for simplicity
-      const { data, error } = await supabase.functions.invoke('mail-sender', {
-        body: {
-          to: "chathurasudaraka@eversoft.lk", // Or use your admin email
-          subject: `Contact Form: ${formData.subject}`,
-          from: `"MovieZone Contact" <noreply@moviezone.com>`,
-          data: {
-            name: formData.name,
-            email: formData.email,
-            subject: formData.subject,
-            message: formData.message
-          }
-        }
+      // Use environment variables for Mailgun
+      const MAILGUN_DOMAIN =
+        import.meta.env.VITE_MAILGUN_DOMAIN || import.meta.env.MAILGUN_DOMAIN;
+      const MAILGUN_API_KEY =
+        import.meta.env.VITE_MAILGUN_API_KEY || import.meta.env.MAILGUN_API_KEY;
+      if (!MAILGUN_DOMAIN || !MAILGUN_API_KEY) {
+        throw new Error(
+          "Mailgun configuration is missing. Please check your .env file."
+        );
+      }
+      const mailgunUrl = `https://api.mailgun.net/v3/${MAILGUN_DOMAIN}/messages`;
+
+      const form = new URLSearchParams();
+      form.append("from", `MovieZone Contact <noreply@${MAILGUN_DOMAIN}>`);
+      form.append("to", "chathurasudaraka@eversoft.lk");
+      form.append("subject", `Contact Form: ${formData.subject}`);
+      form.append(
+        "text",
+        `Name: ${formData.name}\nEmail: ${formData.email}\nSubject: ${formData.subject}\nMessage: ${formData.message}`
+      );
+
+      const response = await fetch(mailgunUrl, {
+        method: "POST",
+        headers: {
+          Authorization: "Basic " + btoa(`api:${MAILGUN_API_KEY}`),
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+        body: form.toString(),
       });
 
-      // Handle errors
-      if (error) {
-        console.error("Error sending email:", error);
-        throw new Error(`Failed to send message: ${error.message}`);
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(
+          errorData.message || "Failed to send message. Please try again later."
+        );
       }
-      
-      if (!data?.success) {
-        console.error("Email sending failed:", data);
-        throw new Error("Failed to send message. Please try again later.");
-      }
-      
-      // Success
+
       setStatus("success");
       toast.success("Message sent successfully!");
-      
-      // Reset form except for name and email
-      setFormData((prev) => ({ 
-        ...prev, 
-        subject: "", 
-        message: "" 
-      }));
-      
+      setFormData((prev) => ({ ...prev, subject: "", message: "" }));
     } catch (error) {
       console.error("Contact form error:", error);
       setStatus("error");
@@ -182,7 +186,8 @@ export function Contact() {
 
           {status === "success" && (
             <div className="p-4 bg-green-500/10 border border-green-500 text-green-500 rounded-md">
-              Message sent successfully! We'll get back to you as soon as possible.
+              Message sent successfully! We'll get back to you as soon as
+              possible.
             </div>
           )}
 
