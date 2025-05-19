@@ -15,7 +15,6 @@ import { supabase } from "../config/supabase";
 import { ActivityItem, UserPreferences } from "../types/user";
 import { UserProfile } from "../components/tabs/UserProfile";
 import { Preferences } from "../components/tabs/Preferences";
-import { Activity as ActivityTab } from "../components/tabs/activity";
 import { Contact } from "../components/tabs/Contact";
 import { Security } from "../components/tabs/Security";
 import { Notifications } from "../components/tabs/Notifications";
@@ -128,13 +127,6 @@ export function Profile() {
     fetchActivities();
   }, [user]);
 
-  // Handle activity deletion
-  const handleActivityDeleted = () => {
-    // Refetch activities after deletion
-    fetchActivities();
-    toast.success("Activity history updated");
-  };
-
   const updatePreferences = async (
     newPreferences: Partial<UserPreferences>
   ) => {
@@ -245,7 +237,6 @@ export function Profile() {
               { id: "security", label: "Security", icon: Shield },
               { id: "preferences", label: "Preferences", icon: Settings },
               { id: "notifications", label: "Notifications", icon: Bell },
-              { id: "activity", label: "Activity", icon: Activity },
               { id: "contact", label: "Contact", icon: MessageSquare },
             ].map((tab) => (
               <button
@@ -284,13 +275,6 @@ export function Profile() {
             />
           )}
           {activeTab === "notifications" && <Notifications />}
-          {activeTab === "activity" && (
-            <ActivityTab 
-              activities={activities} 
-              loading={loading} 
-              onActivityDeleted={handleActivityDeleted} // Pass callback
-            />
-          )}
           {activeTab === "contact" && <Contact />}
         </div>
 
