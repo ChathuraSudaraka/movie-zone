@@ -15,7 +15,6 @@ interface InfoHeroProps {
   setShowRatingModal: (show: boolean) => void;
   user: User | null;
   navigate: NavigateFunction;
-  trackActivity: (params: any) => Promise<boolean>;
   type: string | undefined;
 }
 
@@ -28,7 +27,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
   setShowRatingModal,
   user,
   navigate,
-  trackActivity,
   type,
 }) => {
   // Add local state for optimistic UI updates
@@ -67,14 +65,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
           .eq('movie_id', content.id);
 
         if (deleteError) throw deleteError;
-        
-        // Track activity for removing from list
-        trackActivity({
-          type: 'remove_from_list',
-          title: content.title,
-          media_id: content.id.toString(),
-          media_type: content.media_type || type
-        });
       } else {
         // Add to list
         const { error: insertError } = await supabase
@@ -88,14 +78,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
           });
 
         if (insertError) throw insertError;
-        
-        // Track activity for adding to list
-        trackActivity({
-          type: 'add_to_list',
-          title: content.title,
-          media_id: content.id.toString(),
-          media_type: content.media_type || type
-        });
       }
     } catch (error) {
       console.error('Error updating list:', error);
@@ -115,14 +97,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
     
     try {
       toast.success('Added to your likes');
-      
-      // Track activity for liking content
-      trackActivity({
-        type: 'like',
-        title: content.title,
-        media_id: content.id.toString(),
-        media_type: content.media_type || type
-      });
     } catch (error) {
       console.error('Error liking content:', error);
       toast.error('Failed to like content');
@@ -146,16 +120,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
         // Fallback to clipboard copy
         await navigator.clipboard.writeText(shareUrl);
         toast.success('Link copied to clipboard');
-      }
-      
-      // If user is logged in, track activity
-      if (user) {
-        trackActivity({
-          type: 'share',
-          title: content.title,
-          media_id: content.id.toString(),
-          media_type: content.media_type || type
-        });
       }
     } catch (error) {
       console.error('Error sharing content:', error);

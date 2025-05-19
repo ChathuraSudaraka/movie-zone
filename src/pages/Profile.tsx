@@ -7,12 +7,11 @@ import {
   LogOut,
   Mail,
   User as UserIcon,
-  Activity,
   Bell,
   Shield,
 } from "lucide-react";
 import { supabase } from "../config/supabase";
-import { ActivityItem, UserPreferences } from "../types/user";
+import { UserPreferences } from "../types/user";
 import { UserProfile } from "../components/tabs/UserProfile";
 import { Preferences } from "../components/tabs/Preferences";
 import { Contact } from "../components/tabs/Contact";
@@ -23,7 +22,6 @@ import toast from "react-hot-toast";
 export function Profile() {
   const { user, updateProfile } = useAuth();
   const [activeTab, setActiveTab] = useState("profile");
-  const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [preferences, setPreferences] = useState<UserPreferences>({
     emailNotifications: true,
     pushNotifications: true,
@@ -34,104 +32,22 @@ export function Profile() {
     autoplayTrailers: true,
     defaultPlaybackQuality: "auto",
   });
-  const [loading, setLoading] = useState(true);
   const [displayName, setDisplayName] = useState(
     user?.user_metadata?.full_name || ""
   );
   const [isSaving, setIsSaving] = useState(false);
   const [showPasswordChange, setShowPasswordChange] = useState(false);
 
-  // Update display name when user metadata changes
   useEffect(() => {
     if (user?.user_metadata?.full_name) {
       setDisplayName(user.user_metadata.full_name);
     }
   }, [user]);
 
-  // Fetch user activities - ensuring compatibility with different table states
-  const fetchActivities = async () => {
-    if (!user) return;
-
-    try {
-      setLoading(true);
-
-      // Check if the table exists by querying it
-      const { error: countError } = await supabase
-        .from("user_activities")
-        .select("*", { count: "exact", head: true });
-
-      if (countError) {
-        console.log("Error checking user_activities table:", countError);
-        // Fallback to watch history
-        await fetchWatchHistory();
-      } else {
-        // Table exists, fetch activities
-        const { data, error } = await supabase
-          .from("user_activities")
-          .select("id, type, title, media_id, media_type, timestamp, user_id, metadata")
-          .eq("user_id", user?.id || "")
-          .order("timestamp", { ascending: false });
-
-        if (error) {
-          console.error("Error fetching activities:", error);
-          await fetchWatchHistory();
-        } else {
-          setActivities(data || []);
-        }
-      }
-    } catch (error) {
-      console.error("Error in activity fetching:", error);
-      setActivities([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Helper function to fetch watch history as fallback
-  const fetchWatchHistory = async () => {
-    if (!user) return;
-    
-    try {
-      const { data: watchHistoryData, error: watchHistoryError } =
-        await supabase
-          .from("watch_history")
-          .select("media_id, title, media_type, watched_at")
-          .eq("user_id", user?.id || "")
-          .order("watched_at", { ascending: false });
-
-      if (watchHistoryError) throw watchHistoryError;
-
-      // Convert watch history to activity format
-      const formattedActivities = (watchHistoryData || []).map(
-        (item, index) => ({
-          id: `watch-${item.media_id}-${index}`,
-          type: "watch",
-          title: item.title,
-          media_id: item.media_id,
-          media_type: item.media_type,
-          timestamp: item.watched_at, // important for deletion
-          user_id: user?.id || "",
-          metadata: {}
-        })
-      );
-
-      setActivities(formattedActivities);
-    } catch (error) {
-      console.error("Error fetching watch history:", error);
-      setActivities([]);
-    }
-  };
-
-  // Load activities when component mounts
-  useEffect(() => {
-    fetchActivities();
-  }, [user]);
-
   const updatePreferences = async (
     newPreferences: Partial<UserPreferences>
   ) => {
     if (!user) return;
-
     try {
       const { error } = await supabase
         .from("user_preferences")
@@ -139,9 +55,7 @@ export function Profile() {
           preferences: { ...preferences, ...newPreferences },
         })
         .eq("user_id", user.id);
-
       if (error) throw error;
-
       setPreferences((prev) => ({ ...prev, ...newPreferences }));
     } catch (error) {
       console.error("Error updating preferences:", error);
@@ -151,7 +65,6 @@ export function Profile() {
   const handleSaveProfile = async (e: FormEvent) => {
     e.preventDefault();
     if (!user) return;
-
     try {
       setIsSaving(true);
       await updateProfile({ full_name: displayName });
@@ -195,7 +108,6 @@ export function Profile() {
                 />
               </div>
             </div>
-
             {/* User Info */}
             <div className="flex-1 text-center sm:text-left">
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
@@ -208,8 +120,7 @@ export function Profile() {
               <div className="mt-4 flex flex-wrap items-center justify-center sm:justify-start gap-3">
                 <button
                   onClick={handleSignOut}
-                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700
-                           text-white rounded-lg transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
                 >
                   <LogOut className="w-4 h-4" />
                   Sign Out
@@ -218,8 +129,7 @@ export function Profile() {
                 {!user?.app_metadata?.provider && (
                   <button
                     onClick={() => setShowPasswordChange(true)}
-                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700
-                             text-white rounded-lg transition-colors"
+                    className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-white rounded-lg transition-colors"
                   >
                     Change Password
                   </button>
@@ -228,7 +138,6 @@ export function Profile() {
             </div>
           </div>
         </div>
-
         {/* Tab Navigation */}
         <div className="bg-zinc-900/80 rounded-xl p-4">
           <div className="flex space-x-4 overflow-x-auto">
@@ -255,7 +164,6 @@ export function Profile() {
             ))}
           </div>
         </div>
-
         {/* Tab Content */}
         <div className="bg-zinc-900/80 rounded-xl p-6">
           {activeTab === "profile" && (
@@ -277,13 +185,11 @@ export function Profile() {
           {activeTab === "notifications" && <Notifications />}
           {activeTab === "contact" && <Contact />}
         </div>
-
         {/* Statistics Cards */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <StatisticsCards userId={user?.id} />
         </div>
       </div>
-
       {/* Password Change Modal */}
       {showPasswordChange && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -324,23 +230,19 @@ function StatisticsCards({ userId }: { userId?: string }) {
         setLoading(false);
         return;
       }
-
       try {
         // Fetch watched movies count from watch_history table
         const { count: watchedCount, error: watchedError } = await supabase
           .from("watch_history")
           .select("*", { count: "exact", head: true })
           .eq("user_id", userId);
-
         // Fetch watchlist count from user_lists table
         const { count: watchlistCount, error: watchlistError } = await supabase
           .from("user_lists")
           .select("*", { count: "exact", head: true })
           .eq("user_id", userId);
-
         if (watchedError) throw watchedError;
         if (watchlistError) throw watchlistError;
-
         setStats({
           watched: String(watchedCount ?? 0),
           watchlist: String(watchlistCount ?? 0),
@@ -351,15 +253,12 @@ function StatisticsCards({ userId }: { userId?: string }) {
         setLoading(false);
       }
     };
-
     fetchStats();
   }, [userId]);
-
   const statsData = [
-    { label: "Movies Watched", value: stats.watched, icon: Activity },
+    { label: "Movies Watched", value: stats.watched, icon: UserIcon },
     { label: "In Watchlist", value: stats.watchlist, icon: UserIcon },
   ];
-
   return (
     <>
       {statsData.map((stat, index) => (

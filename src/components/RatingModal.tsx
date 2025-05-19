@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
-import { useActivity } from '../hooks/useActivity';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -12,13 +11,12 @@ interface RatingModalProps {
   mediaType: string;
 }
 
-export function RatingModal({ isOpen, onClose, mediaTitle, mediaId, mediaType }: RatingModalProps) {
+export function RatingModal({ isOpen, onClose, mediaTitle }: RatingModalProps) {
   const [rating, setRating] = useState<number>(5);
   const [review, setReview] = useState<string>('');
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
-  const { trackActivity } = useActivity();
   const { user } = useAuth();
   
   if (!isOpen) return null;
@@ -34,31 +32,7 @@ export function RatingModal({ isOpen, onClose, mediaTitle, mediaId, mediaType }:
     setSubmitting(true);
     
     try {
-      // Track rating activity
-      await trackActivity({
-        type: 'rate',
-        title: mediaTitle,
-        media_id: mediaId,
-        media_type: mediaType,
-        metadata: {
-          rating: rating.toString()
-        }
-      });
-      
-      // If there's a review, also track that as a separate activity
-      if (review.trim()) {
-        await trackActivity({
-          type: 'review',
-          title: mediaTitle,
-          media_id: mediaId,
-          media_type: mediaType,
-          metadata: {
-            content: review.trim(),
-            rating: rating.toString()
-          }
-        });
-      }
-      
+      // TODO: Implement rating submission logic here (e.g., call an API or update database)
       toast.success('Thanks for your rating!');
       onClose();
     } catch (error) {

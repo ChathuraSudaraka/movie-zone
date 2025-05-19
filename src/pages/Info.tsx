@@ -4,7 +4,6 @@ import { Movie } from "../types/movie";
 import { useVideoModal } from "../context/VideoModalContext";
 import { useWatchHistory } from "../hooks/useWatchHistory";
 import { useAuth } from "../context/AuthContext";
-import { useActivity } from "../hooks/useActivity";
 import { supabase } from "../config/supabase";
 import { InfoHero } from "../components/info/InfoHero";
 import { InfoDetails } from "../components/info/InfoDetails";
@@ -19,7 +18,6 @@ function Info() {
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
   const { user } = useAuth();
-  const { trackActivity } = useActivity();
 
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
@@ -119,18 +117,6 @@ function Info() {
     checkIfInList();
   }, [content, user]);
 
-  // Track view action when content loads
-  useEffect(() => {
-    if (content && user && !loading) {
-      trackActivity({
-        type: "view",
-        title: content.title,
-        media_id: content.id.toString(),
-        media_type: content.media_type || (type as string),
-      });
-    }
-  }, [content, user, loading]);
-
   // Helper Methods
   const getVideoEmbedUrl = () => {
     if (!content?.imdb_id) return "";
@@ -164,19 +150,6 @@ function Info() {
       poster_path: content.poster_path || "",
       media_type: (content.media_type || type) as "movie" | "tv",
     };
-
-    // Track activity and add to watch history
-    trackActivity({
-      type: "watch",
-      title: mediaData.title,
-      media_id: content.id.toString(),
-      media_type: mediaData.media_type,
-      metadata: {
-        poster_path: content.poster_path || undefined,
-      }
-    }).catch((error) => {
-      console.error("Failed to track watch activity:", error);
-    });
 
     // Add to watch history in the background (legacy)
     addToWatchHistory(mediaData).catch((error) => {
@@ -214,7 +187,6 @@ function Info() {
         setShowRatingModal={setShowRatingModal}
         user={user}
         navigate={navigate}
-        trackActivity={trackActivity}
         type={type}
       />
 
