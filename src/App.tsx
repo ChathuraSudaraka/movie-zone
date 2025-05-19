@@ -14,10 +14,11 @@ import { Register } from "./pages/auth/Register";
 import { AuthProvider } from "./context/AuthContext";
 import { Profile } from "./pages/Profile";
 import { Contact } from "./components/tabs/Contact";
-import { ForgotPassword } from "./pages/auth/ForgotPassword";
-import { ResetPassword } from "./pages/auth/ResetPassword";
 import { Callback } from "./pages/auth/callback";
 import { NotFound } from "./pages/NotFound";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import { Toaster } from "react-hot-toast";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -60,6 +61,29 @@ function App() {
     <AuthProvider>
       <VideoModalProvider>
         <AppContent />
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            style: {
+              background: '#1f1f1f',
+              color: '#fff',
+              borderRadius: '8px',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+            },
+            success: {
+              iconTheme: {
+                primary: '#10B981',
+                secondary: '#fff',
+              },
+            },
+            error: {
+              iconTheme: {
+                primary: '#EF4444',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
       </VideoModalProvider>
     </AuthProvider>
   );

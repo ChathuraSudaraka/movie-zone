@@ -20,18 +20,19 @@ export function Callback() {
       }
       
       if (!data.session) {
-        // Check if this is a email confirmation callback
+        // Check both hash and query params for Supabase auth callback
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const type = hashParams.get('type');
-        
+        const queryParams = new URLSearchParams(window.location.search);
+        const type = hashParams.get('type') || queryParams.get('type');
+
         if (type === 'email_confirmation') {
           toast.success('Email verified successfully!');
           setTimeout(() => navigate('/auth/login'), 2000);
           return;
         }
-        
-        setError('No session found. Please try logging in again.');
-        setTimeout(() => navigate('/auth/login'), 3000);
+
+        // If not email confirmation, show a clear message and a login button
+        setError('You are not logged in. Please log in to continue.');
         return;
       }
       
@@ -82,7 +83,12 @@ export function Callback() {
         <div className="bg-red-500/10 border border-red-500 text-red-500 px-6 py-4 rounded-lg max-w-md w-full text-center">
           <p className="font-medium mb-2">Error</p>
           <p>{error}</p>
-          <p className="text-sm mt-4">Redirecting to login page...</p>
+          <button
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
+            onClick={() => navigate('/auth/login')}
+          >
+            Go to Login
+          </button>
         </div>
       ) : (
         <div className="text-center space-y-4">
