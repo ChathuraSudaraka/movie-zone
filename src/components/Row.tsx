@@ -85,28 +85,29 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
           />
         </div>
         <div className="relative">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16">
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-8 lg:px-16">
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="relative h-[230px] min-w-[160px] md:h-[420px] md:min-w-[280px]"
+                className="flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] bg-zinc-900 rounded-sm overflow-hidden"
               >
                 <Skeleton
                   variant="rectangular"
                   width="100%"
-                  height="100%"
+                  height={isMobile ? 230 : 420}
                   sx={{
                     bgcolor: "#1f1f1f",
-                    borderRadius: "0.125rem", // This matches rounded-sm
+                    borderRadius: 0, // Remove border radius, let parent handle it
                   }}
                 />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <Skeleton
-                    variant="text"
-                    width="60%"
-                    sx={{ bgcolor: "#1f1f1f" }}
-                  />
-                </div>
+                <Skeleton
+                  variant="text"
+                  width="60%"
+                  sx={{
+                    bgcolor: "#1f1f1f",
+                    margin: "16px", // Matches p-4 (1rem = 16px)
+                  }}
+                />
               </div>
             ))}
           </div>
@@ -118,7 +119,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
   return (
     <div className="mb-12">
       <div className="flex justify-between items-center px-4 md:px-8 lg:px-16">
-        <h2 className="text-sm font-semibold text-[#e5e5e5] transition duration-200 hover:text-white md:text-2xl">
+        <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
           {title}
         </h2>
         {!isMobile && (
