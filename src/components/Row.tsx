@@ -100,14 +100,6 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
                     borderRadius: 0, // Remove border radius, let parent handle it
                   }}
                 />
-                <Skeleton
-                  variant="text"
-                  width="60%"
-                  sx={{
-                    bgcolor: "#1f1f1f",
-                    margin: "16px", // Matches p-4 (1rem = 16px)
-                  }}
-                />
               </div>
             ))}
           </div>
