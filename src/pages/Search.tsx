@@ -89,65 +89,62 @@ function Search() {
         {results.map((result) => (
           <div
             key={result.id}
-            className="relative min-w-[160px] md:h-[420px] md:min-w-[280px] cursor-pointer 
-                           transition-all duration-300 ease-in-out group"
+            className="relative group flex flex-col overflow-hidden rounded-sm bg-zinc-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
             onMouseEnter={() => setHoveredId(result.id)}
             onMouseLeave={() => setHoveredId(null)}
             onClick={() => handleNavigateToInfo(result)}
             style={{ willChange: "transform" }}
           >
-            <img
-              src={getImageUrl(result)}
-              alt={result.title || result.name}
-              loading="lazy"
-              decoding="async"
-              onError={(e) => {
-                setImgError(true);
-                (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
-              }}
-              onLoad={() => setIsLoaded(true)}
-              className={`rounded-sm object-cover md:rounded w-full h-full
-                             transition-all duration-300 ${
-                               hoveredId === result.id ? "scale-105 brightness-75" : ""
-                             }
-                             ${isLoaded ? "opacity-100" : "opacity-0"}`}
-              style={{
-                willChange: "transform",
-                transform: hoveredId === result.id ? "scale(1.05)" : "scale(1)",
-                backfaceVisibility: "hidden",
-              }}
-            />
-
-            {!isLoaded && (
-              <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
-            )}
-
-            <div
-              className={`absolute inset-0 flex flex-col justify-end p-4 
-                                transition-opacity duration-300 ${
-                                  hoveredId === result.id ? "opacity-100" : "opacity-0"
-                                }`}
-            >
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2">
-                  <button
-                    className="flex items-center justify-center w-10 h-10 rounded-full 
-                                 bg-white/90 hover:bg-white transition group-hover:scale-110"
-                    onClick={() => handleNavigateToInfo(result)}
-                  >
-                    <FaPlay className="h-5 w-5 text-black pl-0.5" />
-                  </button>
-                </div>
-
-                <div>
-                  <h3 className="text-sm font-semibold text-white md:text-base line-clamp-1">
-                    {result.title || result.name}
-                  </h3>
-                  {result.vote_average > 0 && (
-                    <p className="text-xs text-green-400 font-medium">
-                      {Math.round(result.vote_average * 10)}% Match
-                    </p>
-                  )}
+            <div className="relative w-full aspect-[2/3] bg-zinc-800">
+              <img
+                src={getImageUrl(result)}
+                alt={result.title || result.name}
+                loading="lazy"
+                decoding="async"
+                onError={(e) => {
+                  setImgError(true);
+                  (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
+                }}
+                onLoad={() => setIsLoaded(true)}
+                className={`object-cover w-full h-full transition-all duration-300 ${
+                  hoveredId === result.id ? "scale-105 brightness-75" : ""
+                } ${isLoaded ? "opacity-100" : "opacity-0"}`}
+                style={{
+                  willChange: "transform",
+                  transform: hoveredId === result.id ? "scale(1.05)" : "scale(1)",
+                  backfaceVisibility: "hidden",
+                }}
+              />
+              {!isLoaded && (
+                <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
+              )}
+              <div
+                className={`absolute inset-0 flex flex-col justify-end p-2 md:p-4 transition-opacity duration-300 ${
+                  hoveredId === result.id ? "opacity-100" : "opacity-0"
+                }`}
+              >
+                <div className="flex flex-col gap-2">
+                  <div className="flex items-center gap-2">
+                    <button
+                      className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/90 hover:bg-white transition group-hover:scale-110"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleNavigateToInfo(result);
+                      }}
+                    >
+                      <FaPlay className="h-4 w-4 md:h-5 md:w-5 text-black pl-0.5" />
+                    </button>
+                  </div>
+                  <div>
+                    <h3 className="text-xs md:text-sm font-semibold text-white line-clamp-1">
+                      {result.title || result.name}
+                    </h3>
+                    {result.vote_average > 0 && (
+                      <p className="text-[10px] md:text-xs text-green-400 font-medium">
+                        {Math.round(result.vote_average * 10)}% Match
+                      </p>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
