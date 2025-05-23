@@ -3,6 +3,7 @@ import { useSearchParams, useNavigate } from "react-router-dom";
 import { Movie } from "../types/movie";
 import { baseUrl } from "@/utils/requests";
 import { FaPlay } from "react-icons/fa";
+import { Skeleton } from "@mui/material";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
@@ -17,7 +18,7 @@ function Search() {
   const query = searchParams.get("q") || "";
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredId, setHoveredId] = useState<number | null>(null); // Replace isHovered with this
+  const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -47,7 +48,6 @@ function Search() {
           )}&page=1&include_adult=false`
         );
         const data = await response.json();
-        // Filter for movies and TV shows with valid images
         const filteredResults = data.results.filter(
           (item: SearchResult) =>
             (item.media_type === "movie" || item.media_type === "tv") &&
@@ -72,8 +72,38 @@ function Search() {
 
   if (loading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <div className="h-32 w-32 animate-spin rounded-full border-b-2 border-red-600"></div>
+      <div className="mt-[68px] min-h-screen bg-[#141414] px-2 py-6 md:px-3 lg:px-4">
+        <h1 className="text-3xl font-bold mb-4 text-white">
+          {results.length > 0
+            ? `Search results for "${query}"`
+            : `No results found for "${query}"`}
+        </h1>
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {Array.from({ length: 10 }).map((_, index) => (
+            <div
+              key={index}
+              className="relative group flex flex-col overflow-hidden rounded-md bg-zinc-900 shadow-md min-h-[220px] h-full"
+              style={{ willChange: "transform" }}
+            >
+              <div className="relative w-full aspect-[2/3] bg-zinc-800">
+                <Skeleton
+                  variant="rectangular"
+                  width="100%"
+                  height="100%"
+                  sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+                  style={{ aspectRatio: "2 / 3" }}
+                />
+                <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4">
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    sx={{ bgcolor: "#1f1f1f" }}
+                  />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -89,7 +119,7 @@ function Search() {
         {results.map((result) => (
           <div
             key={result.id}
-            className="relative group flex flex-col overflow-hidden rounded-sm bg-zinc-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
+            className="relative group flex flex-col overflow-hidden rounded-md bg-zinc-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
             onMouseEnter={() => setHoveredId(result.id)}
             onMouseLeave={() => setHoveredId(null)}
             onClick={() => handleNavigateToInfo(result)}
@@ -111,12 +141,11 @@ function Search() {
                 } ${isLoaded ? "opacity-100" : "opacity-0"}`}
                 style={{
                   willChange: "transform",
-                  transform: hoveredId === result.id ? "scale(1.05)" : "scale(1)",
                   backfaceVisibility: "hidden",
                 }}
               />
               {!isLoaded && (
-                <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
+                <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
               )}
               <div
                 className={`absolute inset-0 flex flex-col justify-end p-2 md:p-4 transition-opacity duration-300 ${
