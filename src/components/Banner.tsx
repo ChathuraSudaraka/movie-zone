@@ -16,6 +16,7 @@ function Banner({ fetchUrl }: Props) {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [trailerUrl, setTrailerUrl] = useState<string>("");
+  const [imgLoaded, setImgLoaded] = useState(false); // Track banner image loading
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -260,7 +261,13 @@ function Banner({ fetchUrl }: Props) {
           src={`${baseUrl}${movie.backdrop_path}`}
           alt={movie.title || movie.name}
           className="h-full w-full object-cover"
+          style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgLoaded(true)}
         />
+        {!imgLoaded && (
+          <div className="absolute inset-0 bg-zinc-900 animate-pulse" />
+        )}
       </div>
 
       {/* Gradient overlays */}

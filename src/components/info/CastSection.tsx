@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 
 interface CastMember {
   id: number;
@@ -12,6 +12,9 @@ interface CastSectionProps {
 }
 
 export const CastSection: React.FC<CastSectionProps> = ({ cast }) => {
+  // Track loading state for each image by id
+  const [imgLoaded, setImgLoaded] = useState<{ [id: number]: boolean }>({});
+
   return (
     <div className="mb-12">
       <h2 className="text-2xl font-semibold text-white mb-6">
@@ -22,16 +25,23 @@ export const CastSection: React.FC<CastSectionProps> = ({ cast }) => {
           <div key={person.id} className="group">
             <div className="aspect-[2/3] relative overflow-hidden rounded-md mb-2">
               {person.profile_path ? (
-                <img
-                  src={`https://image.tmdb.org/t/p/w300${person.profile_path}`}
-                  alt={person.name}
-                  className="w-full h-full object-cover object-center transform group-hover:scale-105 transition duration-300"
-                  onError={(e) => {
-                    const target = e.target as HTMLImageElement;
-                    target.src =
-                      "https://via.placeholder.com/300x450?text=No+Image";
-                  }}
-                />
+                <>
+                  <img
+                    src={`https://image.tmdb.org/t/p/w300${person.profile_path}`}
+                    alt={person.name}
+                    className="w-full h-full object-cover object-center transform group-hover:scale-105 transition duration-300"
+                    onLoad={() => setImgLoaded((prev) => ({ ...prev, [person.id]: true }))}
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "https://via.placeholder.com/300x450?text=No+Image";
+                      setImgLoaded((prev) => ({ ...prev, [person.id]: true }));
+                    }}
+                    style={{ opacity: imgLoaded[person.id] ? 1 : 0, transition: "opacity 0.3s" }}
+                  />
+                  {!imgLoaded[person.id] && (
+                    <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
+                  )}
+                </>
               ) : (
                 <div className="w-full h-full bg-gray-800 flex items-center justify-center">
                   <span className="text-sm">No Image</span>

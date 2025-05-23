@@ -32,6 +32,7 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
   // Add local state for optimistic UI updates
   const [isUpdatingList, setIsUpdatingList] = useState(false);
   const [optimisticInList, setOptimisticInList] = useState(isInMyList);
+  const [imgLoaded, setImgLoaded] = useState(false); // Track image loading
 
   // Update local state when prop changes
   React.useEffect(() => {
@@ -138,7 +139,13 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
           src={`https://image.tmdb.org/t/p/original${content.backdrop_path}`}
           alt={content.title}
           className="h-full w-full object-cover"
+          style={{ opacity: imgLoaded ? 1 : 0, transition: 'opacity 0.5s' }}
+          onLoad={() => setImgLoaded(true)}
+          onError={() => setImgLoaded(true)}
         />
+        {!imgLoaded && (
+          <div className="absolute inset-0 bg-zinc-900 animate-pulse" />
+        )}
         {/* Gradient Overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-transparent to-[#141414]" />
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/40 to-transparent" />

@@ -16,7 +16,7 @@ const Home = () => {
       <Banner fetchUrl={requests.fetchNetflixOriginals} />
 
       {/* Main Content */}
-      <main className="relative z-10 -mt-[55px] pb-24 lg:-mt-[100px] lg:space-y-16">
+      <main className="relative z-10 -mt-[55px] pb-6 md:pb-12 lg:-mt-[100px] lg:space-y-16">
         <section className="space-y-6 md:space-y-12">
           <Row title="Netflix Originals" fetchUrl={requests.fetchNetflixOriginals} />
           <Row title="Trending Now" fetchUrl={requests.fetchTrending} />

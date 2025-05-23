@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { Movie } from "../../types/movie";
 
 interface InfoDetailsProps {
@@ -6,6 +6,9 @@ interface InfoDetailsProps {
 }
 
 export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
+  // Track loading state for each company logo by id
+  const [logoLoaded, setLogoLoaded] = useState<{ [id: number]: boolean }>({});
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
       {/* Details */}
@@ -65,15 +68,34 @@ export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
               {content.production_companies.map((company: any) => (
                 <div key={company.id} className="flex items-center gap-3">
                   {company.logo_path ? (
-                    <img
-                      src={`https://image.tmdb.org/t/p/w200${company.logo_path}`}
-                      alt={company.name}
-                      className="h-8 object-contain"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                      }}
-                    />
+                    <div className="relative h-8 flex items-center">
+                      <img
+                        src={`https://image.tmdb.org/t/p/w200${company.logo_path}`}
+                        alt={company.name}
+                        className="h-8 object-contain"
+                        style={{
+                          opacity: logoLoaded[company.id] ? 1 : 0,
+                          transition: "opacity 0.3s",
+                        }}
+                        onLoad={() =>
+                          setLogoLoaded((prev) => ({
+                            ...prev,
+                            [company.id]: true,
+                          }))
+                        }
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          setLogoLoaded((prev) => ({
+                            ...prev,
+                            [company.id]: true,
+                          }));
+                        }}
+                      />
+                      {!logoLoaded[company.id] && (
+                        <div className="absolute left-0 top-0 h-8 w-24 bg-zinc-900 animate-pulse rounded" />
+                      )}
+                    </div>
                   ) : (
                     <span className="text-sm">{company.name}</span>
                   )}

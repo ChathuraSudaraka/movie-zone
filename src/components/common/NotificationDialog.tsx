@@ -149,6 +149,8 @@ function NotificationContent({
   notifications: Notification[];
   loading: boolean;
 }) {
+  const [imgLoaded, setImgLoaded] = useState<{ [key: string]: boolean }>({});
+
   if (loading) {
     return (
       <div className="p-4">
@@ -172,17 +174,25 @@ function NotificationContent({
           <div className="space-y-3">
             {notifications.map((notification) => (
               <div
-                key={notification.uniqueId} // Use unique identifier here
+                key={notification.uniqueId}
                 className={`flex gap-3 p-3 rounded-lg transition-colors
                   ${notification.read ? "bg-gray-800/30" : "bg-gray-800/50"}
                   hover:bg-gray-700/50 cursor-pointer`}
               >
                 {notification.image ? (
-                  <img
-                    src={notification.image}
-                    alt=""
-                    className="w-12 h-12 rounded-md object-cover"
-                  />
+                  <div className="relative w-12 h-12">
+                    <img
+                      src={notification.image}
+                      alt=""
+                      className="w-12 h-12 rounded-md object-cover"
+                      style={{ opacity: imgLoaded[notification.uniqueId ?? ''] ? 1 : 0, transition: 'opacity 0.3s' }}
+                      onLoad={() => setImgLoaded((prev) => ({ ...prev, [notification.uniqueId ?? '']: true }))}
+                      onError={() => setImgLoaded((prev) => ({ ...prev, [notification.uniqueId ?? '']: true }))}
+                    />
+                    {!imgLoaded[notification.uniqueId ?? ''] && (
+                      <div className="absolute inset-0 w-12 h-12 rounded-md bg-zinc-900 animate-pulse" />
+                    )}
+                  </div>
                 ) : (
                   <div className="w-12 h-12 rounded-md bg-gray-800 flex items-center justify-center">
                     {notification.type === 'upcoming' ? (

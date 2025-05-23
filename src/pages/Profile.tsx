@@ -81,6 +81,7 @@ export function Profile() {
     try {
       await supabase.auth.signOut();
       toast.success("Signed out successfully");
+      window.location.href = "/";
     } catch (error) {
       console.error("Error signing out:", error);
       toast.error("Error signing out");
