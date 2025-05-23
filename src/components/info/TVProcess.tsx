@@ -1,5 +1,10 @@
 import { useEffect, useState, useCallback, useRef } from "react"; // Add useRef
-import { FaChevronDown, FaSpinner, FaChevronLeft, FaChevronRight } from 'react-icons/fa'; // Add chevron icons
+import {
+  FaChevronDown,
+  FaSpinner,
+  FaChevronLeft,
+  FaChevronRight,
+} from "react-icons/fa"; // Add chevron icons
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
 import EpisodeList from "./EpisodeList";
@@ -47,17 +52,18 @@ export const TVProcess = ({
   const seasonListRef = useRef<HTMLDivElement>(null);
   const [showNavigation, setShowNavigation] = useState(false);
 
-  const scrollSeasons = (direction: 'left' | 'right') => {
+  const scrollSeasons = (direction: "left" | "right") => {
     if (seasonListRef.current) {
       const scrollAmount = 300; // Adjust scroll amount as needed
       const currentScroll = seasonListRef.current.scrollLeft;
-      const newScroll = direction === 'left' 
-        ? currentScroll - scrollAmount 
-        : currentScroll + scrollAmount;
-      
+      const newScroll =
+        direction === "left"
+          ? currentScroll - scrollAmount
+          : currentScroll + scrollAmount;
+
       seasonListRef.current.scrollTo({
         left: newScroll,
-        behavior: 'smooth'
+        behavior: "smooth",
       });
     }
   };
@@ -71,8 +77,8 @@ export const TVProcess = ({
 
   useEffect(() => {
     checkNavigationNeeded();
-    window.addEventListener('resize', checkNavigationNeeded);
-    return () => window.removeEventListener('resize', checkNavigationNeeded);
+    window.addEventListener("resize", checkNavigationNeeded);
+    return () => window.removeEventListener("resize", checkNavigationNeeded);
   }, [checkNavigationNeeded, seasons]);
 
   // Fetch seasons only once
@@ -166,7 +172,7 @@ export const TVProcess = ({
           // Fetch torrents for each episode
           const newTorrents: { [key: string]: TorrentInfo[] } = {};
           for (const episode of episodes) {
-            setLoadingTorrents(prev => [...prev, episode.episode_number]);
+            setLoadingTorrents((prev) => [...prev, episode.episode_number]);
             await delay(300);
             const torrentData = await fetchTorrents(
               content.imdb_id,
@@ -176,7 +182,9 @@ export const TVProcess = ({
             if (torrentData?.length) {
               newTorrents[episode.episode_number] = torrentData;
             }
-            setLoadingTorrents(prev => prev.filter(id => id !== episode.episode_number));
+            setLoadingTorrents((prev) =>
+              prev.filter((id) => id !== episode.episode_number)
+            );
           }
           setTorrents(newTorrents);
         }
@@ -216,7 +224,7 @@ export const TVProcess = ({
   if (error) return <ErrorMessage message={error} />;
 
   if (isLoading) {
-    <LoadingIndicator />;
+    return <LoadingIndicator />;
   }
 
   return (
@@ -233,17 +241,22 @@ export const TVProcess = ({
           >
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-red-500">Season</span>
-              <span className="text-sm font-medium text-white">{selectedSeason || '1'}</span>
+              <span className="text-sm font-medium text-white">
+                {selectedSeason || "1"}
+              </span>
             </div>
-            <FaChevronDown className={`w-4 h-4 text-red-500 transition-transform duration-200
-              ${isSeasonDropdownOpen ? 'rotate-180' : ''}`}
+            <FaChevronDown
+              className={`w-4 h-4 text-red-500 transition-transform duration-200
+              ${isSeasonDropdownOpen ? "rotate-180" : ""}`}
             />
           </button>
-          
+
           {isSeasonDropdownOpen && (
-            <div className="absolute z-50 w-full mt-2 py-2 
+            <div
+              className="absolute z-50 w-full mt-2 py-2 
                            bg-[#1a1a1a]/95 border border-gray-800/50 rounded-xl 
-                           backdrop-blur-sm shadow-xl max-h-[60vh] overflow-y-auto">
+                           backdrop-blur-sm shadow-xl max-h-[60vh] overflow-y-auto"
+            >
               {seasons.map((season) => (
                 <button
                   key={season.season_number}
@@ -253,12 +266,15 @@ export const TVProcess = ({
                   }}
                   disabled={loadingSeasons.includes(season.season_number)}
                   className={`w-full flex items-center justify-between px-4 py-3
-                    ${selectedSeason === season.season_number 
-                      ? 'bg-red-500/20 text-red-500' 
-                      : 'text-gray-300 hover:bg-gray-800/50'
+                    ${
+                      selectedSeason === season.season_number
+                        ? "bg-red-500/20 text-red-500"
+                        : "text-gray-300 hover:bg-gray-800/50"
                     }`}
                 >
-                  <span className="text-sm font-medium">Season {season.season_number}</span>
+                  <span className="text-sm font-medium">
+                    Season {season.season_number}
+                  </span>
                   {loadingSeasons.includes(season.season_number) && (
                     <FaSpinner className="w-4 h-4 animate-spin text-blue-500" />
                   )}
@@ -272,11 +288,11 @@ export const TVProcess = ({
         <div className="hidden md:block">
           <div className="relative">
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl"></div>
-            
+
             {/* Previous Button */}
             {showNavigation && (
-              <button 
-                onClick={() => scrollSeasons('left')}
+              <button
+                onClick={() => scrollSeasons("left")}
                 className="absolute left-0 top-1/2 -translate-y-1/2 z-10
                            w-8 h-8 flex items-center justify-center
                            bg-black/60 hover:bg-red-500/90 
@@ -288,10 +304,10 @@ export const TVProcess = ({
             )}
 
             {/* Season List */}
-            <div 
+            <div
               ref={seasonListRef}
               className={`flex flex-nowrap gap-3 p-4 overflow-x-auto scrollbar-none
-                         scroll-smooth ${showNavigation ? 'mx-10' : ''}`}
+                         scroll-smooth ${showNavigation ? "mx-10" : ""}`}
             >
               {seasons.map((season) => (
                 <button
@@ -301,10 +317,15 @@ export const TVProcess = ({
                   className={`flex-shrink-0 flex items-center gap-2.5 px-8 py-3 rounded-lg
                              text-sm font-medium transition-all duration-300
                              backdrop-blur-sm transform hover:scale-105
-                    ${selectedSeason === season.season_number
-                      ? "bg-red-500 text-white shadow-lg shadow-red-500/30 border-2 border-red-500"
-                      : "bg-black/40 hover:bg-red-500/90 border-2 border-red-500/20 text-red-500 hover:text-white hover:border-red-500/50"
-                    } ${loadingSeasons.includes(season.season_number) ? "opacity-50" : ""}`}
+                    ${
+                      selectedSeason === season.season_number
+                        ? "bg-red-500 text-white shadow-lg shadow-red-500/30 border-2 border-red-500"
+                        : "bg-black/40 hover:bg-red-500/90 border-2 border-red-500/20 text-red-500 hover:text-white hover:border-red-500/50"
+                    } ${
+                    loadingSeasons.includes(season.season_number)
+                      ? "opacity-50"
+                      : ""
+                  }`}
                 >
                   {loadingSeasons.includes(season.season_number) ? (
                     <div className="flex items-center gap-2">
@@ -320,8 +341,8 @@ export const TVProcess = ({
 
             {/* Next Button */}
             {showNavigation && (
-              <button 
-                onClick={() => scrollSeasons('right')}
+              <button
+                onClick={() => scrollSeasons("right")}
                 className="absolute right-0 top-1/2 -translate-y-1/2 z-10
                            w-8 h-8 flex items-center justify-center
                            bg-black/60 hover:bg-red-500/90 

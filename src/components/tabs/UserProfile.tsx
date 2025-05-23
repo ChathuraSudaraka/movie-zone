@@ -33,8 +33,16 @@ export function UserProfile({
   const renderWatchHistory = () => {
     if (watchHistoryLoading) {
       return (
-        <div className="flex justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-500 border-t-transparent" />
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {Array.from({ length: itemsPerPage }).map((_, idx) => (
+            <div key={idx} className="group cursor-pointer">
+              <div className="relative aspect-[2/3] rounded-md overflow-hidden mb-2">
+                <div className="absolute inset-0 bg-zinc-800 animate-pulse rounded-md" />
+              </div>
+              <div className="h-4 w-3/4 bg-zinc-800 animate-pulse rounded mb-1" />
+              <div className="h-3 w-1/2 bg-zinc-800 animate-pulse rounded" />
+            </div>
+          ))}
         </div>
       );
     }

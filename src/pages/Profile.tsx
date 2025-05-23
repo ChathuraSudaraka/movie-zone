@@ -265,8 +265,10 @@ function StatisticsCards({ userId }: { userId?: string }) {
       {statsData.map((stat, index) => (
         <div key={index} className="bg-zinc-900/80 rounded-xl p-4 text-center">
           {loading ? (
-            <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-6 w-6 border-2 border-red-500 border-t-transparent"></div>
+            <div className="flex flex-col items-center justify-center h-24 gap-2">
+              <div className="w-8 h-8 rounded-full bg-zinc-800 animate-pulse mb-2" />
+              <div className="h-6 w-12 bg-zinc-800 animate-pulse rounded mb-1" />
+              <div className="h-3 w-20 bg-zinc-800 animate-pulse rounded" />
             </div>
           ) : (
             <>
