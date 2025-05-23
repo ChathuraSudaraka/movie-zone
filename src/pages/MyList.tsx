@@ -139,11 +139,10 @@ function MyList() {
                   height="100%"
                   sx={{ bgcolor: "#1f1f1f" }}
                 />
-                {/* Mobile Title Skeleton - Only visible on mobile */}
-                <div className="md:hidden absolute bottom-0 left-0 right-0 p-2">
+                <div className="absolute bottom-0 left-0 right-0 p-4">
                   <Skeleton
                     variant="text"
-                    width="80%"
+                    width="60%"
                     sx={{ bgcolor: "#1f1f1f" }}
                   />
                 </div>
@@ -181,8 +180,10 @@ function MyList() {
   return (
     <div className="mt-[68px] min-h-screen bg-[#141414]">
       <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
-        <h1 className="mb-4 sm:mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl 
-                    font-semibold text-white">
+        <h1
+          className="mb-4 sm:mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl 
+                    font-semibold text-white"
+        >
           My List
         </h1>
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">

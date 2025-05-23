@@ -114,7 +114,7 @@ export function MovieCard({
       onClick={handleCardClick}
     >
       {!isLoaded && (
-        <div className="absolute inset-0 bg-gray-900 animate-pulse rounded-sm" />
+        <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
       )}
 
       <img

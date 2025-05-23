@@ -89,7 +89,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
             {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] bg-zinc-900 rounded-sm overflow-hidden"
+                className="relative flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] bg-zinc-900 rounded-sm overflow-hidden"
               >
                 <Skeleton
                   variant="rectangular"
@@ -97,9 +97,15 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
                   height={isMobile ? 230 : 420}
                   sx={{
                     bgcolor: "#1f1f1f",
-                    borderRadius: 0, // Remove border radius, let parent handle it
                   }}
                 />
+                <div className="absolute bottom-0 left-0 right-0 p-4">
+                  <Skeleton
+                    variant="text"
+                    width="60%"
+                    sx={{ bgcolor: "#1f1f1f" }}
+                  />
+                </div>
               </div>
             ))}
           </div>

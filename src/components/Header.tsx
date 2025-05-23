@@ -353,48 +353,56 @@ function Header() {
             {showSuggestions && suggestions.length > 0 && (
               <div className="mt-4 max-h-[60vh] overflow-y-auto">
                 {suggestions.map((suggestion) => (
-                  <div
+                    <div
                     key={suggestion.id}
                     className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-lg"
                     onClick={() => handleSuggestionClick(suggestion)}
-                  >
-                    <img
+                    >
+                    <div className="relative h-16 w-28">
+                      <div className="animate-pulse absolute inset-0 bg-gray-700 rounded" />
+                      <img
                       src={`${baseUrl}${
                         suggestion.backdrop_path || suggestion.poster_path
                       }`}
                       alt={suggestion.title || suggestion.name}
-                      className="h-16 w-28 object-cover rounded"
-                    />
+                      className="h-16 w-28 object-cover rounded absolute inset-0 transition-opacity duration-300"
+                      onLoad={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.style.opacity = '1';
+                      }}
+                      style={{ opacity: '0' }}
+                      />
+                    </div>
                     <div>
                       <p className="text-white font-medium text-lg">
-                        {suggestion.title || suggestion.name}
+                      {suggestion.title || suggestion.name}
                       </p>
                       <div className="flex items-center gap-2 text-sm text-gray-400">
+                      <span>
+                        {suggestion.media_type.charAt(0).toUpperCase() +
+                        suggestion.media_type.slice(1)}
+                      </span>
+                      {(suggestion.release_date ||
+                        suggestion.first_air_date) && (
+                        <>
+                        <span>•</span>
                         <span>
-                          {suggestion.media_type.charAt(0).toUpperCase() +
-                            suggestion.media_type.slice(1)}
+                          {suggestion.release_date?.split("-")[0] ||
+                          suggestion.first_air_date?.split("-")[0]}
                         </span>
-                        {(suggestion.release_date ||
-                          suggestion.first_air_date) && (
-                          <>
-                            <span>•</span>
-                            <span>
-                              {suggestion.release_date?.split("-")[0] ||
-                                suggestion.first_air_date?.split("-")[0]}
-                            </span>
-                          </>
-                        )}
-                        {suggestion.vote_average > 0 && (
-                          <>
-                            <span>•</span>
-                            <span className="text-green-400">
-                              {Math.round(suggestion.vote_average * 10)}% Match
-                            </span>
-                          </>
-                        )}
+                        </>
+                      )}
+                      {suggestion.vote_average > 0 && (
+                        <>
+                        <span>•</span>
+                        <span className="text-green-400">
+                          {Math.round(suggestion.vote_average * 10)}% Match
+                        </span>
+                        </>
+                      )}
                       </div>
                     </div>
-                  </div>
+                    </div>
                 ))}
               </div>
             )}
