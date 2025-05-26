@@ -39,6 +39,8 @@ export function Profile() {
   const [showPasswordChange, setShowPasswordChange] = useState(false);
 
   useEffect(() => {
+    document.title = `Profile - MovieZone`;
+
     if (user?.user_metadata?.full_name) {
       setDisplayName(user.user_metadata.full_name);
     }

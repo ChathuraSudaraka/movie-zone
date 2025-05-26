@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FcGoogle } from "react-icons/fc";
 import { supabase } from "../../config/supabase";
 import { Mail, Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -17,6 +17,10 @@ export function Register() {
   const [loading, setLoading] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  useEffect(() => {
+    document.title = "Register - MovieZone";
+  }, []);
 
   const validateForm = () => {
     const emailError = validateEmail(email);
@@ -114,7 +118,7 @@ export function Register() {
       setError("");
 
       const { error } = await supabase.auth.resend({
-        type: 'signup',
+        type: "signup",
         email,
       });
 
@@ -281,9 +285,7 @@ export function Register() {
               className="w-full px-4 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-md transition font-medium"
               disabled={loading}
             >
-              {loading
-                ? "Creating account..."
-                : "Create account"}
+              {loading ? "Creating account..." : "Create account"}
             </button>
           </div>
         </form>

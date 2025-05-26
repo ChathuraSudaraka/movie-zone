@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { FcGoogle } from "react-icons/fc";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
@@ -14,6 +14,10 @@ export function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [showResendVerification, setShowResendVerification] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    document.title = "Login - MovieZone";
+  }, []);
 
   const validateForm = () => {
     const emailError = validateEmail(email);

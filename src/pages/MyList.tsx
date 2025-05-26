@@ -55,6 +55,8 @@ function MyList() {
 
   // Update useEffect to properly handle dependencies
   useEffect(() => {
+    document.title = `My List - MovieZone`;
+
     if (user) {
       fetchMyList();
     }

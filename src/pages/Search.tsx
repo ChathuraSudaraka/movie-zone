@@ -31,7 +31,7 @@ function Search() {
   };
 
   useEffect(() => {
-    document.title = `Search - ${query} - Netflix`;
+    document.title = `Search - ${query} - MovieZone`;
 
     async function searchContent() {
       if (!query) {
