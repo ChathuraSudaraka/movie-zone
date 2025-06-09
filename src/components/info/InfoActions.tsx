@@ -1,13 +1,22 @@
 import React from "react";
-import { FaCheck, FaPlay, FaPlus, FaSpinner, FaThumbsUp } from "react-icons/fa";
+import {
+  FaCheck,
+  FaPlay,
+  FaPlus,
+  FaSpinner,
+  FaThumbsUp,
+  FaChevronDown,
+} from "react-icons/fa";
 import { Clapperboard, Share2, Star } from "lucide-react";
 import { Movie } from "../../types/movie";
+import { useState, useRef, useEffect } from "react";
 
 interface InfoActionsProps {
   trailer: string | null;
   openModal: (url: string) => void;
   content: Movie;
   handleWatch: () => void;
+  handlePlayClick?: (source?: string) => void;
   isInMyList: boolean;
   isUpdatingList?: boolean;
   handleMyList: () => void;
@@ -21,6 +30,7 @@ const InfoActions: React.FC<InfoActionsProps> = ({
   openModal,
   content,
   handleWatch,
+  handlePlayClick,
   isInMyList,
   isUpdatingList = false,
   handleMyList,
@@ -28,6 +38,50 @@ const InfoActions: React.FC<InfoActionsProps> = ({
   handleShareContent,
   setShowRatingModal,
 }) => {
+  const [showSourceDropdown, setShowSourceDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  const videoSources = [
+    {
+      key: "primary",
+      name: "VidSrc.to (Primary)",
+      description: "Best quality",
+    },
+    { key: "secondary", name: "VidSrc.cc", description: "Alternative source" },
+    { key: "tertiary", name: "EmbedSu", description: "Backup source" },
+    { key: "quaternary", name: "AutoEmbed", description: "Auto source" },
+    { key: "fifth", name: "VidLink.pro", description: "Additional source" },
+    { key: "fallback", name: "SmashyStream", description: "Fallback source" },
+  ];
+
+  const handleSourceSelect = (sourceKey: string) => {
+    if (handlePlayClick) {
+      handlePlayClick(sourceKey);
+    } else {
+      handleWatch();
+    }
+    setShowSourceDropdown(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setShowSourceDropdown(false);
+      }
+    };
+
+    if (showSourceDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showSourceDropdown]);
   return (
     <div className="flex flex-wrap items-center gap-3 mb-8">
       {/* Trailer Button */}
@@ -41,19 +95,56 @@ const InfoActions: React.FC<InfoActionsProps> = ({
             Watch Trailer
           </span>
         </button>
-      )}
+      )}{" "}
+      {/* Watch Button with Source Selection */}
+      <div className="relative" ref={dropdownRef}>
+        <div className="flex">
+          <button
+            onClick={handleWatch}
+            className="flex items-center justify-center px-6 py-3 sm:px-8 sm:py-3 rounded-l bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
+          >
+            <Clapperboard className="text-xl fill-white text-neutral-800 sm:text-2xl group-hover:scale-110 transition duration-300" />
+            <span className="hidden sm:inline ml-2 font-semibold text-lg">
+              Watch {content.media_type === "movie" ? "Movie" : "Show"}
+            </span>
+          </button>
+          <button
+            onClick={() => setShowSourceDropdown(!showSourceDropdown)}
+            className="flex items-center justify-center w-12 h-12 sm:h-auto sm:px-3 rounded-r bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 border-l border-gray-400/30"
+          >
+            <FaChevronDown
+              className={`text-sm transition-transform duration-200 ${
+                showSourceDropdown ? "rotate-180" : ""
+              }`}
+            />
+          </button>
+        </div>
 
-      {/* Watch Button */}
-      <button
-        onClick={handleWatch}
-        className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
-      >
-        <Clapperboard className="text-xl fill-white text-neutral-800 sm:text-2xl group-hover:scale-110 transition duration-300" />
-        <span className="hidden sm:inline ml-2 font-semibold text-lg">
-          Watch {content.media_type === "movie" ? "Movie" : "Show"}
-        </span>
-      </button>
-
+        {/* Source Dropdown */}
+        {showSourceDropdown && (
+          <div className="absolute top-full left-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-sm border border-gray-700 rounded-lg shadow-2xl z-50">
+            <div className="p-2">
+              <div className="text-xs text-gray-400 px-3 py-2 font-semibold uppercase tracking-wide">
+                Select Video Source
+              </div>
+              {videoSources.map((source) => (
+                <button
+                  key={source.key}
+                  onClick={() => handleSourceSelect(source.key)}
+                  className="w-full text-left px-3 py-2 rounded hover:bg-gray-700/50 transition-colors group"
+                >
+                  <div className="text-white text-sm font-medium group-hover:text-red-400">
+                    {source.name}
+                  </div>
+                  <div className="text-gray-400 text-xs">
+                    {source.description}
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
       {/* Other Action Buttons */}
       <div className="flex items-center gap-2">
         {/* Add/Remove from List Button - Optimized with visual feedback */}

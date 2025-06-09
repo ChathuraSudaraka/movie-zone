@@ -11,15 +11,14 @@ import { LoadingSkeleton } from "../components/info/skeleton";
 import { RatingModal } from "../components/RatingModal";
 import { CastSection } from "../components/info/CastSection";
 import { DownloadSection } from "../components/info/DownloadSection";
+import toast from "react-hot-toast";
 
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
-  const { user } = useAuth();
-
-  const [content, setContent] = useState<Movie | null>(null);
+  const { user } = useAuth();  const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -117,21 +116,80 @@ function Info() {
     checkIfInList();
   }, [content, user]);
 
-  // Helper Methods
-  const getVideoEmbedUrl = () => {
-    if (!content?.imdb_id) return "";
-    if (content.media_type === "movie") {
-      return `https://vidsrc.to/embed/movie/${content.imdb_id}`;
-    } else {
-      return `https://vidsrc.to/embed/tv/${content.imdb_id}`;
-    }
-  };
+  // ...existing code...  // Helper Methods
+  const getVideoEmbedUrl = (source = "primary") => {
+    if (!content?.id) return "";
 
-  const handlePlayClick = () => {
-    const embedUrl = getVideoEmbedUrl();
-    if (embedUrl) {
-      openModal(embedUrl);
+    const sources = {
+      // Primary: vidsrc.to (requires IMDB ID)
+      primary: content.imdb_id
+        ? content.media_type === "movie"
+          ? `https://vidsrc.to/embed/movie/${content.imdb_id}`
+          : `https://vidsrc.to/embed/tv/${content.imdb_id}`
+        : content.media_type === "movie"
+        ? `https://vidsrc.cc/v2/embed/movie/${content.id}`
+        : `https://vidsrc.cc/v2/embed/tv/${content.id}`,
+
+      // Secondary: vidsrc.cc (uses TMDB ID)
+      secondary:
+        content.media_type === "movie"
+          ? `https://vidsrc.cc/v2/embed/movie/${content.id}`
+          : `https://vidsrc.cc/v2/embed/tv/${content.id}`,
+
+      // Tertiary: embedsu.org
+      tertiary:
+        content.media_type === "movie"
+          ? `https://embedsu.org/embed/movie/${content.id}`
+          : `https://embedsu.org/embed/tv/${content.id}`,
+
+      // Quaternary: autoembed.co
+      quaternary:
+        content.media_type === "movie"
+          ? `https://autoembed.co/movie/tmdb/${content.id}`
+          : `https://autoembed.co/tv/tmdb/${content.id}`,      // Fifth: vidlink.pro
+      fifth:
+        content.media_type === "movie"
+          ? `https://vidlink.pro/movie/${content.id}`
+          : `https://vidlink.pro/tv/${content.id}/1/1`, // Default to season 1, episode 1 for TV series
+
+      // Fallback: smashystream
+      fallback:
+        content.media_type === "movie"
+          ? `https://player.smashy.stream/movie/${content.id}`
+          : `https://player.smashy.stream/tv/${content.id}`,
+    };
+
+    return sources[source as keyof typeof sources] || sources.primary;
+  };  // Updated handlePlayClick to try multiple sources automatically
+  const handlePlayClick = async (sourceType = "primary") => {
+    if (!content) return;
+
+    const sourceOrder = ["primary", "secondary", "tertiary", "quaternary", "fifth", "fallback"];
+    const startIndex = sourceOrder.indexOf(sourceType);
+    const orderedSources = [...sourceOrder.slice(startIndex), ...sourceOrder.slice(0, startIndex)];
+
+    // Show loading toast
+    const loadingToast = toast.loading(`Finding best source for ${content.title}...`);
+
+    // Try to find a working source
+    for (const source of orderedSources) {
+      const embedUrl = getVideoEmbedUrl(source);
+      if (embedUrl) {
+        try {
+          // Test if the URL is accessible (basic check)
+          openModal(embedUrl);
+          toast.success(`Playing ${content.title}`, { id: loadingToast });
+          console.log(`Using ${source} source: ${embedUrl}`);
+          return;
+        } catch (error) {
+          console.warn(`${source} source failed, trying next...`);
+          continue;
+        }
+      }
     }
+
+    // If all sources fail, show user-friendly message
+    toast.error(`${content.title} is currently unavailable from all streaming sources. Please try again later.`, { id: loadingToast });
   };
 
   const handleWatch = async () => {
@@ -176,13 +234,13 @@ function Info() {
   if (!content) return null;
 
   return (
-    <div className="relative min-h-screen bg-[#141414]">
-      {/* Hero Section */}
+    <div className="relative min-h-screen bg-[#141414]">      {/* Hero Section */}
       <InfoHero
         content={content}
         trailer={trailer}
         openModal={openModal}
         handleWatch={handleWatch}
+        handlePlayClick={handlePlayClick}
         isInMyList={isInMyList}
         setShowRatingModal={setShowRatingModal}
         user={user}
