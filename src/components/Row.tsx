@@ -85,16 +85,15 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
           />
         </div>
         <div className="relative">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-8 lg:px-16">
-            {[...Array(6)].map((_, index) => (
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-8 lg:px-16">            {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="relative flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] bg-zinc-900 rounded-sm overflow-hidden"
+                className="relative flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] aspect-[2/3] bg-zinc-900 rounded-md overflow-hidden"
               >
                 <Skeleton
                   variant="rectangular"
                   width="100%"
-                  height={isMobile ? 230 : 420}
+                  height="100%"
                   sx={{
                     bgcolor: "#1f1f1f",
                   }}
