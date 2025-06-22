@@ -59,8 +59,8 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
       secondary: `https://vidsrc.cc/v2/embed/tv/${tmdbId}/${episode.season_number}/${episode.episode_number}`,
 
       // Tertiary: embedsu.org
-      tertiary: `https://embedsu.org/embed/tv/${tmdbId}/${episode.season_number}/${episode.episode_number}`, // Quaternary: autoembed.co
-      quaternary: `https://autoembed.co/tv/tmdb/${tmdbId}?season=${episode.season_number}&episode=${episode.episode_number}`,
+      tertiary: `https://embedsu.org/embed/tv/${tmdbId}/${episode.season_number}/${episode.episode_number}`,      // Quaternary: movielair.cc
+      quaternary: `https://movielair.cc/watch-tv/${tmdbId}?season=${episode.season_number}&episode=${episode.episode_number}`,
 
       // Fifth: vidlink.pro
       fifth: `https://vidlink.pro/tv/${tmdbId}/${episode.season_number}/${episode.episode_number}`,
@@ -127,7 +127,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
     primary: "Primary (VidSrc)",
     secondary: "Secondary (VidSrc CC)",
     tertiary: "Tertiary (EmbedSu)",
-    quaternary: "Quaternary (AutoEmbed)",
+    quaternary: "Quaternary (MovieLair)",
     fifth: "VidLink Pro",
     fallback: "Fallback (SmashyStream)",
   };

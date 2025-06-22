@@ -49,7 +49,7 @@ const InfoActions: React.FC<InfoActionsProps> = ({
     },
     { key: "secondary", name: "VidSrc.cc", description: "Alternative source" },
     { key: "tertiary", name: "EmbedSu", description: "Backup source" },
-    { key: "quaternary", name: "AutoEmbed", description: "Auto source" },
+    { key: "quaternary", name: "MovieLair", description: "Movie streaming" },
     { key: "fifth", name: "VidLink.pro", description: "Additional source" },
     { key: "fallback", name: "SmashyStream", description: "Fallback source" },
   ];

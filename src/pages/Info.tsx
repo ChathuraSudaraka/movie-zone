@@ -18,7 +18,8 @@ function Info() {
   const navigate = useNavigate();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
-  const { user } = useAuth();  const [content, setContent] = useState<Movie | null>(null);
+  const { user } = useAuth();
+  const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -140,13 +141,11 @@ function Info() {
       tertiary:
         content.media_type === "movie"
           ? `https://embedsu.org/embed/movie/${content.id}`
-          : `https://embedsu.org/embed/tv/${content.id}`,
-
-      // Quaternary: autoembed.co
+          : `https://embedsu.org/embed/tv/${content.id}`, // Quaternary: movielair.cc
       quaternary:
         content.media_type === "movie"
-          ? `https://autoembed.co/movie/tmdb/${content.id}`
-          : `https://autoembed.co/tv/tmdb/${content.id}`,      // Fifth: vidlink.pro
+          ? `https://movielair.cc/watch-movie/${content.id}`
+          : `https://movielair.cc/watch-tv/${content.id}?season=1&episode=1`, // Fifth: vidlink.pro
       fifth:
         content.media_type === "movie"
           ? `https://vidlink.pro/movie/${content.id}`
@@ -160,16 +159,28 @@ function Info() {
     };
 
     return sources[source as keyof typeof sources] || sources.primary;
-  };  // Updated handlePlayClick to try multiple sources automatically
+  }; // Updated handlePlayClick to try multiple sources automatically
   const handlePlayClick = async (sourceType = "primary") => {
     if (!content) return;
 
-    const sourceOrder = ["primary", "secondary", "tertiary", "quaternary", "fifth", "fallback"];
+    const sourceOrder = [
+      "primary",
+      "secondary",
+      "tertiary",
+      "quaternary",
+      "fifth",
+      "fallback",
+    ];
     const startIndex = sourceOrder.indexOf(sourceType);
-    const orderedSources = [...sourceOrder.slice(startIndex), ...sourceOrder.slice(0, startIndex)];
+    const orderedSources = [
+      ...sourceOrder.slice(startIndex),
+      ...sourceOrder.slice(0, startIndex),
+    ];
 
     // Show loading toast
-    const loadingToast = toast.loading(`Finding best source for ${content.title}...`);
+    const loadingToast = toast.loading(
+      `Finding best source for ${content.title}...`
+    );
 
     // Try to find a working source
     for (const source of orderedSources) {
@@ -189,7 +200,10 @@ function Info() {
     }
 
     // If all sources fail, show user-friendly message
-    toast.error(`${content.title} is currently unavailable from all streaming sources. Please try again later.`, { id: loadingToast });
+    toast.error(
+      `${content.title} is currently unavailable from all streaming sources. Please try again later.`,
+      { id: loadingToast }
+    );
   };
 
   const handleWatch = async () => {
@@ -234,7 +248,9 @@ function Info() {
   if (!content) return null;
 
   return (
-    <div className="relative min-h-screen bg-[#141414]">      {/* Hero Section */}
+    <div className="relative min-h-screen bg-[#141414]">
+      {" "}
+      {/* Hero Section */}
       <InfoHero
         content={content}
         trailer={trailer}
@@ -247,7 +263,6 @@ function Info() {
         navigate={navigate}
         type={type}
       />
-
       {/* Details Section */}
       <div className="px-4 py-12 md:px-8 lg:px-16 bg-[#141414]">
         <div className="max-w-6xl mx-auto">
@@ -273,7 +288,6 @@ function Info() {
           <InfoDetails content={content} />
         </div>
       </div>
-
       {/* Rating Modal */}
       {content && (
         <RatingModal
