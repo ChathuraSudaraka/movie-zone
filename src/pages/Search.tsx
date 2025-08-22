@@ -16,11 +16,15 @@ function Search() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const query = searchParams.get("q") || "";
+  const companyId = searchParams.get("company");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [hoveredId, setHoveredId] = useState<number | null>(null);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [page, setPage] = useState(1);
+  const [totalResults, setTotalResults] = useState<number | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const getImageUrl = (result: SearchResult) => {
     if (imgError) return FALLBACK_IMAGE;
@@ -31,10 +35,14 @@ function Search() {
   };
 
   useEffect(() => {
-    document.title = `Search - ${query} - MovieZone`;
+    document.title = `Search - ${query || companyId || "Company"} - MovieZone`;
+    setPage(1);
+    setTotalResults(null);
+    setResults([]);
+    setLoading(true);
 
     async function searchContent() {
-      if (!query) {
+      if (!query && !companyId) {
         setResults([]);
         setLoading(false);
         return;
@@ -42,18 +50,21 @@ function Search() {
 
       try {
         const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-        const response = await fetch(
-          `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(
-            query
-          )}&page=1&include_adult=false`
-        );
+        let url = "";
+        if (companyId) {
+          url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=1`;
+        } else {
+          url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(query)}&page=1&include_adult=false`;
+        }
+        const response = await fetch(url);
         const data = await response.json();
-        const filteredResults = data.results.filter(
+        const filteredResults = (data.results || []).filter(
           (item: SearchResult) =>
-            (item.media_type === "movie" || item.media_type === "tv") &&
+            (item.media_type === "movie" || item.media_type === "tv" || companyId) &&
             (item.backdrop_path || item.poster_path)
         );
         setResults(filteredResults);
+        setTotalResults(data.total_results || null);
       } catch (error) {
         console.error("Error searching content:", error);
       } finally {
@@ -62,7 +73,29 @@ function Search() {
     }
 
     searchContent();
-  }, [query]);
+  }, [query, companyId]);
+
+  // Load more for company search
+  const handleLoadMore = async () => {
+    if (!companyId) return;
+    setLoadingMore(true);
+    try {
+      const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+      const nextPage = page + 1;
+      const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=${nextPage}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      const filteredResults = (data.results || []).filter(
+        (item: SearchResult) => (item.backdrop_path || item.poster_path)
+      );
+      setResults((prev) => [...prev, ...filteredResults]);
+      setPage(nextPage);
+    } catch (error) {
+      console.error("Error loading more results:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const handleNavigateToInfo = (result: SearchResult) => {
     const type = result.media_type || (result.first_air_date ? "tv" : "movie");
@@ -112,8 +145,12 @@ function Search() {
     <div className="mt-[68px] min-h-screen bg-[#141414] px-2 py-6 md:px-3 lg:px-4">
       <h1 className="text-3xl font-bold mb-4 text-white">
         {results.length > 0
-          ? `Search results for "${query}"`
-          : `No results found for "${query}"`}
+          ? companyId && totalResults
+            ? `Productions: ${totalResults}`
+            : `Search results for "${query}"`
+          : companyId
+            ? `No productions found for this company.`
+            : `No results found for "${query}"`}
       </h1>
       <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
         {results.map((result) => (
@@ -180,6 +217,18 @@ function Search() {
           </div>
         ))}
       </div>
+      {/* Load More button for company search */}
+      {companyId && totalResults && results.length < totalResults && (
+        <div className="flex justify-center mt-6">
+          <button
+            className="px-6 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
+            onClick={handleLoadMore}
+            disabled={loadingMore}
+          >
+            {loadingMore ? "Loading..." : "Load More"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

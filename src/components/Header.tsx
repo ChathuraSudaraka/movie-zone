@@ -25,6 +25,7 @@ function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -86,14 +87,57 @@ function Header() {
     }
   };
 
+  // Filter out companies with no productions and sort by most productions
+  const getValidCompanySuggestions = async (companies: any[]) => {
+    const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+    const companyCounts: { company: any; count: number }[] = [];
+    for (const company of companies) {
+      const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${company.id}&language=en-US&page=1`;
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.results && data.results.length > 0) {
+          // Attach movie_count to the company object
+          companyCounts.push({ company: { ...company, movie_count: data.total_results || data.results.length }, count: data.total_results || data.results.length });
+        }
+      } catch {}
+    }
+    // Sort by most productions
+    companyCounts.sort((a, b) => b.count - a.count);
+    return companyCounts.map((item) => item.company);
+  };
+
+  const fetchCompanySuggestions = async (input: string) => {
+    if (!input || input.length < 2) {
+      setCompanySuggestions([]);
+      return;
+    }
+    try {
+      const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+      const response = await fetch(
+        `https://api.themoviedb.org/3/search/company?api_key=${API_KEY}&query=${encodeURIComponent(
+          input
+        )}`
+      );
+      const data = await response.json();
+      // Only show companies with at least one production
+      const validCompanies = await getValidCompanySuggestions(data.results || []);
+      setCompanySuggestions(validCompanies);
+    } catch (error) {
+      setCompanySuggestions([]);
+    }
+  };
+
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
     if (value.length >= 2) {
       fetchSuggestions(value);
+      fetchCompanySuggestions(value);
       setShowSuggestions(true);
     } else {
       setSuggestions([]);
+      setCompanySuggestions([]);
       setShowSuggestions(false);
     }
   };
@@ -105,7 +149,30 @@ function Header() {
     setShowSearch(false);
     setSearchTerm("");
     setSuggestions([]);
+    setCompanySuggestions([]);
     setShowSuggestions(false);
+  };
+
+  const handleCompanyClick = async (company: any) => {
+    // Check if the company has at least one production
+    try {
+      const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
+      const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${company.id}&language=en-US&page=1`;
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.results && data.results.length > 0) {
+        navigate(`/search?company=${company.id}`);
+        setShowSearch(false);
+        setSearchTerm("");
+        setSuggestions([]);
+        setCompanySuggestions([]);
+        setShowSuggestions(false);
+      } else {
+        alert("No productions found for this company.");
+      }
+    } catch (error) {
+      alert("Failed to check company productions.");
+    }
   };
 
   const handleSignOut = async () => {
@@ -331,6 +398,7 @@ function Header() {
                 setShowSearch(false);
                 setSearchTerm("");
                 setSuggestions([]);
+                setCompanySuggestions([]);
                 setShowSuggestions(false);
               }}
             >
@@ -350,60 +418,85 @@ function Header() {
               </div>
             </form>
 
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="mt-4 max-h-[60vh] overflow-y-auto">
-                {suggestions.map((suggestion) => (
-                    <div
-                    key={suggestion.id}
-                    className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-lg"
-                    onClick={() => handleSuggestionClick(suggestion)}
-                    >
-                    <div className="relative h-16 w-28">
-                      <div className="animate-pulse absolute inset-0 bg-gray-700 rounded" />
-                      <img
-                      src={`${baseUrl}${
-                        suggestion.backdrop_path || suggestion.poster_path
-                      }`}
-                      alt={suggestion.title || suggestion.name}
-                      className="h-16 w-28 object-cover rounded absolute inset-0 transition-opacity duration-300"
-                      onLoad={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.style.opacity = '1';
-                      }}
-                      style={{ opacity: '0' }}
-                      />
+            {showSuggestions && (companySuggestions.length > 0 || suggestions.length > 0) && (
+              <div className="mt-4 max-h-[60vh] overflow-y-auto divide-y divide-zinc-800 bg-zinc-900/90 rounded-lg shadow-xl">
+                {/* Company Suggestions */}
+                {companySuggestions.length > 0 && (
+                  <div>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-zinc-900/80 rounded-t-lg">
+                      Production Companies
                     </div>
-                    <div>
-                      <p className="text-white font-medium text-lg">
-                      {suggestion.title || suggestion.name}
-                      </p>
-                      <div className="flex items-center gap-2 text-sm text-gray-400">
-                      <span>
-                        {suggestion.media_type.charAt(0).toUpperCase() +
-                        suggestion.media_type.slice(1)}
-                      </span>
-                      {(suggestion.release_date ||
-                        suggestion.first_air_date) && (
-                        <>
-                        <span>•</span>
-                        <span>
-                          {suggestion.release_date?.split("-")[0] ||
-                          suggestion.first_air_date?.split("-")[0]}
-                        </span>
-                        </>
-                      )}
-                      {suggestion.vote_average > 0 && (
-                        <>
-                        <span>•</span>
-                        <span className="text-green-400">
-                          {Math.round(suggestion.vote_average * 10)}% Match
-                        </span>
-                        </>
-                      )}
+                    {companySuggestions.map((company) => (
+                      <div
+                        key={company.id}
+                        className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-none"
+                        onClick={() => handleCompanyClick(company)}
+                      >
+                        <div>
+                          <p className="text-white font-medium text-base md:text-lg">{company.name}</p>
+                          <div className="text-gray-400 text-xs md:text-sm">Productions: {company.movie_count || "?"}</div>
+                        </div>
                       </div>
+                    ))}
+                  </div>
+                )}
+                {/* Movie/TV Suggestions */}
+                {suggestions.length > 0 && (
+                  <div>
+                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-zinc-900/80">
+                      Titles & People
                     </div>
-                    </div>
-                ))}
+                    {suggestions.map((suggestion) => (
+                      <div
+                        key={suggestion.id}
+                        className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-none"
+                        onClick={() => handleSuggestionClick(suggestion)}
+                      >
+                        <div className="relative h-16 w-28">
+                          <div className="animate-pulse absolute inset-0 bg-gray-700 rounded" />
+                          <img
+                            src={`${baseUrl}${suggestion.backdrop_path || suggestion.poster_path}`}
+                            alt={suggestion.title || suggestion.name}
+                            className="h-16 w-28 object-cover rounded absolute inset-0 transition-opacity duration-300"
+                            onLoad={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.opacity = '1';
+                            }}
+                            style={{ opacity: '0' }}
+                          />
+                        </div>
+                        <div>
+                          <p className="text-white font-medium text-base md:text-lg">
+                            {suggestion.title || suggestion.name}
+                          </p>
+                          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
+                            <span>
+                              {suggestion.media_type.charAt(0).toUpperCase() +
+                                suggestion.media_type.slice(1)}
+                            </span>
+                            {(suggestion.release_date || suggestion.first_air_date) && (
+                              <>
+                                <span>•</span>
+                                <span>
+                                  {suggestion.release_date?.split("-")[0] ||
+                                    suggestion.first_air_date?.split("-")[0]}
+                                </span>
+                              </>
+                            )}
+                            {suggestion.vote_average > 0 && (
+                              <>
+                                <span>•</span>
+                                <span className="text-green-400">
+                                  {Math.round(suggestion.vote_average * 10)}% Match
+                                </span>
+                              </>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
