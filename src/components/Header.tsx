@@ -26,6 +26,7 @@ function Header() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
+  const [searchTab, setSearchTab] = useState<"titles" | "companies">("titles");
   const navigate = useNavigate();
   const location = useLocation();
   const { user, signOut } = useAuth();
@@ -79,8 +80,7 @@ function Header() {
           (item: SearchResult) =>
             (item.media_type === "movie" || item.media_type === "tv") &&
             (item.backdrop_path || item.poster_path)
-        )
-        .slice(0, 5);
+        );
       setSuggestions(filteredSuggestions);
     } catch (error) {
       console.error("Error fetching suggestions:", error);
@@ -98,7 +98,13 @@ function Header() {
         const data = await response.json();
         if (data.results && data.results.length > 0) {
           // Attach movie_count to the company object
-          companyCounts.push({ company: { ...company, movie_count: data.total_results || data.results.length }, count: data.total_results || data.results.length });
+          companyCounts.push({
+            company: {
+              ...company,
+              movie_count: data.total_results || data.results.length,
+            },
+            count: data.total_results || data.results.length,
+          });
         }
       } catch {}
     }
@@ -121,7 +127,9 @@ function Header() {
       );
       const data = await response.json();
       // Only show companies with at least one production
-      const validCompanies = await getValidCompanySuggestions(data.results || []);
+      const validCompanies = await getValidCompanySuggestions(
+        data.results || []
+      );
       setCompanySuggestions(validCompanies);
     } catch (error) {
       setCompanySuggestions([]);
@@ -312,7 +320,7 @@ function Header() {
                     alt={user?.email || "Profile"}
                     className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
                   />
-                  
+
                   <ChevronDownIcon
                     className={`w-4 h-4 text-white transition-transform duration-200 ${
                       showUserMenu ? "rotate-180" : ""
@@ -418,87 +426,126 @@ function Header() {
               </div>
             </form>
 
-            {showSuggestions && (companySuggestions.length > 0 || suggestions.length > 0) && (
-              <div className="mt-4 max-h-[60vh] overflow-y-auto divide-y divide-zinc-800 bg-zinc-900/90 rounded-lg shadow-xl">
-                {/* Company Suggestions */}
-                {companySuggestions.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-zinc-900/80 rounded-t-lg">
+            {showSuggestions &&
+              (companySuggestions.length > 0 || suggestions.length > 0) && (
+                <div className="mt-4 bg-zinc-900/90 rounded-lg shadow-xl">
+                  <div className="flex border-b border-zinc-800 mb-2">
+                    <button
+                      className={`px-4 py-2 text-sm font-semibold focus:outline-none transition-colors ${
+                        searchTab === "titles"
+                          ? "text-white border-b-2 border-red-600"
+                          : "text-gray-400"
+                      }`}
+                      onClick={() => setSearchTab("titles")}
+                    >
+                      Titles & People
+                    </button>
+                    <button
+                      className={`px-4 py-2 text-sm font-semibold focus:outline-none transition-colors ${
+                        searchTab === "companies"
+                          ? "text-white border-b-2 border-red-600"
+                          : "text-gray-400"
+                      }`}
+                      onClick={() => setSearchTab("companies")}
+                    >
                       Production Companies
-                    </div>
-                    {companySuggestions.map((company) => (
-                      <div
-                        key={company.id}
-                        className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-none"
-                        onClick={() => handleCompanyClick(company)}
-                      >
-                        <div>
-                          <p className="text-white font-medium text-base md:text-lg">{company.name}</p>
-                          <div className="text-gray-400 text-xs md:text-sm">Productions: {company.movie_count || "?"}</div>
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-1 gap-2 p-2 max-h-[60vh] overflow-y-auto">
+                    {searchTab === "titles" && suggestions.length > 0 && (
+                      <div>
+                        <div className="flex flex-col gap-1">
+                          {suggestions.map((suggestion) => (
+                            <div
+                              key={suggestion.id}
+                              className="flex items-center gap-3 p-2 hover:bg-zinc-800 cursor-pointer rounded"
+                              onClick={() => handleSuggestionClick(suggestion)}
+                            >
+                              <div className="relative h-12 w-20">
+                                <div className="animate-pulse absolute inset-0 bg-gray-700 rounded" />
+                                <img
+                                  src={`${baseUrl}${
+                                    suggestion.backdrop_path ||
+                                    suggestion.poster_path
+                                  }`}
+                                  alt={suggestion.title || suggestion.name}
+                                  className="h-12 w-20 object-cover rounded absolute inset-0 transition-opacity duration-300"
+                                  onLoad={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.style.opacity = "1";
+                                  }}
+                                  style={{ opacity: "0" }}
+                                />
+                              </div>
+                              <div>
+                                <p className="text-white font-medium text-base md:text-lg">
+                                  {suggestion.title || suggestion.name}
+                                </p>
+                                <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
+                                  <span>
+                                    {suggestion.media_type
+                                      .charAt(0)
+                                      .toUpperCase() +
+                                      suggestion.media_type.slice(1)}
+                                  </span>
+                                  {(suggestion.release_date ||
+                                    suggestion.first_air_date) && (
+                                    <>
+                                      <span>•</span>
+                                      <span>
+                                        {suggestion.release_date?.split(
+                                          "-"
+                                        )[0] ||
+                                          suggestion.first_air_date?.split(
+                                            "-"
+                                          )[0]}
+                                      </span>
+                                    </>
+                                  )}
+                                  {suggestion.vote_average > 0 && (
+                                    <>
+                                      <span>•</span>
+                                      <span className="text-green-400">
+                                        {Math.round(
+                                          suggestion.vote_average * 10
+                                        )}
+                                        % Match
+                                      </span>
+                                    </>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-                {/* Movie/TV Suggestions */}
-                {suggestions.length > 0 && (
-                  <div>
-                    <div className="px-4 py-2 text-xs font-semibold text-gray-400 uppercase tracking-wider bg-zinc-900/80">
-                      Titles & People
-                    </div>
-                    {suggestions.map((suggestion) => (
-                      <div
-                        key={suggestion.id}
-                        className="flex items-center gap-3 p-3 hover:bg-zinc-800 cursor-pointer rounded-none"
-                        onClick={() => handleSuggestionClick(suggestion)}
-                      >
-                        <div className="relative h-16 w-28">
-                          <div className="animate-pulse absolute inset-0 bg-gray-700 rounded" />
-                          <img
-                            src={`${baseUrl}${suggestion.backdrop_path || suggestion.poster_path}`}
-                            alt={suggestion.title || suggestion.name}
-                            className="h-16 w-28 object-cover rounded absolute inset-0 transition-opacity duration-300"
-                            onLoad={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.opacity = '1';
-                            }}
-                            style={{ opacity: '0' }}
-                          />
-                        </div>
+                    )}
+                    {searchTab === "companies" &&
+                      companySuggestions.length > 0 && (
                         <div>
-                          <p className="text-white font-medium text-base md:text-lg">
-                            {suggestion.title || suggestion.name}
-                          </p>
-                          <div className="flex items-center gap-2 text-xs md:text-sm text-gray-400">
-                            <span>
-                              {suggestion.media_type.charAt(0).toUpperCase() +
-                                suggestion.media_type.slice(1)}
-                            </span>
-                            {(suggestion.release_date || suggestion.first_air_date) && (
-                              <>
-                                <span>•</span>
-                                <span>
-                                  {suggestion.release_date?.split("-")[0] ||
-                                    suggestion.first_air_date?.split("-")[0]}
-                                </span>
-                              </>
-                            )}
-                            {suggestion.vote_average > 0 && (
-                              <>
-                                <span>•</span>
-                                <span className="text-green-400">
-                                  {Math.round(suggestion.vote_average * 10)}% Match
-                                </span>
-                              </>
-                            )}
+                          <div className="flex flex-col gap-1">
+                            {companySuggestions.map((company) => (
+                              <div
+                                key={company.id}
+                                className="flex items-center gap-3 p-2 hover:bg-zinc-800 cursor-pointer rounded"
+                                onClick={() => handleCompanyClick(company)}
+                              >
+                                <div>
+                                  <p className="text-white font-medium text-base md:text-lg">
+                                    {company.name}
+                                  </p>
+                                  <div className="text-gray-400 text-xs md:text-sm">
+                                    Productions: {company.movie_count || "?"}
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      )}
                   </div>
-                )}
-              </div>
-            )}
+                </div>
+              )}
           </div>
         </div>
       )}
