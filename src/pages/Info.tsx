@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet-async";
 import { Movie } from "../types/movie";
 import { useVideoModal } from "../context/VideoModalContext";
 import { useWatchHistory } from "../hooks/useWatchHistory";
@@ -247,8 +248,60 @@ function Info() {
 
   if (!content) return null;
 
+  // Generate dynamic meta tags for social sharing
+  const pageUrl = `https://movie-zone.pages.dev/info/${type}/${id}`;
+  const shareTitle = `${content.title || content.name} ${type === 'tv' ? '(TV Series)' : '(Movie)'} - MovieZone`;
+  const shareDescription = content.overview 
+    ? content.overview.length > 160 
+      ? content.overview.substring(0, 157) + '...'
+      : content.overview
+    : `Watch ${content.title || content.name} on MovieZone - Your ultimate destination for movies and TV shows.`;
+  
+  // Use backdrop image (banner) for social sharing, fallback to poster
+  const shareImage = content.backdrop_path 
+    ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}`
+    : content.poster_path 
+    ? `https://image.tmdb.org/t/p/w780${content.poster_path}`
+    : 'https://movie-zone.pages.dev/icon.png';
+
   return (
-    <div className="relative min-h-screen bg-[#141414]">
+    <>
+      <Helmet>
+        {/* Basic Meta Tags */}
+        <title>{shareTitle}</title>
+        <meta name="description" content={shareDescription} />
+        
+        {/* Open Graph Meta Tags */}
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:type" content="video.movie" />
+        <meta property="og:title" content={shareTitle} />
+        <meta property="og:description" content={shareDescription} />
+        <meta property="og:image" content={shareImage} />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
+        <meta property="og:site_name" content="MovieZone" />
+        
+        {/* Twitter Card Meta Tags */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:site" content="@MovieZone" />
+        <meta name="twitter:title" content={shareTitle} />
+        <meta name="twitter:description" content={shareDescription} />
+        <meta name="twitter:image" content={shareImage} />
+        
+        {/* Additional Meta Tags */}
+        <meta property="og:locale" content="en_US" />
+        {content.release_date && (
+          <meta property="video:release_date" content={content.release_date} />
+        )}
+        {content.vote_average && (
+          <meta property="video:rating" content={content.vote_average.toString()} />
+        )}
+        {content.genres && content.genres.length > 0 && (
+          <meta property="video:tag" content={content.genres.map(g => g.name).join(', ')} />
+        )}
+      </Helmet>
+      
+      <div className="relative min-h-screen bg-[#141414]">
       {" "}
       {/* Hero Section */}
       <InfoHero
@@ -298,7 +351,8 @@ function Info() {
           mediaType={content.media_type || (type as string)}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

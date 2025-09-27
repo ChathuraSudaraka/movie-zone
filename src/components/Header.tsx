@@ -348,6 +348,7 @@ function Header() {
                     <div className="py-1">
                       {[
                         { label: "Profile Settings", href: "/profile" },
+                        { label: "Subtitles", href: "/subtitle" },
                         { label: "My List", href: "/my-list" },
                       ].map((item) => (
                         <button

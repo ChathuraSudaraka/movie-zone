@@ -1,4 +1,5 @@
 import { Routes, Route, useLocation } from "react-router-dom";
+import { HelmetProvider } from "react-helmet-async";
 import Header from "./components/Header";
 import Home from "./pages/Home";
 import Movies from "./pages/Movies";
@@ -19,6 +20,7 @@ import { NotFound } from "./pages/NotFound";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import { Toaster } from "react-hot-toast";
+import SubtitlePage from "./pages/Subtitle";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -40,6 +42,7 @@ function AppContent() {
           <Route path="/search" element={<Search />} />
           <Route path="/new" element={<New />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/subtitle" element={<SubtitlePage />} />
           <Route path="/info/:type/:id" element={<Info />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
@@ -58,34 +61,36 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <VideoModalProvider>
-        <AppContent />
-        <Toaster 
-          position="top-center"
-          toastOptions={{
-            style: {
-              background: '#1f1f1f',
-              color: '#fff',
-              borderRadius: '8px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-            },
-            success: {
-              iconTheme: {
-                primary: '#10B981',
-                secondary: '#fff',
+    <HelmetProvider>
+      <AuthProvider>
+        <VideoModalProvider>
+          <AppContent />
+          <Toaster 
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: '#1f1f1f',
+                color: '#fff',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
               },
-            },
-            error: {
-              iconTheme: {
-                primary: '#EF4444',
-                secondary: '#fff',
+              success: {
+                iconTheme: {
+                  primary: '#10B981',
+                  secondary: '#fff',
+                },
               },
-            },
-          }}
-        />
-      </VideoModalProvider>
-    </AuthProvider>
+              error: {
+                iconTheme: {
+                  primary: '#EF4444',
+                  secondary: '#fff',
+                },
+              },
+            }}
+          />
+        </VideoModalProvider>
+      </AuthProvider>
+    </HelmetProvider>
   );
 }
 
