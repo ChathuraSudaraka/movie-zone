@@ -259,10 +259,15 @@ function Info() {
   
   // Use backdrop image (banner) for social sharing, fallback to poster
   const shareImage = content.backdrop_path 
-    ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}`
+    ? `https://image.tmdb.org/t/p/original${content.backdrop_path}`
     : content.poster_path 
     ? `https://image.tmdb.org/t/p/w780${content.poster_path}`
     : 'https://movie-zone.pages.dev/icon.png';
+
+  // Debug: Log the image URL for troubleshooting
+  console.log('Social share image URL:', shareImage);
+  console.log('Content backdrop_path:', content.backdrop_path);
+  console.log('Content poster_path:', content.poster_path);
 
   return (
     <>
@@ -277,8 +282,10 @@ function Info() {
         <meta property="og:title" content={shareTitle} />
         <meta property="og:description" content={shareDescription} />
         <meta property="og:image" content={shareImage} />
-        <meta property="og:image:width" content="1280" />
-        <meta property="og:image:height" content="720" />
+        <meta property="og:image:secure_url" content={shareImage} />
+        <meta property="og:image:width" content="1920" />
+        <meta property="og:image:height" content="1080" />
+        <meta property="og:image:alt" content={`${content.title || content.name} banner`} />
         <meta property="og:site_name" content="MovieZone" />
         
         {/* Twitter Card Meta Tags */}
@@ -287,6 +294,7 @@ function Info() {
         <meta name="twitter:title" content={shareTitle} />
         <meta name="twitter:description" content={shareDescription} />
         <meta name="twitter:image" content={shareImage} />
+        <meta name="twitter:image:alt" content={`${content.title || content.name} banner`} />
         
         {/* Additional Meta Tags */}
         <meta property="og:locale" content="en_US" />
