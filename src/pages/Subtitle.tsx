@@ -42,42 +42,53 @@ function SubtitlePage() {
   const [translationError, setTranslationError] = useState<TranslationError | null>(null);
   const [showOriginal, setShowOriginal] = useState(true);
 
+  // Enhanced language list organized by popularity
   const languages = useMemo(() => [
-    { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-    { code: 'fr', name: 'French', flag: '🇫🇷' },
-    { code: 'de', name: 'German', flag: '🇩🇪' },
-    { code: 'it', name: 'Italian', flag: '🇮🇹' },
-    { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-    { code: 'ru', name: 'Russian', flag: '🇷🇺' },
-    { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-    { code: 'ko', name: 'Korean', flag: '🇰🇷' },
-    { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
-    { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-    { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
-    { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
-    { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
-    { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
-    { code: 'da', name: 'Danish', flag: '🇩🇰' },
-    { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
-    { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
-    { code: 'pl', name: 'Polish', flag: '🇵🇱' },
-    { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
-    { code: 'cs', name: 'Czech', flag: '🇨🇿' },
-    { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
-    { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
-    { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
-    { code: 'hr', name: 'Croatian', flag: '🇭🇷' },
-    { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
-    { code: 'et', name: 'Estonian', flag: '🇪🇪' },
-    { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
-    { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
-    { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
-    { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
-    { code: 'th', name: 'Thai', flag: '🇹🇭' },
-    { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
-    { code: 'ms', name: 'Malay', flag: '🇲🇾' },
-    { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
-    { code: 'fa', name: 'Persian', flag: '🇮🇷' }
+    // Popular European Languages
+    { code: 'es', name: 'Spanish', flag: '🇪🇸', category: 'Popular' },
+    { code: 'fr', name: 'French', flag: '🇫🇷', category: 'Popular' },
+    { code: 'de', name: 'German', flag: '🇩🇪', category: 'Popular' },
+    { code: 'it', name: 'Italian', flag: '🇮🇹', category: 'Popular' },
+    { code: 'pt', name: 'Portuguese', flag: '🇵🇹', category: 'Popular' },
+    { code: 'nl', name: 'Dutch', flag: '🇳🇱', category: 'Popular' },
+    { code: 'ru', name: 'Russian', flag: '🇷🇺', category: 'Popular' },
+    
+    // Asian Languages
+    { code: 'zh', name: 'Chinese (Simplified)', flag: '��', category: 'Asian' },
+    { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '��', category: 'Asian' },
+    { code: 'ja', name: 'Japanese', flag: '��', category: 'Asian' },
+    { code: 'ko', name: 'Korean', flag: '��', category: 'Asian' },
+    { code: 'hi', name: 'Hindi', flag: '🇮🇳', category: 'Asian' },
+    { code: 'th', name: 'Thai', flag: '🇹�', category: 'Asian' },
+    { code: 'vi', name: 'Vietnamese', flag: '🇻🇳', category: 'Asian' },
+    { code: 'id', name: 'Indonesian', flag: '��', category: 'Asian' },
+    { code: 'ms', name: 'Malay', flag: '��', category: 'Asian' },
+    
+    // Middle Eastern & African
+    { code: 'ar', name: 'Arabic', flag: '��', category: 'Middle East' },
+    { code: 'tr', name: 'Turkish', flag: '��', category: 'Middle East' },
+    { code: 'he', name: 'Hebrew', flag: '�🇱', category: 'Middle East' },
+    { code: 'fa', name: 'Persian', flag: '��', category: 'Middle East' },
+    
+    // Nordic Languages
+    { code: 'sv', name: 'Swedish', flag: '��', category: 'Nordic' },
+    { code: 'da', name: 'Danish', flag: '��', category: 'Nordic' },
+    { code: 'no', name: 'Norwegian', flag: '�🇴', category: 'Nordic' },
+    { code: 'fi', name: 'Finnish', flag: '��', category: 'Nordic' },
+    
+    // Eastern European
+    { code: 'pl', name: 'Polish', flag: '��', category: 'Eastern Europe' },
+    { code: 'uk', name: 'Ukrainian', flag: '��', category: 'Eastern Europe' },
+    { code: 'cs', name: 'Czech', flag: '��', category: 'Eastern Europe' },
+    { code: 'hu', name: 'Hungarian', flag: '��', category: 'Eastern Europe' },
+    { code: 'ro', name: 'Romanian', flag: '��', category: 'Eastern Europe' },
+    { code: 'bg', name: 'Bulgarian', flag: '��', category: 'Eastern Europe' },
+    { code: 'hr', name: 'Croatian', flag: '��', category: 'Eastern Europe' },
+    { code: 'sl', name: 'Slovenian', flag: '��', category: 'Eastern Europe' },
+    { code: 'et', name: 'Estonian', flag: '��', category: 'Eastern Europe' },
+    { code: 'lv', name: 'Latvian', flag: '��', category: 'Eastern Europe' },
+    { code: 'lt', name: 'Lithuanian', flag: '🇱🇹', category: 'Eastern Europe' },
+    { code: 'sk', name: 'Slovak', flag: '��', category: 'Eastern Europe' }
   ], []);
 
   const parseSubtitleFile = useCallback((content: string): SubtitleEntry[] => {
@@ -156,54 +167,71 @@ function SubtitlePage() {
     }
   };
 
+  // Enhanced Google Translate API implementation
   const translateWithGoogle = async (text: string, targetLanguage: string): Promise<string> => {
     try {
-      // Using MyMemory Translation API - free and CORS-enabled
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|${targetLanguage}`;
-      const response = await fetch(url);
+      // Method 1: Using Google Translate via cors-anywhere proxy
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const targetUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`;
       
-      if (!response.ok) {
-        throw new Error(`Translation failed with status: ${response.status}`);
-      }
+      const response = await fetch(proxyUrl + targetUrl, {
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest'
+        }
+      });
       
-      const data = await response.json();
-      
-      if (data && data.responseData && data.responseData.translatedText) {
-        return data.responseData.translatedText;
-      } else {
-        throw new Error('Invalid translation response format');
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data[0] && data[0][0] && data[0][0][0]) {
+          return data[0][0][0];
+        }
       }
     } catch (error) {
-      console.error('Translation error:', error);
-      
-      // Fallback to LibreTranslate if MyMemory fails
-      try {
-        const fallbackUrl = `https://libretranslate.de/translate`;
-        const fallbackResponse = await fetch(fallbackUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            q: text,
-            source: 'en',
-            target: targetLanguage,
-            format: 'text'
-          })
-        });
-        
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          if (fallbackData && fallbackData.translatedText) {
-            return fallbackData.translatedText;
-          }
-        }
-      } catch (fallbackError) {
-        console.error('Fallback translation also failed:', fallbackError);
-      }
-      
-      throw new Error(`Translation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('Google Translate (Method 1) failed:', error);
     }
+
+    try {
+      // Method 2: Using MyMemory Translation API as fallback
+      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLanguage}`;
+      const response = await fetch(url);
+      
+      if (response.ok) {
+        const data = await response.json();
+        if (data && data.responseData && data.responseData.translatedText) {
+          return data.responseData.translatedText;
+        }
+      }
+    } catch (error) {
+      console.error('MyMemory Translation failed:', error);
+    }
+
+    try {
+      // Method 3: Using LibreTranslate as second fallback
+      const fallbackUrl = `https://libretranslate.de/translate`;
+      const fallbackResponse = await fetch(fallbackUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          q: text,
+          source: 'auto',
+          target: targetLanguage,
+          format: 'text'
+        })
+      });
+      
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData && fallbackData.translatedText) {
+          return fallbackData.translatedText;
+        }
+      }
+    } catch (fallbackError) {
+      console.error('LibreTranslate also failed:', fallbackError);
+    }
+    
+    throw new Error('All translation services failed. Please try again later.');
   };
 
   const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
@@ -226,7 +254,7 @@ function SubtitlePage() {
         try {
           // Add delay between requests to avoid rate limiting
           if (i > 0) {
-            await delay(2000); // 2 second delay for free APIs
+            await delay(1500); // 1.5 second delay for better performance
           }
           
           const translatedText = await translateWithGoogle(subtitle.text, selectedLanguage);
@@ -323,20 +351,55 @@ function SubtitlePage() {
     <div className="mt-[68px] min-h-screen bg-[#141414] px-4 py-8 md:px-8">
       <div className="max-w-7xl mx-auto">
         {/* Header Section */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Subtitle Translator</h1>
-            <p className="text-zinc-400">
-              Upload your English subtitle files and translate them to {languages.length}+ languages
+        <div className="text-center mb-12">
+          <div className="mb-6">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+              Subtitle Translator
+            </h1>
+            <p className="text-xl text-zinc-300 max-w-3xl mx-auto leading-relaxed">
+              Translate your subtitle files to {languages.length}+ languages using Google Translate API
             </p>
           </div>
+          
+          {/* Feature highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
+            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+              <div className="flex items-center justify-center mb-2">
+                <Globe className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="font-semibold text-white mb-2">Multi-Language</h3>
+              <p className="text-sm text-zinc-400">
+                Support for {languages.length}+ languages with automatic source detection
+              </p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+              <div className="flex items-center justify-center mb-2">
+                <FileText className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="font-semibold text-white mb-2">SRT Files</h3>
+              <p className="text-sm text-zinc-400">
+                Upload .srt subtitle files up to 10MB in size
+              </p>
+            </div>
+            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
+              <div className="flex items-center justify-center mb-2">
+                <Download className="w-8 h-8 text-red-500" />
+              </div>
+              <h3 className="font-semibold text-white mb-2">Free Download</h3>
+              <p className="text-sm text-zinc-400">
+                Download translated subtitles in original SRT format
+              </p>
+            </div>
+          </div>
+
+          {/* Clear all button */}
           {(uploadedFile || subtitles.length > 0) && (
             <button
               onClick={clearAll}
-              className="flex items-center gap-2 px-4 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
             >
               <RefreshCw className="w-4 h-4" />
-              Clear All
+              Start Over
             </button>
           )}
         </div>
@@ -441,17 +504,60 @@ function SubtitlePage() {
                 <select
                   value={selectedLanguage}
                   onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full bg-zinc-800 text-white border border-zinc-600 rounded-lg px-4 py-3 focus:outline-none focus:border-red-600 appearance-none"
+                  className="w-full bg-zinc-800 text-white border border-zinc-600 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:border-red-600 appearance-none"
                 >
                   <option value="">Select target language</option>
-                  {languages.map((lang) => (
-                    <option key={lang.code} value={lang.code}>
-                      {lang.flag} {lang.name}
-                    </option>
-                  ))}
+                  
+                  {/* Popular Languages */}
+                  <optgroup label="🌟 Popular Languages">
+                    {languages.filter(lang => lang.category === 'Popular').map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  {/* Asian Languages */}
+                  <optgroup label="🌏 Asian Languages">
+                    {languages.filter(lang => lang.category === 'Asian').map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  {/* Middle Eastern & African */}
+                  <optgroup label="🌍 Middle Eastern & African">
+                    {languages.filter(lang => lang.category === 'Middle East').map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  {/* Nordic Languages */}
+                  <optgroup label="❄️ Nordic Languages">
+                    {languages.filter(lang => lang.category === 'Nordic').map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </optgroup>
+
+                  {/* Eastern European */}
+                  <optgroup label="🏰 Eastern European">
+                    {languages.filter(lang => lang.category === 'Eastern Europe').map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.flag} {lang.name}
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
                 <Globe className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400 pointer-events-none" />
               </div>
+              <p className="text-xs text-zinc-400 mt-2">
+                💡 Powered by Google Translate API (Free) - Auto-detects source language
+              </p>
             </div>
             
             {/* Translation Button */}
