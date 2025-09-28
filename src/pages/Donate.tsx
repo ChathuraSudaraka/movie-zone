@@ -1,17 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Heart, Coffee, Star, Gift, Users, Zap, Check, ExternalLink, ArrowRight } from 'lucide-react';
+import { Heart, Star, Users, Zap, ArrowRight } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { saveDonationRecord, DonationData, getDonationStats, sendDonationNotification } from '../utils/donationUtils';
 
-interface DonationTier {
-  id: string;
-  name: string;
-  amount: number;
-  description: string;
-  icon: React.ReactNode;
-  perks: string[];
-  popular?: boolean;
-}
 
 interface PayPalButtonProps {
   amount: number;
