@@ -37,6 +37,7 @@ function Header() {
     { name: "Movies", href: "/movies" },
     // { name: 'New & Popular', href: '/new' },
     { name: "My List", href: "/my-list" },
+    { name: "Donate", href: "/donate" },
   ];
 
   useEffect(() => {

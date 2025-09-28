@@ -21,6 +21,7 @@ import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import { Toaster } from "react-hot-toast";
 import SubtitlePage from "./pages/Subtitle";
+import Donate from "./pages/Donate";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -43,6 +44,7 @@ function AppContent() {
           <Route path="/new" element={<New />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/subtitle" element={<SubtitlePage />} />
+          <Route path="/donate" element={<Donate />} />
           <Route path="/info/:type/:id" element={<Info />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/register" element={<Register />} />
