@@ -30,6 +30,53 @@ function Info() {
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
   const [isInMyList, setIsInMyList] = useState<boolean>(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
+  const [validatedOgImage, setValidatedOgImage] = useState<string>('https://movie-zone.pages.dev/movie-zone.png');
+
+  // Function to test if image URL is accessible
+  const testImageUrl = (url: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+    });
+  };
+
+  // Validate and set the best OG image when content is loaded
+  useEffect(() => {
+    const validateAndSetOgImage = async () => {
+      if (!content) return;
+      
+      // Priority list of image URLs to try
+      const imageUrls = [
+        content.backdrop_path ? `https://image.tmdb.org/t/p/original${content.backdrop_path}` : null,
+        content.backdrop_path ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}` : null,
+        content.poster_path ? `https://image.tmdb.org/t/p/original${content.poster_path}` : null,
+        content.poster_path ? `https://image.tmdb.org/t/p/w780${content.poster_path}` : null,
+      ].filter(Boolean) as string[];
+      
+      console.log('Testing OG images for:', content.title, imageUrls);
+      
+      // Test each image URL in order
+      for (const url of imageUrls) {
+        try {
+          const isValid = await testImageUrl(url);
+          if (isValid) {
+            console.log('Valid OG image found:', url);
+            setValidatedOgImage(url);
+            return;
+          }
+        } catch (error) {
+          console.warn('Failed to test image:', url, error);
+        }
+      }
+      
+      // If no images work, keep the fallback
+      console.warn('No valid images found, using fallback icon');
+    };
+    
+    validateAndSetOgImage();
+  }, [content]);
 
   // Fetch content details
   useEffect(() => {
@@ -46,7 +93,7 @@ function Info() {
         const response = await fetch(
           `https://api.themoviedb.org/3/${type}/${id}?api_key=${
             import.meta.env.VITE_TMDB_API_KEY
-          }&append_to_response=videos,credits,external_ids`
+          }&append_to_response=videos,credits,external_ids,images`
         );
 
         if (!response.ok) {
@@ -54,6 +101,20 @@ function Info() {
         }
 
         const data = await response.json();
+        
+        // Find the best available backdrop image
+        let bestBackdrop = data.backdrop_path;
+        
+        // If no main backdrop, try to get from additional images
+        if (!bestBackdrop && data.images?.backdrops?.length > 0) {
+          // Sort by vote average and pick the best one
+          const sortedBackdrops = data.images.backdrops.sort((a: any, b: any) => 
+            (b.vote_average || 0) - (a.vote_average || 0)
+          );
+          bestBackdrop = sortedBackdrops[0].file_path;
+        }
+        
+        console.log('Selected backdrop:', bestBackdrop);
 
         // Transform the data to match the Movie type
         setContent({
@@ -62,6 +123,7 @@ function Info() {
           media_type: type,
           release_date: type === "tv" ? data.first_air_date : data.release_date,
           imdb_id: data.external_ids?.imdb_id || null,
+          backdrop_path: bestBackdrop, // Use the best available backdrop
         });
 
         // Set trailer
@@ -257,17 +319,13 @@ function Info() {
       : content.overview
     : `Watch ${content.title || content.name} on MovieZone - Your ultimate destination for movies and TV shows.`;
   
-  // Use backdrop image (banner) for social sharing, fallback to poster
-  const shareImage = content.backdrop_path 
-    ? `https://image.tmdb.org/t/p/original${content.backdrop_path}`
-    : content.poster_path 
-    ? `https://image.tmdb.org/t/p/w780${content.poster_path}`
-    : 'https://movie-zone.pages.dev/icon.png';
+  // Use validated image for social sharing
+  const shareImage = validatedOgImage;
 
   // Debug: Log the image URL for troubleshooting
   console.log('Social share image URL:', shareImage);
-  console.log('Content backdrop_path:', content.backdrop_path);
-  console.log('Content poster_path:', content.poster_path);
+  console.log('Content backdrop_path:', content?.backdrop_path);
+  console.log('Content poster_path:', content?.poster_path);
 
   return (
     <>
