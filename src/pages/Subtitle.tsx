@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback } from 'react';
 import { 
   Upload, 
   Download, 
@@ -7,11 +7,50 @@ import {
   Loader2, 
   CheckCircle, 
   AlertCircle, 
-  RefreshCw,
-  Eye,
-  EyeOff,
-  Info
+  Languages
 } from 'lucide-react';
+
+// Browser-compatible translation using Google Translate API
+const translateText = async (text: string, targetLang: string): Promise<string> => {
+  try {
+    // Using Google Translate's free API endpoint
+    const response = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    // Extract translated text from the response
+    if (result && result[0] && Array.isArray(result[0])) {
+      return result[0].map((item: any[]) => item[0]).join('');
+    }
+    
+    throw new Error('Invalid response format');
+  } catch (error) {
+    console.error('Translation error:', error);
+    
+    // Fallback to MyMemory API if Google Translate fails
+    try {
+      const fallbackResponse = await fetch(
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`
+      );
+      
+      const fallbackData = await fallbackResponse.json();
+      
+      if (fallbackData.responseStatus === 200 && fallbackData.responseData) {
+        return fallbackData.responseData.translatedText;
+      }
+    } catch (fallbackError) {
+      console.error('Fallback translation failed:', fallbackError);
+    }
+    
+    throw new Error('Translation failed');
+  }
+};
 
 interface SubtitleEntry {
   id: number;
@@ -25,12 +64,6 @@ interface TranslationProgress {
   percentage: number;
 }
 
-interface TranslationError {
-  message: string;
-  entry?: SubtitleEntry;
-  retryable: boolean;
-}
-
 function SubtitlePage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>([]);
@@ -38,59 +71,190 @@ function SubtitlePage() {
   const [translatedSubtitles, setTranslatedSubtitles] = useState<SubtitleEntry[]>([]);
   const [isTranslating, setIsTranslating] = useState(false);
   const [translationComplete, setTranslationComplete] = useState(false);
-  const [translationProgress, setTranslationProgress] = useState<TranslationProgress>({ current: 0, total: 0, percentage: 0 });
-  const [translationError, setTranslationError] = useState<TranslationError | null>(null);
-  const [showOriginal, setShowOriginal] = useState(true);
+  const [translationProgress, setTranslationProgress] = useState<TranslationProgress>({ 
+    current: 0, 
+    total: 0, 
+    percentage: 0 
+  });
+  const [error, setError] = useState<string>('');
+  const [detectedLanguage, setDetectedLanguage] = useState<string>('');
+  const [availableLanguages, setAvailableLanguages] = useState<Array<{code: string, name: string, flag: string}>>([]);
+  const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
 
-  // Enhanced language list organized by popularity
-  const languages = useMemo(() => [
-    // Popular European Languages
-    { code: 'es', name: 'Spanish', flag: '🇪🇸', category: 'Popular' },
-    { code: 'fr', name: 'French', flag: '🇫🇷', category: 'Popular' },
-    { code: 'de', name: 'German', flag: '🇩🇪', category: 'Popular' },
-    { code: 'it', name: 'Italian', flag: '🇮🇹', category: 'Popular' },
-    { code: 'pt', name: 'Portuguese', flag: '🇵🇹', category: 'Popular' },
-    { code: 'nl', name: 'Dutch', flag: '🇳🇱', category: 'Popular' },
-    { code: 'ru', name: 'Russian', flag: '🇷🇺', category: 'Popular' },
-    
-    // Asian Languages
-    { code: 'zh', name: 'Chinese (Simplified)', flag: '��', category: 'Asian' },
-    { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '��', category: 'Asian' },
-    { code: 'ja', name: 'Japanese', flag: '��', category: 'Asian' },
-    { code: 'ko', name: 'Korean', flag: '��', category: 'Asian' },
-    { code: 'hi', name: 'Hindi', flag: '🇮🇳', category: 'Asian' },
-    { code: 'th', name: 'Thai', flag: '🇹�', category: 'Asian' },
-    { code: 'vi', name: 'Vietnamese', flag: '🇻🇳', category: 'Asian' },
-    { code: 'id', name: 'Indonesian', flag: '��', category: 'Asian' },
-    { code: 'ms', name: 'Malay', flag: '��', category: 'Asian' },
-    
-    // Middle Eastern & African
-    { code: 'ar', name: 'Arabic', flag: '��', category: 'Middle East' },
-    { code: 'tr', name: 'Turkish', flag: '��', category: 'Middle East' },
-    { code: 'he', name: 'Hebrew', flag: '�🇱', category: 'Middle East' },
-    { code: 'fa', name: 'Persian', flag: '��', category: 'Middle East' },
-    
-    // Nordic Languages
-    { code: 'sv', name: 'Swedish', flag: '��', category: 'Nordic' },
-    { code: 'da', name: 'Danish', flag: '��', category: 'Nordic' },
-    { code: 'no', name: 'Norwegian', flag: '�🇴', category: 'Nordic' },
-    { code: 'fi', name: 'Finnish', flag: '��', category: 'Nordic' },
-    
-    // Eastern European
-    { code: 'pl', name: 'Polish', flag: '��', category: 'Eastern Europe' },
-    { code: 'uk', name: 'Ukrainian', flag: '��', category: 'Eastern Europe' },
-    { code: 'cs', name: 'Czech', flag: '��', category: 'Eastern Europe' },
-    { code: 'hu', name: 'Hungarian', flag: '��', category: 'Eastern Europe' },
-    { code: 'ro', name: 'Romanian', flag: '��', category: 'Eastern Europe' },
-    { code: 'bg', name: 'Bulgarian', flag: '��', category: 'Eastern Europe' },
-    { code: 'hr', name: 'Croatian', flag: '��', category: 'Eastern Europe' },
-    { code: 'sl', name: 'Slovenian', flag: '��', category: 'Eastern Europe' },
-    { code: 'et', name: 'Estonian', flag: '��', category: 'Eastern Europe' },
-    { code: 'lv', name: 'Latvian', flag: '��', category: 'Eastern Europe' },
-    { code: 'lt', name: 'Lithuanian', flag: '🇱🇹', category: 'Eastern Europe' },
-    { code: 'sk', name: 'Slovak', flag: '��', category: 'Eastern Europe' }
-  ], []);
+  // Load supported languages from Google Translate API
+  const loadSupportedLanguages = async () => {
+    setIsLoadingLanguages(true);
+    try {
+      // Google Translate supported languages
+      const languages = [
+        { code: 'af', name: 'Afrikaans', flag: '🇿🇦' },
+        { code: 'sq', name: 'Albanian', flag: '🇦🇱' },
+        { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+        { code: 'hy', name: 'Armenian', flag: '🇦🇲' },
+        { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
+        { code: 'eu', name: 'Basque', flag: '🏳️' },
+        { code: 'be', name: 'Belarusian', flag: '🇧🇾' },
+        { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
+        { code: 'bs', name: 'Bosnian', flag: '🇧🇦' },
+        { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
+        { code: 'ca', name: 'Catalan', flag: '🇪🇸' },
+        { code: 'ceb', name: 'Cebuano', flag: '🇵🇭' },
+        { code: 'ny', name: 'Chichewa', flag: '🇲🇼' },
+        { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
+        { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+        { code: 'co', name: 'Corsican', flag: '🇫🇷' },
+        { code: 'hr', name: 'Croatian', flag: '🇭�' },
+        { code: 'cs', name: 'Czech', flag: '🇨🇿' },
+        { code: 'da', name: 'Danish', flag: '🇩🇰' },
+        { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+        { code: 'en', name: 'English', flag: '🇺🇸' },
+        { code: 'eo', name: 'Esperanto', flag: '🌐' },
+        { code: 'et', name: 'Estonian', flag: '�🇪�' },
+        { code: 'tl', name: 'Filipino', flag: '🇵🇭' },
+        { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
+        { code: 'fr', name: 'French', flag: '🇫🇷' },
+        { code: 'fy', name: 'Frisian', flag: '🇳🇱' },
+        { code: 'gl', name: 'Galician', flag: '🇪🇸' },
+        { code: 'ka', name: 'Georgian', flag: '🇬🇪' },
+        { code: 'de', name: 'German', flag: '🇩🇪' },
+        { code: 'el', name: 'Greek', flag: '🇬🇷' },
+        { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+        { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹' },
+        { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
+        { code: 'haw', name: 'Hawaiian', flag: '🏝️' },
+        { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
+        { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+        { code: 'hmn', name: 'Hmong', flag: '🇻🇳' },
+        { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
+        { code: 'is', name: 'Icelandic', flag: '🇮🇸' },
+        { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
+        { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+        { code: 'ga', name: 'Irish', flag: '🇮🇪' },
+        { code: 'it', name: 'Italian', flag: '🇮🇹' },
+        { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+        { code: 'jw', name: 'Javanese', flag: '🇮🇩' },
+        { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+        { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
+        { code: 'km', name: 'Khmer', flag: '🇰🇭' },
+        { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+        { code: 'ku', name: 'Kurdish', flag: '🇮🇶' },
+        { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
+        { code: 'lo', name: 'Lao', flag: '🇱🇦' },
+        { code: 'la', name: 'Latin', flag: '⛪' },
+        { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
+        { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
+        { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
+        { code: 'mk', name: 'Macedonian', flag: '🇲🇰' },
+        { code: 'mg', name: 'Malagasy', flag: '🇲🇬' },
+        { code: 'ms', name: 'Malay', flag: '🇲🇾' },
+        { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
+        { code: 'mt', name: 'Maltese', flag: '�🇹' },
+        { code: 'mi', name: 'Maori', flag: '🇳🇿' },
+        { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+        { code: 'mn', name: 'Mongolian', flag: '🇲🇳' },
+        { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲' },
+        { code: 'ne', name: 'Nepali', flag: '🇳🇵' },
+        { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
+        { code: 'ps', name: 'Pashto', flag: '🇦🇫' },
+        { code: 'fa', name: 'Persian', flag: '🇮🇷' },
+        { code: 'pl', name: 'Polish', flag: '�🇱' },
+        { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+        { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
+        { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
+        { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+        { code: 'sm', name: 'Samoan', flag: '🇼🇸' },
+        { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+        { code: 'sr', name: 'Serbian', flag: '🇷🇸' },
+        { code: 'st', name: 'Sesotho', flag: '🇱🇸' },
+        { code: 'sn', name: 'Shona', flag: '🇿🇼' },
+        { code: 'sd', name: 'Sindhi', flag: '🇵🇰' },
+        { code: 'si', name: 'Sinhala', flag: '🇱🇰' },
+        { code: 'sk', name: 'Slovak', flag: '��' },
+        { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
+        { code: 'so', name: 'Somali', flag: '��' },
+        { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+        { code: 'su', name: 'Sundanese', flag: '��' },
+        { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
+        { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+        { code: 'tg', name: 'Tajik', flag: '🇹🇯' },
+        { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+        { code: 'te', name: 'Telugu', flag: '🇮🇳' },
+        { code: 'th', name: 'Thai', flag: '��' },
+        { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+        { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
+        { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
+        { code: 'uz', name: 'Uzbek', flag: '🇺🇿' },
+        { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
+        { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
+        { code: 'xh', name: 'Xhosa', flag: '🇿🇦' },
+        { code: 'yi', name: 'Yiddish', flag: '🕎' },
+        { code: 'yo', name: 'Yoruba', flag: '��' },
+        { code: 'zu', name: 'Zulu', flag: '🇿🇦' }
+      ];
+      
+      setAvailableLanguages(languages);
+    } catch (error) {
+      console.error('Error loading languages:', error);
+      // Fallback to basic languages if loading fails
+      setAvailableLanguages([
+        { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+        { code: 'fr', name: 'French', flag: '🇫🇷' },
+        { code: 'de', name: 'German', flag: '🇩🇪' },
+        { code: 'it', name: 'Italian', flag: '🇮🇹' },
+        { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+        { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+        { code: 'zh', name: 'Chinese', flag: '�🇳' },
+        { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+        { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+        { code: 'ar', name: 'Arabic', flag: '�🇸�' }
+      ]);
+    } finally {
+      setIsLoadingLanguages(false);
+    }
+  };
 
+  // Detect language from subtitle content
+  const detectLanguage = async (text: string): Promise<string> => {
+    try {
+      // Use a sample of text for detection
+      const sampleText = text.substring(0, 500);
+      
+      const response = await fetch(
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(sampleText)}`
+      );
+      
+      if (!response.ok) {
+        throw new Error('Language detection failed');
+      }
+      
+      const result = await response.json();
+      
+      // Extract detected language from response
+      if (result && result[2]) {
+        const detectedLang = result[2];
+        console.log('Detected language:', detectedLang);
+        return detectedLang;
+      }
+      
+      return 'auto';
+    } catch (error) {
+      console.error('Language detection error:', error);
+      return 'auto';
+    }
+  };
+
+  // Load languages on component mount
+  React.useEffect(() => {
+    loadSupportedLanguages();
+  }, []);
+
+  // Helper function to get language name by code
+  const getLanguageName = (code: string): string => {
+    const language = availableLanguages.find(lang => lang.code === code);
+    return language ? `${language.flag} ${language.name}` : code;
+  };
+
+  // Parse SRT subtitle file
   const parseSubtitleFile = useCallback((content: string): SubtitleEntry[] => {
     const entries: SubtitleEntry[] = [];
     const blocks = content.trim().split('\n\n');
@@ -113,42 +277,27 @@ function SubtitlePage() {
     return entries;
   }, []);
 
-  const validateSubtitleFile = useCallback((file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      if (!file.name.toLowerCase().endsWith('.srt')) {
-        reject(new Error('Please upload a valid .srt file'));
-        return;
-      }
-
-      if (file.size > 10 * 1024 * 1024) { // 10MB limit
-        reject(new Error('File size too large. Please upload a file smaller than 10MB'));
-        return;
-      }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        if (!content || content.trim().length === 0) {
-          reject(new Error('File appears to be empty'));
-          return;
-        }
-        resolve(content);
-      };
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsText(file, 'utf-8');
-    });
-  }, []);
-
+  // Handle file upload
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setError('');
+    setTranslationComplete(false);
+    setTranslatedSubtitles([]);
+
     try {
-      setTranslationError(null);
-      setTranslationComplete(false);
-      setTranslatedSubtitles([]);
-      
-      const content = await validateSubtitleFile(file);
+      if (!file.name.toLowerCase().endsWith('.srt')) {
+        throw new Error('Please upload a valid .srt file');
+      }
+
+      const content = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target?.result as string);
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsText(file, 'utf-8');
+      });
+
       const parsedSubtitles = parseSubtitleFile(content);
       
       if (parsedSubtitles.length === 0) {
@@ -157,289 +306,115 @@ function SubtitlePage() {
       
       setUploadedFile(file);
       setSubtitles(parsedSubtitles);
-    } catch (error) {
-      setTranslationError({
-        message: error instanceof Error ? error.message : 'Failed to process subtitle file',
-        retryable: false
-      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to process subtitle file');
       setUploadedFile(null);
       setSubtitles([]);
     }
   };
 
-  // Enhanced Google Translate API implementation
-  const translateWithGoogle = async (text: string, targetLanguage: string): Promise<string> => {
-    try {
-      // Method 1: Using Google Translate via cors-anywhere proxy
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const targetUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLanguage}&dt=t&q=${encodeURIComponent(text)}`;
-      
-      const response = await fetch(proxyUrl + targetUrl, {
-        headers: {
-          'X-Requested-With': 'XMLHttpRequest'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data[0] && data[0][0] && data[0][0][0]) {
-          return data[0][0][0];
-        }
-      }
-    } catch (error) {
-      console.error('Google Translate (Method 1) failed:', error);
-    }
-
-    try {
-      // Method 2: Using MyMemory Translation API as fallback
-      const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLanguage}`;
-      const response = await fetch(url);
-      
-      if (response.ok) {
-        const data = await response.json();
-        if (data && data.responseData && data.responseData.translatedText) {
-          return data.responseData.translatedText;
-        }
-      }
-    } catch (error) {
-      console.error('MyMemory Translation failed:', error);
-    }
-
-    try {
-      // Method 3: Using LibreTranslate as second fallback
-      const fallbackUrl = `https://libretranslate.de/translate`;
-      const fallbackResponse = await fetch(fallbackUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          q: text,
-          source: 'auto',
-          target: targetLanguage,
-          format: 'text'
-        })
-      });
-      
-      if (fallbackResponse.ok) {
-        const fallbackData = await fallbackResponse.json();
-        if (fallbackData && fallbackData.translatedText) {
-          return fallbackData.translatedText;
-        }
-      }
-    } catch (fallbackError) {
-      console.error('LibreTranslate also failed:', fallbackError);
-    }
-    
-    throw new Error('All translation services failed. Please try again later.');
-  };
-
-  const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
+  // Handle translation
   const handleTranslate = async () => {
     if (!selectedLanguage || subtitles.length === 0) return;
 
     setIsTranslating(true);
     setTranslationComplete(false);
-    setTranslationError(null);
+    setError('');
     setTranslationProgress({ current: 0, total: subtitles.length, percentage: 0 });
 
     try {
+      // Auto-detect source language if not already detected
+      if (!detectedLanguage || detectedLanguage === 'auto') {
+        const sampleText = subtitles.slice(0, 10).map(sub => sub.text).join(' ');
+        const detected = await detectLanguage(sampleText);
+        setDetectedLanguage(detected);
+      }
+
       const translated: SubtitleEntry[] = [];
       
-      // Process subtitles one by one with delay to avoid rate limiting
       for (let i = 0; i < subtitles.length; i++) {
         const subtitle = subtitles[i];
         
         try {
-          // Add delay between requests to avoid rate limiting
+          // Add delay to avoid rate limiting (google-translate-api is more reliable)
           if (i > 0) {
-            await delay(1500); // 1.5 second delay for better performance
+            await new Promise(resolve => setTimeout(resolve, 100)); // Reduced delay since package handles rate limiting better
           }
           
-          const translatedText = await translateWithGoogle(subtitle.text, selectedLanguage);
+          const translatedText = await translateText(subtitle.text, selectedLanguage);
+          
           translated.push({
-            id: subtitle.id,
-            timestamp: subtitle.timestamp,
+            ...subtitle,
             text: translatedText
           });
           
-          // Update progress
-          const currentProgress = i + 1;
-          setTranslationProgress({
-            current: currentProgress,
-            total: subtitles.length,
-            percentage: Math.round((currentProgress / subtitles.length) * 100)
-          });
-        } catch (error) {
-          console.error(`Translation failed for subtitle ${subtitle.id}:`, error);
-          setTranslationError({
-            message: `Translation failed at subtitle ${subtitle.id}: ${error instanceof Error ? error.message : 'Unknown error'}`,
-            entry: subtitle,
-            retryable: true
-          });
-          return;
+        } catch (err) {
+          console.error(`Translation failed for entry ${subtitle.id}:`, err);
+          // Keep original text if translation fails
+          translated.push(subtitle);
         }
-      }
 
+        // Update progress
+        const progress = {
+          current: i + 1,
+          total: subtitles.length,
+          percentage: Math.round(((i + 1) / subtitles.length) * 100)
+        };
+        setTranslationProgress(progress);
+      }
+      
       setTranslatedSubtitles(translated);
       setTranslationComplete(true);
-      setTranslationProgress({ current: subtitles.length, total: subtitles.length, percentage: 100 });
-    } catch (error) {
-      console.error('Translation failed:', error);
-      setTranslationError({
-        message: error instanceof Error ? error.message : 'Translation failed. Please try again.',
-        retryable: true
-      });
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Translation failed');
     } finally {
       setIsTranslating(false);
     }
   };
 
-  const retryTranslation = () => {
-    setTranslationError(null);
-    handleTranslate();
-  };
+  // Download translated subtitles
+  const downloadTranslatedFile = () => {
+    if (translatedSubtitles.length === 0) return;
 
-  const downloadSubtitles = (subtitlesToDownload: SubtitleEntry[], filename: string) => {
-    if (subtitlesToDownload.length === 0) {
-      setTranslationError({
-        message: 'No subtitles available to download',
-        retryable: false
-      });
-      return;
-    }
+    const content = translatedSubtitles
+      .map(entry => `${entry.id}\n${entry.timestamp}\n${entry.text}\n`)
+      .join('\n');
 
-    try {
-      let srtContent = '';
-      
-      subtitlesToDownload.forEach((subtitle, index) => {
-        srtContent += `${index + 1}\n`;
-        srtContent += `${subtitle.timestamp}\n`;
-        srtContent += `${subtitle.text}\n\n`;
-      });
-
-      const blob = new Blob([srtContent], { type: 'text/plain; charset=utf-8' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.style.display = 'none';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    } catch (error) {
-      setTranslationError({
-        message: 'Failed to download subtitles. Please try again.',
-        retryable: false
-      });
-    }
-  };
-
-  const clearAll = () => {
-    setUploadedFile(null);
-    setSubtitles([]);
-    setTranslatedSubtitles([]);
-    setTranslationComplete(false);
-    setTranslationError(null);
-    setTranslationProgress({ current: 0, total: 0, percentage: 0 });
-    setSelectedLanguage('');
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${uploadedFile?.name.replace('.srt', '')}_translated_${selectedLanguage}.srt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414] px-4 py-8 md:px-8">
-      <div className="max-w-7xl mx-auto">
-        {/* Header Section */}
+    <div className="mt-[68px] min-h-screen bg-[#141414] text-white">
+      <div className="max-w-4xl mx-auto px-4 py-12">
+        
+        {/* Header */}
         <div className="text-center mb-12">
-          <div className="mb-6">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
-              Subtitle Translator
-            </h1>
-            <p className="text-xl text-zinc-300 max-w-3xl mx-auto leading-relaxed">
-              Translate your subtitle files to {languages.length}+ languages using Google Translate API
-            </p>
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-full mb-6">
+            <Languages className="w-8 h-8" />
           </div>
-          
-          {/* Feature highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 max-w-4xl mx-auto">
-            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-              <div className="flex items-center justify-center mb-2">
-                <Globe className="w-8 h-8 text-red-500" />
-              </div>
-              <h3 className="font-semibold text-white mb-2">Multi-Language</h3>
-              <p className="text-sm text-zinc-400">
-                Support for {languages.length}+ languages with automatic source detection
-              </p>
-            </div>
-            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-              <div className="flex items-center justify-center mb-2">
-                <FileText className="w-8 h-8 text-red-500" />
-              </div>
-              <h3 className="font-semibold text-white mb-2">SRT Files</h3>
-              <p className="text-sm text-zinc-400">
-                Upload .srt subtitle files up to 10MB in size
-              </p>
-            </div>
-            <div className="bg-zinc-900/50 rounded-lg p-4 border border-zinc-800">
-              <div className="flex items-center justify-center mb-2">
-                <Download className="w-8 h-8 text-red-500" />
-              </div>
-              <h3 className="font-semibold text-white mb-2">Free Download</h3>
-              <p className="text-sm text-zinc-400">
-                Download translated subtitles in original SRT format
-              </p>
-            </div>
-          </div>
-
-          {/* Clear all button */}
-          {(uploadedFile || subtitles.length > 0) && (
-            <button
-              onClick={clearAll}
-              className="inline-flex items-center gap-2 px-6 py-3 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 transition-colors"
-            >
-              <RefreshCw className="w-4 h-4" />
-              Start Over
-            </button>
-          )}
+          <h1 className="text-4xl font-bold mb-4">Subtitle Translator</h1>
+          <p className="text-xl text-zinc-400">
+            Translate your SRT subtitle files using Google Translate API
+          </p>
         </div>
 
-        {/* Error Display */}
-        {translationError && (
-          <div className="bg-red-900/20 border border-red-600 rounded-lg p-4 mb-6">
-            <div className="flex items-start gap-3">
-              <AlertCircle className="w-5 h-5 text-red-400 flex-shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <p className="text-red-400 font-medium">Error</p>
-                <p className="text-red-300 text-sm mt-1">{translationError.message}</p>
-                {translationError.entry && (
-                  <div className="mt-2 p-2 bg-red-900/30 rounded text-xs text-red-200">
-                    <p className="font-mono">{translationError.entry.timestamp}</p>
-                    <p>"{translationError.entry.text}"</p>
-                  </div>
-                )}
-              </div>
-              {translationError.retryable && (
-                <button
-                  onClick={retryTranslation}
-                  className="flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700 transition-colors"
-                >
-                  <RefreshCw className="w-3 h-3" />
-                  Retry
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        
         {/* Upload Section */}
-        <div className="bg-zinc-900/50 rounded-lg p-6 mb-8 border border-zinc-800">
-          <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-            <Upload className="w-5 h-5" />
-            Upload Subtitle File
-          </h2>
-          
-          <div className="border-2 border-dashed border-zinc-600 rounded-lg p-8 text-center hover:border-zinc-500 transition-colors">
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+          <div className="flex items-center gap-3 mb-6">
+            <Upload className="w-6 h-6 text-red-500" />
+            <h2 className="text-2xl font-semibold">Upload Subtitle File</h2>
+          </div>
+
+          <div className="border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center">
             <input
               type="file"
               accept=".srt"
@@ -447,399 +422,170 @@ function SubtitlePage() {
               className="hidden"
               id="subtitle-upload"
             />
-            <label 
-              htmlFor="subtitle-upload" 
+            <label
+              htmlFor="subtitle-upload"
               className="cursor-pointer flex flex-col items-center gap-4"
             >
-              <div className="w-16 h-16 bg-zinc-800 rounded-full flex items-center justify-center">
-                <FileText className="w-8 h-8 text-zinc-400" />
-              </div>
+              <FileText className="w-12 h-12 text-zinc-500" />
               <div>
-                <p className="text-white font-medium text-lg">Click to upload subtitle file</p>
-                <p className="text-zinc-400 text-sm mt-1">
-                  Supports .srt files up to 10MB • English subtitles recommended
+                <p className="text-lg font-medium mb-2">
+                  Click to upload your .srt file
+                </p>
+                <p className="text-sm text-zinc-500">
+                  Maximum file size: 10MB
                 </p>
               </div>
             </label>
           </div>
 
           {uploadedFile && (
-            <div className="mt-6 p-4 bg-green-900/20 border border-green-600 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-5 h-5 text-green-400" />
-                  <div>
-                    <p className="text-green-400 font-medium">{uploadedFile.name}</p>
-                    <p className="text-green-300 text-sm">
-                      {subtitles.length} subtitle entries • {(uploadedFile.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
+            <div className="mt-6 p-4 bg-green-900/20 border border-green-800 rounded-lg">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-5 h-5 text-green-500" />
+                <div>
+                  <p className="font-medium text-green-400">File uploaded successfully!</p>
+                  <p className="text-sm text-zinc-400">
+                    {uploadedFile.name} • {subtitles.length} subtitle entries
+                  </p>
                 </div>
-                <button
-                  onClick={() => setShowOriginal(!showOriginal)}
-                  className="flex items-center gap-2 px-3 py-1 bg-green-700 text-white rounded hover:bg-green-600 transition-colors text-sm"
-                >
-                  {showOriginal ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                  {showOriginal ? 'Hide' : 'Show'} Preview
-                </button>
+              </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-6 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="w-5 h-5 text-red-500" />
+                <p className="text-red-400">{error}</p>
               </div>
             </div>
           )}
         </div>
 
-        {/* Translation Section */}
+        {/* Language Selection */}
         {subtitles.length > 0 && (
-          <div className="bg-zinc-900/50 rounded-lg p-6 mb-8 border border-zinc-800">
-            <h2 className="text-xl font-semibold text-white mb-6 flex items-center gap-2">
-              <Globe className="w-5 h-5" />
-              Translate Subtitles (Free Translation Service)
-            </h2>
-            
-            {/* Language Selection */}
-            <div className="mb-6">
-              <label className="block text-white text-sm font-medium mb-3">
-                Target Language
-              </label>
-              <div className="relative">
-                <select
-                  value={selectedLanguage}
-                  onChange={(e) => setSelectedLanguage(e.target.value)}
-                  className="w-full bg-zinc-800 text-white border border-zinc-600 rounded-lg px-4 py-3 pr-12 focus:outline-none focus:border-red-600 appearance-none"
-                >
-                  <option value="">Select target language</option>
-                  
-                  {/* Popular Languages */}
-                  <optgroup label="🌟 Popular Languages">
-                    {languages.filter(lang => lang.category === 'Popular').map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </optgroup>
-
-                  {/* Asian Languages */}
-                  <optgroup label="🌏 Asian Languages">
-                    {languages.filter(lang => lang.category === 'Asian').map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </optgroup>
-
-                  {/* Middle Eastern & African */}
-                  <optgroup label="🌍 Middle Eastern & African">
-                    {languages.filter(lang => lang.category === 'Middle East').map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </optgroup>
-
-                  {/* Nordic Languages */}
-                  <optgroup label="❄️ Nordic Languages">
-                    {languages.filter(lang => lang.category === 'Nordic').map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </optgroup>
-
-                  {/* Eastern European */}
-                  <optgroup label="🏰 Eastern European">
-                    {languages.filter(lang => lang.category === 'Eastern Europe').map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.flag} {lang.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                </select>
-                <Globe className="absolute right-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-zinc-400 pointer-events-none" />
-              </div>
-              <p className="text-xs text-zinc-400 mt-2">
-                💡 Powered by Google Translate API (Free) - Auto-detects source language
-              </p>
-            </div>
-            
-            {/* Translation Button */}
-            <button
-              onClick={handleTranslate}
-              disabled={!selectedLanguage || isTranslating}
-              className="w-full px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium transition-colors"
-            >
-              {isTranslating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  Translating... ({translationProgress.current}/{translationProgress.total})
-                </>
-              ) : (
-                <>
-                  <Globe className="w-5 h-5" />
-                  Translate to {selectedLanguage ? languages.find(l => l.code === selectedLanguage)?.name : 'Selected Language'}
-                </>
-              )}
-            </button>
-
-            {/* Progress Bar */}
-            {isTranslating && (
-              <div className="mt-4">
-                <div className="flex justify-between text-sm text-zinc-400 mb-2">
-                  <span>Translation Progress</span>
-                  <span>{translationProgress.percentage}%</span>
+          <>
+            {/* Language Detection Display */}
+            {detectedLanguage && detectedLanguage !== 'auto' && (
+              <div className="bg-blue-900/20 border border-blue-700 rounded-xl p-6 mb-8">
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-3 h-3 bg-blue-500 rounded-full animate-pulse"></div>
+                  <h3 className="text-lg font-medium text-blue-300">Language Detected</h3>
                 </div>
-                <div className="w-full bg-zinc-700 rounded-full h-2">
-                  <div 
-                    className="bg-red-600 h-2 rounded-full transition-all duration-300"
-                    style={{ width: `${translationProgress.percentage}%` }}
-                  />
-                </div>
-              </div>
-            )}
-
-            {translationComplete && (
-              <div className="mt-4 bg-green-900/20 border border-green-600 rounded-lg p-4">
-                <p className="text-green-400 flex items-center gap-2">
-                  <CheckCircle className="w-5 h-5" />
-                  Translation completed! {translatedSubtitles.length} subtitles translated successfully.
+                <p className="text-blue-100">
+                  Source language detected as: <strong>{getLanguageName(detectedLanguage)}</strong>
                 </p>
               </div>
             )}
+
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Globe className="w-6 h-6 text-red-500" />
+              <h2 className="text-2xl font-semibold">Select Target Language</h2>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+              {isLoadingLanguages ? (
+                <div className="col-span-full flex items-center justify-center py-8">
+                  <Loader2 className="w-8 h-8 animate-spin text-red-500" />
+                  <span className="ml-2 text-zinc-400">Loading languages...</span>
+                </div>
+              ) : (
+                availableLanguages.map((lang) => (
+                  <button
+                    key={lang.code}
+                    onClick={() => setSelectedLanguage(lang.code)}
+                    className={`p-4 rounded-lg border transition-all duration-200 ${ 
+                      selectedLanguage === lang.code
+                        ? 'bg-red-600 border-red-600 text-white'
+                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-red-600'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">{lang.flag}</div>
+                    <div className="text-sm font-medium">{lang.name}</div>
+                  </button>
+                ))
+              )}
+            </div>
+
+            {selectedLanguage && (
+              <div className="mt-6 flex justify-center">
+                <button
+                  onClick={handleTranslate}
+                  disabled={isTranslating}
+                  className="px-8 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isTranslating ? (
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Translating... {translationProgress.percentage}%
+                    </div>
+                  ) : (
+                    'Start Translation'
+                  )}
+                </button>
+              </div>
+            )}
+          </div>
+          </>
+        )}
+
+        {/* Translation Progress */}
+        {isTranslating && (
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+            <h3 className="text-xl font-semibold mb-4">Translation Progress</h3>
+            <div className="w-full bg-zinc-800 rounded-full h-3 mb-4">
+              <div 
+                className="bg-red-600 h-3 rounded-full transition-all duration-300"
+                style={{ width: `${translationProgress.percentage}%` }}
+              />
+            </div>
+            <p className="text-center text-zinc-400">
+              {translationProgress.current} / {translationProgress.total} entries translated
+            </p>
           </div>
         )}
 
-        {/* Results Section */}
-        {(subtitles.length > 0 || translatedSubtitles.length > 0) && (
-          <div className="space-y-8">
-            {/* Original Subtitles */}
-            {showOriginal && subtitles.length > 0 && (
-              <div className="bg-zinc-900/50 rounded-lg p-6 border border-zinc-800">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <FileText className="w-5 h-5" />
-                    Original Subtitles (English)
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-zinc-400 text-sm">
-                      {subtitles.length} entries
-                    </span>
-                    <button
-                      onClick={() => downloadSubtitles(subtitles, `original_${uploadedFile?.name || 'subtitles'}.srt`)}
-                      className="flex items-center gap-2 px-3 py-2 bg-zinc-700 text-white rounded-lg hover:bg-zinc-600 text-sm transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-zinc-800/50 rounded-lg p-4 max-h-96 overflow-y-auto border border-zinc-700">
-                  {subtitles.slice(0, 15).map((subtitle) => (
-                    <div key={subtitle.id} className="mb-4 pb-4 border-b border-zinc-700 last:border-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-zinc-400 text-xs font-mono">#{subtitle.id}</span>
-                        <span className="text-zinc-400 text-xs font-mono">{subtitle.timestamp}</span>
-                      </div>
-                      <p className="text-white text-sm leading-relaxed">{subtitle.text}</p>
-                    </div>
-                  ))}
-                  {subtitles.length > 15 && (
-                    <div className="text-center py-4 border-t border-zinc-700">
-                      <p className="text-zinc-400 text-sm">
-                        ... and {subtitles.length - 15} more entries
-                      </p>
-                      <button
-                        onClick={() => {
-                          const container = document.querySelector('.max-h-96');
-                          if (container) container.classList.remove('max-h-96');
-                        }}
-                        className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
-                      >
-                        Show all
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
+        {/* Download Section */}
+        {translationComplete && translatedSubtitles.length > 0 && (
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+            <div className="flex items-center gap-3 mb-6">
+              <Download className="w-6 h-6 text-green-500" />
+              <h2 className="text-2xl font-semibold text-green-400">Translation Complete!</h2>
+            </div>
 
-            {/* Translated Subtitles */}
-            {translatedSubtitles.length > 0 && (
-              <div className="bg-zinc-900/50 rounded-lg p-6 border border-zinc-800">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <Globe className="w-5 h-5" />
-                    Translated Subtitles ({languages.find(l => l.code === selectedLanguage)?.flag} {languages.find(l => l.code === selectedLanguage)?.name})
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-zinc-400 text-sm">
-                      {translatedSubtitles.length} entries
-                    </span>
-                    <button
-                      onClick={() => downloadSubtitles(
-                        translatedSubtitles, 
-                        `${uploadedFile?.name?.replace('.srt', '') || 'subtitles'}_${selectedLanguage}.srt`
-                      )}
-                      className="flex items-center gap-2 px-3 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm transition-colors"
-                    >
-                      <Download className="w-4 h-4" />
-                      Download
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="bg-zinc-800/50 rounded-lg p-4 max-h-96 overflow-y-auto border border-zinc-700">
-                  {translatedSubtitles.slice(0, 15).map((subtitle) => (
-                    <div key={subtitle.id} className="mb-4 pb-4 border-b border-zinc-700 last:border-0">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-zinc-400 text-xs font-mono">#{subtitle.id}</span>
-                        <span className="text-zinc-400 text-xs font-mono">{subtitle.timestamp}</span>
-                      </div>
-                      <p className="text-white text-sm leading-relaxed">{subtitle.text}</p>
-                    </div>
-                  ))}
-                  {translatedSubtitles.length > 15 && (
-                    <div className="text-center py-4 border-t border-zinc-700">
-                      <p className="text-zinc-400 text-sm">
-                        ... and {translatedSubtitles.length - 15} more entries
-                      </p>
-                      <button
-                        onClick={() => {
-                          const containers = document.querySelectorAll('.max-h-96');
-                          containers.forEach(container => container.classList.remove('max-h-96'));
-                        }}
-                        className="mt-2 text-red-400 hover:text-red-300 text-sm underline"
-                      >
-                        Show all
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Comparison View */}
-            {translatedSubtitles.length > 0 && subtitles.length > 0 && (
-              <div className="bg-zinc-900/50 rounded-lg p-6 border border-zinc-800">
-                <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                  <Eye className="w-5 h-5" />
-                  Side-by-Side Comparison
-                </h3>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                      🇺🇸 English (Original)
-                    </h4>
-                    <div className="bg-zinc-800/50 rounded-lg p-4 max-h-80 overflow-y-auto border border-zinc-700">
-                      {subtitles.slice(0, 5).map((subtitle) => (
-                        <div key={`orig-${subtitle.id}`} className="mb-3 pb-3 border-b border-zinc-700 last:border-0">
-                          <p className="text-zinc-400 text-xs mb-1">#{subtitle.id} • {subtitle.timestamp}</p>
-                          <p className="text-white text-sm">{subtitle.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <h4 className="text-white font-medium mb-3 flex items-center gap-2">
-                      {languages.find(l => l.code === selectedLanguage)?.flag} {languages.find(l => l.code === selectedLanguage)?.name} (Translated)
-                    </h4>
-                    <div className="bg-zinc-800/50 rounded-lg p-4 max-h-80 overflow-y-auto border border-zinc-700">
-                      {translatedSubtitles.slice(0, 5).map((subtitle) => (
-                        <div key={`trans-${subtitle.id}`} className="mb-3 pb-3 border-b border-zinc-700 last:border-0">
-                          <p className="text-zinc-400 text-xs mb-1">#{subtitle.id} • {subtitle.timestamp}</p>
-                          <p className="text-white text-sm">{subtitle.text}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Instructions & Info */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mt-8">
-          {/* How to Use */}
-          <div className="bg-zinc-900/30 rounded-lg p-6 border border-zinc-800">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <Info className="w-5 h-5" />
-              How to Use
-            </h3>
-            <ol className="text-zinc-300 space-y-3">
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-medium">1</span>
-                <span>Upload an English subtitle file (.srt format, max 10MB)</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-medium">2</span>
-                <span>Choose your target language from 36+ available options</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-medium">3</span>
-                <span>Click "Translate" and wait for Google Translate to process</span>
-              </li>
-              <li className="flex items-start gap-3">
-                <span className="flex-shrink-0 w-6 h-6 bg-red-600 text-white text-xs rounded-full flex items-center justify-center font-medium">4</span>
-                <span>Download the translated subtitle file when complete</span>
-              </li>
-            </ol>
-          </div>
-
-          {/* Features */}
-          <div className="bg-zinc-900/30 rounded-lg p-6 border border-zinc-800">
-            <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5 text-green-400" />
-              Features
-            </h3>
-            <div className="space-y-3 text-sm">
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>🆓 Completely free - no API keys required</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>🌍 Support for {languages.length}+ languages</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>⚡ Powered by MyMemory & LibreTranslate APIs</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>📊 Real-time progress tracking</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>🔄 Automatic retry on errors</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>👁️ Side-by-side comparison view</span>
-              </div>
-              <div className="flex items-center gap-2 text-zinc-300">
-                <CheckCircle className="w-4 h-4 text-green-400 flex-shrink-0" />
-                <span>📥 Instant download of translated files</span>
-              </div>
+            <div className="text-center">
+              <p className="text-zinc-400 mb-6">
+                Successfully translated {translatedSubtitles.length} subtitle entries
+              </p>
+              
+              <button
+                onClick={downloadTranslatedFile}
+                className="px-8 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+              >
+                Download Translated File
+              </button>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Ready to Use Notice */}
-        <div className="bg-green-900/20 border border-green-600 rounded-lg p-6 mt-8">
-          <h3 className="text-lg font-semibold text-green-400 mb-3 flex items-center gap-2">
-            🎉 Ready to Use!
-          </h3>
-          <p className="text-green-300 mb-4">
-            Your subtitle translator is ready to go! No setup required - just upload your .srt file and start translating.
-          </p>
-          <div className="flex flex-wrap gap-2">
-            <span className="px-3 py-1 bg-green-800 text-green-200 rounded-full text-xs">Free Forever</span>
-            <span className="px-3 py-1 bg-green-800 text-green-200 rounded-full text-xs">No Registration</span>
-            <span className="px-3 py-1 bg-green-800 text-green-200 rounded-full text-xs">Works Offline</span>
-            <span className="px-3 py-1 bg-green-800 text-green-200 rounded-full text-xs">Privacy Friendly</span>
+        {/* Instructions */}
+        <div className="mt-12 bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+          <h3 className="text-lg font-semibold mb-4">How it works:</h3>
+          <ol className="space-y-2 text-zinc-400">
+            <li>1. Upload your .srt subtitle file</li>
+            <li>2. Select the target language for translation</li>
+            <li>3. Click "Start Translation" and wait for completion</li>
+            <li>4. Download your translated subtitle file</li>
+          </ol>
+          <div className="mt-4 p-4 bg-blue-900/20 border border-blue-800 rounded-lg">
+            <p className="text-blue-400 text-sm">
+              <strong>Note:</strong> This uses the google-translate-api npm package which provides reliable access to Google's translation service.
+              Translation quality may vary depending on the source and target languages.
+            </p>
           </div>
         </div>
+
       </div>
     </div>
   );

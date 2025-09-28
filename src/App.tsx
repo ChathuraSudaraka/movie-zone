@@ -20,9 +20,9 @@ import { NotFound } from "./pages/NotFound";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResetPassword from "./pages/auth/ResetPassword";
 import { Toaster } from "react-hot-toast";
-import SubtitlePage from "./pages/Subtitle";
 import Donate from "./pages/Donate";
 import Blog from "./pages/Blog";
+import SubtitlePage from "./pages/Subtitle";
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
