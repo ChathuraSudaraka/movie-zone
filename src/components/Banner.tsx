@@ -255,7 +255,7 @@ function Banner({ fetchUrl }: Props) {
   if (!movie) return null;
 
   return (
-    <div className="relative h-[75vh] md:h-[95vh] lg:h-[115vh]">
+    <div className="relative h-[85vh] xs:h-[90vh] sm:h-[95vh] md:h-[95vh] lg:h-[115vh]">
       <div className="absolute inset-0">
         <img
           src={`${baseUrl}${movie.backdrop_path}`}
@@ -274,14 +274,14 @@ function Banner({ fetchUrl }: Props) {
       <div className="absolute inset-0 bg-gradient-to-b from-transparent via-[#141414]/60 to-[#141414]" />
       <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-transparent to-transparent" />
 
-      <div className="absolute bottom-[22%] left-4 space-y-6 md:left-12 lg:left-16">
-        <h1 className="text-2xl md:text-4xl lg:text-6xl font-bold text-white">
+      <div className="absolute bottom-[25%] xs:bottom-[28%] sm:bottom-[30%] md:bottom-[22%] left-4 space-y-3 xs:space-y-4 md:space-y-6 md:left-12 lg:left-16">
+        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
           {movie.title || movie.name}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-4 text-white/90 mb-6 text-sm md:text-base">
+        <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 md:gap-4 text-white/90 mb-4 xs:mb-6 text-[10px] xs:text-xs md:text-base">
           {movie.vote_average && (
-            <span className="text-green-500 font-semibold text-lg">
+            <span className="text-green-500 font-semibold text-xs xs:text-sm md:text-lg">
               {Math.round(movie.vote_average * 10)}% Match
             </span>
           )}
@@ -292,37 +292,37 @@ function Banner({ fetchUrl }: Props) {
               ).getFullYear()}
             </span>
           )}
-          <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
+          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
             HD
           </span>
-          <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
+          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
             {movie.media_type === "movie" ? "Movie" : "TV Series"}
           </span>
           {movie.runtime && movie.runtime > 0 && (
-            <span className="font-medium">
+            <span className="font-medium whitespace-nowrap">
               {Math.floor(movie.runtime / 60)}h {movie.runtime % 60}m
             </span>
           )}
         </div>
 
-        <h1 className="text-1xl md:text-2xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-2 md:line-clamp-5">
+        <h1 className="text-xs xs:text-sm md:text-xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-2 xs:line-clamp-3 md:line-clamp-5">
           {movie.overview}
         </h1>
 
-        <div className="flex space-x-4">
+        <div className="flex gap-2 xs:gap-3 md:gap-4">
           <button
             onClick={openModal}
-            className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
+            className="flex items-center justify-center w-9 h-9 xs:w-10 xs:h-10 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
           >
-            <FaPlay className="text-xl sm:text-2xl group-hover:scale-110 transition duration-300" />
+            <FaPlay className="text-sm xs:text-base sm:text-2xl group-hover:scale-110 transition duration-300" />
             <span className="hidden sm:inline ml-2 font-semibold text-lg">Play</span>
           </button>
 
           <button
             onClick={handleMore}
-            className="flex items-center justify-center w-12 h-12 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
+            className="flex items-center justify-center w-9 h-9 xs:w-10 xs:h-10 sm:w-auto sm:h-auto sm:px-8 sm:py-3 rounded-full sm:rounded bg-gray-500/30 hover:bg-gray-500/40 text-white transition duration-300 group"
           >
-            <IoMdInformationCircleOutline className="text-2xl sm:text-3xl group-hover:scale-110 transition duration-300" />
+            <IoMdInformationCircleOutline className="text-lg xs:text-xl sm:text-3xl group-hover:scale-110 transition duration-300" />
             <span className="hidden sm:inline ml-2 font-semibold text-lg">More Info</span>
           </button>
         </div>

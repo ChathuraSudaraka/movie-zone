@@ -152,34 +152,34 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
         <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/40 to-transparent" />
       </div>{" "}
       {/* Content */}
-      <div className="absolute bottom-0 left-0 right-0 px-4 pb-8 md:pb-16 md:px-8 lg:px-16">
+      <div className="absolute bottom-0 left-0 right-0 px-3 pb-6 xs:px-4 xs:pb-8 md:pb-16 md:px-8 lg:px-16">
         <div className="max-w-6xl mx-auto">
           {/* Logo or Title */}
-          <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-white mb-4 md:mb-6 drop-shadow-lg tracking-tight">
+          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-7xl font-bold text-white mb-2 xs:mb-3 md:mb-6 drop-shadow-lg tracking-tight leading-tight">
             {content.title}
           </h1>
           {/* Metadata Row */}
-          <div className="flex flex-wrap items-center gap-3 md:gap-4 text-white/90 mb-4 md:mb-6 text-xs sm:text-sm md:text-base">
-            <span className="text-green-500 font-semibold text-lg">
+          <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 md:gap-4 text-white/90 mb-3 xs:mb-4 md:mb-6 text-[10px] xs:text-xs md:text-base">
+            <span className="text-green-500 font-semibold text-xs xs:text-sm md:text-lg">
               {Math.round(content.vote_average * 10)}% Match
             </span>
             <span className="font-medium">
               {new Date(content.release_date).getFullYear()}
             </span>
-            <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
+            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
               HD
             </span>
-            <span className="px-2 py-0.5 border border-white/40 rounded text-sm font-medium">
+            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
               {content.media_type === "movie" ? "Movie" : "TV Series"}
             </span>
             {content.runtime && (
-              <span className="font-medium">
+              <span className="font-medium whitespace-nowrap">
                 {Math.floor(content.runtime / 60)}h {content.runtime % 60}m
               </span>
             )}
           </div>{" "}
           {/* Overview */}
-          <p className="text-white/90 text-base md:text-lg max-w-3xl mb-6 md:mb-8 leading-relaxed line-clamp-3 md:line-clamp-5">
+          <p className="text-white/90 text-xs xs:text-sm md:text-lg max-w-3xl mb-3 xs:mb-4 md:mb-8 leading-relaxed line-clamp-2 xs:line-clamp-3 md:line-clamp-5">
             {content.overview}
           </p>
           {/* Action Buttons */}
@@ -196,12 +196,12 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
             handleShareContent={handleShareContent}
             setShowRatingModal={setShowRatingModal}
           />
-          {/* Additional Info */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 text-white/90">
+          {/* Additional Info - Hidden on very small screens to save space */}
+          <div className="hidden xs:grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8 text-white/90 text-[10px] xs:text-xs md:text-sm">
             {/* Cast */}
             {content.credits?.cast && content.credits.cast.length > 0 && (
-              <div>
-                <span className="text-white/60 text-sm">Starring: </span>
+              <div className="line-clamp-1">
+                <span className="text-white/60">Starring: </span>
                 <span className="font-medium">
                   {content.credits.cast
                     .slice(0, 3)
@@ -212,8 +212,8 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
             )}
             {/* Genres */}
             {content.genres && content.genres.length > 0 && (
-              <div>
-                <span className="text-white/60 text-sm">Genres: </span>
+              <div className="line-clamp-1">
+                <span className="text-white/60">Genres: </span>
                 <span className="font-medium">
                   {content.genres.map((g: any) => g.name).join(", ")}
                 </span>
