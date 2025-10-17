@@ -155,21 +155,21 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
       <div className="absolute bottom-0 left-0 right-0 px-3 pb-6 xs:px-4 xs:pb-8 md:pb-16 md:px-8 lg:px-16">
         <div className="max-w-6xl mx-auto">
           {/* Logo or Title */}
-          <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-7xl font-bold text-white mb-2 xs:mb-3 md:mb-6 drop-shadow-lg tracking-tight leading-tight">
+          <h1 className="text-3xl xs:text-4xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-2 xs:mb-3 md:mb-6 drop-shadow-lg tracking-tight leading-tight">
             {content.title}
           </h1>
           {/* Metadata Row */}
-          <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 md:gap-4 text-white/90 mb-3 xs:mb-4 md:mb-6 text-[10px] xs:text-xs md:text-base">
-            <span className="text-green-500 font-semibold text-xs xs:text-sm md:text-lg">
+          <div className="flex flex-wrap items-center gap-2 xs:gap-2 md:gap-4 text-white/90 mb-4 xs:mb-6 md:mb-6 text-xs xs:text-sm md:text-base">
+            <span className="text-green-500 font-semibold text-sm xs:text-base md:text-lg">
               {Math.round(content.vote_average * 10)}% Match
             </span>
             <span className="font-medium">
               {new Date(content.release_date).getFullYear()}
             </span>
-            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
+            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-xs xs:text-sm md:text-sm font-medium whitespace-nowrap">
               HD
             </span>
-            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
+            <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-xs xs:text-sm md:text-sm font-medium whitespace-nowrap">
               {content.media_type === "movie" ? "Movie" : "TV Series"}
             </span>
             {content.runtime && (
@@ -179,7 +179,7 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
             )}
           </div>{" "}
           {/* Overview */}
-          <p className="text-white/90 text-xs xs:text-sm md:text-lg max-w-3xl mb-3 xs:mb-4 md:mb-8 leading-relaxed line-clamp-2 xs:line-clamp-3 md:line-clamp-5">
+          <p className="text-white/90 text-sm xs:text-base md:text-xl lg:text-2xl max-w-3xl mb-3 xs:mb-4 md:mb-8 leading-relaxed line-clamp-3 xs:line-clamp-4 md:line-clamp-5">
             {content.overview}
           </p>
           {/* Action Buttons */}

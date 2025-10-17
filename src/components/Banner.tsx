@@ -99,7 +99,7 @@ function Banner({ fetchUrl }: Props) {
 
   if (loading) {
     return (
-      <div className="relative h-[75vh] md:h-[95vh] lg:h-[115vh] bg-[#141414]">
+      <div className="relative h-[85vh] xs:h-[90vh] sm:h-[95vh] md:h-[95vh] lg:h-[115vh] bg-[#141414]">
         {/* Main banner skeleton with shimmer effect */}
         <div className="absolute inset-0">
           <Skeleton
@@ -122,46 +122,46 @@ function Banner({ fetchUrl }: Props) {
         <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-transparent to-transparent" />
 
         {/* Content skeleton */}
-        <div className="absolute bottom-[22%] left-4 space-y-6 md:left-12 lg:left-16">
+        <div className="absolute bottom-[25%] xs:bottom-[28%] sm:bottom-[30%] md:bottom-[22%] left-4 space-y-3 xs:space-y-4 md:space-y-6 md:left-12 lg:left-16">
           {/* Title skeleton */}
           <Skeleton
             variant="rectangular"
             sx={{
-              width: { xs: 250, sm: 320, md: 450, lg: 600 },
-              height: { xs: 32, sm: 40, md: 56, lg: 72 },
+              width: { xs: 280, sm: 320, md: 450, lg: 600 },
+              height: { xs: 40, sm: 44, md: 56, lg: 72 },
               bgcolor: "#2b2b2b",
               borderRadius: "4px",
             }}
           />
 
           {/* Metadata skeleton */}
-          <div className="flex flex-wrap gap-3 mb-6">
+          <div className="flex flex-wrap gap-2 xs:gap-2 md:gap-4 mb-4 xs:mb-6">
             {/* Rating */}
             <Skeleton
               variant="rectangular"
-              width={80}
-              height={24}
+              width={90}
+              height={28}
               sx={{ bgcolor: "#2b2b2b", borderRadius: "4px" }}
             />
             {/* Year */}
             <Skeleton
               variant="rectangular"
-              width={50}
-              height={24}
+              width={55}
+              height={28}
               sx={{ bgcolor: "#2b2b2b", borderRadius: "4px" }}
             />
             {/* HD Badge */}
             <Skeleton
               variant="rectangular"
-              width={40}
-              height={24}
+              width={45}
+              height={28}
               sx={{ bgcolor: "#2b2b2b", borderRadius: "4px" }}
             />
             {/* Type Badge */}
             <Skeleton
               variant="rectangular"
-              width={80}
-              height={24}
+              width={90}
+              height={28}
               sx={{ bgcolor: "#2b2b2b", borderRadius: "4px" }}
             />
           </div>
@@ -171,32 +171,36 @@ function Banner({ fetchUrl }: Props) {
             <Skeleton
               variant="text"
               width="100%"
-              height={24}
               sx={{
                 bgcolor: "#2b2b2b",
                 height: {
-                  xs: 20,
-                  sm: 22,
-                  md: 24,
+                  xs: 24,
+                  sm: 26,
+                  md: 28,
                 },
               }}
             />
             <Skeleton
               variant="text"
               width="95%"
-              height={24}
-              sx={{ bgcolor: "#2b2b2b" }}
+              sx={{
+                bgcolor: "#2b2b2b",
+                height: {
+                  xs: 24,
+                  sm: 26,
+                  md: 28,
+                },
+              }}
             />
             <Skeleton
               variant="text"
               width="90%"
-              height={24}
               sx={{
                 bgcolor: "#2b2b2b",
                 height: {
-                  xs: 20,
-                  sm: 22,
-                  md: 24,
+                  xs: 24,
+                  sm: 26,
+                  md: 28,
                 },
               }}
             />
@@ -206,10 +210,11 @@ function Banner({ fetchUrl }: Props) {
               sx={{
                 bgcolor: "#2b2b2b",
                 height: {
-                  xs: 20,
-                  sm: 22,
-                  md: 24,
+                  xs: 24,
+                  sm: 26,
+                  md: 28,
                 },
+                display: { xs: 'block', md: 'block' },
               }}
             />
             <Skeleton
@@ -218,32 +223,33 @@ function Banner({ fetchUrl }: Props) {
               sx={{
                 bgcolor: "#2b2b2b",
                 height: {
-                  xs: 20,
-                  sm: 22,
-                  md: 24,
+                  xs: 0,
+                  sm: 0,
+                  md: 28,
                 },
+                display: { xs: 'none', md: 'block' },
               }}
             />
           </div>
 
           {/* Buttons skeleton */}
-          <div className="flex gap-4 pt-2">
+          <div className="flex gap-2 xs:gap-3 md:gap-4">
             <Skeleton
               variant="rectangular"
               sx={{
-                width: { xs: 100, sm: 120, md: 150 },
-                height: { xs: 38, sm: 42, md: 46 },
+                width: { xs: 36, sm: 40, md: 150 },
+                height: { xs: 36, sm: 40, md: 46 },
                 bgcolor: "#2b2b2b",
-                borderRadius: "4px",
+                borderRadius: { xs: "50%", sm: "50%", md: "4px" },
               }}
             />
             <Skeleton
               variant="rectangular"
               sx={{
-                width: { xs: 100, sm: 120, md: 150 },
-                height: { xs: 38, sm: 42, md: 46 },
+                width: { xs: 36, sm: 40, md: 150 },
+                height: { xs: 36, sm: 40, md: 46 },
                 bgcolor: "#2b2b2b",
-                borderRadius: "4px",
+                borderRadius: { xs: "50%", sm: "50%", md: "4px" },
               }}
             />
           </div>
@@ -275,13 +281,13 @@ function Banner({ fetchUrl }: Props) {
       <div className="absolute inset-0 bg-gradient-to-r from-[#141414] via-transparent to-transparent" />
 
       <div className="absolute bottom-[25%] xs:bottom-[28%] sm:bottom-[30%] md:bottom-[22%] left-4 space-y-3 xs:space-y-4 md:space-y-6 md:left-12 lg:left-16">
-        <h1 className="text-2xl xs:text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
+        <h1 className="text-3xl xs:text-4xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white">
           {movie.title || movie.name}
         </h1>
 
-        <div className="flex flex-wrap items-center gap-1.5 xs:gap-2 md:gap-4 text-white/90 mb-4 xs:mb-6 text-[10px] xs:text-xs md:text-base">
+        <div className="flex flex-wrap items-center gap-2 xs:gap-2 md:gap-4 text-white/90 mb-4 xs:mb-6 text-xs xs:text-sm md:text-base">
           {movie.vote_average && (
-            <span className="text-green-500 font-semibold text-xs xs:text-sm md:text-lg">
+            <span className="text-green-500 font-semibold text-sm xs:text-base md:text-lg">
               {Math.round(movie.vote_average * 10)}% Match
             </span>
           )}
@@ -292,10 +298,10 @@ function Banner({ fetchUrl }: Props) {
               ).getFullYear()}
             </span>
           )}
-          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
+          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-xs xs:text-sm md:text-sm font-medium whitespace-nowrap">
             HD
           </span>
-          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-[10px] xs:text-xs md:text-sm font-medium whitespace-nowrap">
+          <span className="px-1.5 xs:px-2 py-0.5 border border-white/40 rounded text-xs xs:text-sm md:text-sm font-medium whitespace-nowrap">
             {movie.media_type === "movie" ? "Movie" : "TV Series"}
           </span>
           {movie.runtime && movie.runtime > 0 && (
@@ -305,7 +311,7 @@ function Banner({ fetchUrl }: Props) {
           )}
         </div>
 
-        <h1 className="text-xs xs:text-sm md:text-xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-2 xs:line-clamp-3 md:line-clamp-5">
+        <h1 className="text-sm xs:text-base md:text-xl lg:text-2xl max-w-xs text-shadow-md text-white md:max-w-lg lg:max-w-2xl opacity-80 line-clamp-3 xs:line-clamp-4 md:line-clamp-5">
           {movie.overview}
         </h1>
 
