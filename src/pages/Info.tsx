@@ -4,8 +4,6 @@ import { Helmet } from "react-helmet-async";
 import { Movie } from "../types/movie";
 import { useVideoModal } from "../context/VideoModalContext";
 import { useWatchHistory } from "../hooks/useWatchHistory";
-import { useAuth } from "../context/AuthContext";
-import { supabase } from "../config/supabase";
 import { InfoHero } from "../components/info/InfoHero";
 import { InfoDetails } from "../components/info/InfoDetails";
 import { LoadingSkeleton } from "../components/info/skeleton";
@@ -13,13 +11,13 @@ import { RatingModal } from "../components/RatingModal";
 import { CastSection } from "../components/info/CastSection";
 import { DownloadSection } from "../components/info/DownloadSection";
 import toast from "react-hot-toast";
+import { isInList } from "../utils/localList";
 
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
-  const { user } = useAuth();
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +106,8 @@ function Info() {
         // If no main backdrop, try to get from additional images
         if (!bestBackdrop && data.images?.backdrops?.length > 0) {
           // Sort by vote average and pick the best one
-          const sortedBackdrops = data.images.backdrops.sort((a: any, b: any) => 
+          const sortedBackdrops = data.images.backdrops.sort(
+            (a: { vote_average?: number }, b: { vote_average?: number }) => 
             (b.vote_average || 0) - (a.vote_average || 0)
           );
           bestBackdrop = sortedBackdrops[0].file_path;
@@ -128,7 +127,7 @@ function Info() {
 
         // Set trailer
         const trailer = data.videos?.results?.find(
-          (video: any) =>
+          (video: { type: string; site: string; key: string }) =>
             video.type === "Trailer" &&
             (video.site === "YouTube" || video.site === "Vimeo")
         );
@@ -145,40 +144,12 @@ function Info() {
     fetchContent();
   }, [id, type, navigate]);
 
-  // Check if title is in local storage watchlist
+  // Check if title is in localStorage watchlist
   useEffect(() => {
     if (content) {
-      const savedList = localStorage.getItem("netflix-mylist");
-      if (savedList) {
-        const list = JSON.parse(savedList);
-        setIsInMyList(list.some((item: Movie) => item.id === content.id));
-      }
+      setIsInMyList(isInList(content.id));
     }
   }, [content]);
-
-  // Check if title is in database watchlist
-  const checkIfInList = async () => {
-    if (!content || !user) return;
-
-    try {
-      const { data, error } = await supabase
-        .from("user_lists")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("movie_id", content.id)
-        .maybeSingle();
-
-      if (error) throw error;
-      setIsInMyList(!!data);
-    } catch (error) {
-      console.error("Error checking list status:", error);
-    }
-  };
-
-  // Update check when user or content changes
-  useEffect(() => {
-    checkIfInList();
-  }, [content, user]);
 
   // ...existing code...  // Helper Methods
   const getVideoEmbedUrl = (source = "primary") => {
@@ -255,7 +226,7 @@ function Info() {
           toast.success(`Playing ${content.title}`, { id: loadingToast });
           console.log(`Using ${source} source: ${embedUrl}`);
           return;
-        } catch (error) {
+        } catch {
           console.warn(`${source} source failed, trying next...`);
           continue;
         }
@@ -272,10 +243,8 @@ function Info() {
   const handleWatch = async () => {
     if (!content || !type) return;
 
-    // Start playing video immediately
     handlePlayClick();
 
-    // Ensure we have valid data for watch history
     const mediaData = {
       id: content.id,
       title:
@@ -286,7 +255,6 @@ function Info() {
       media_type: (content.media_type || type) as "movie" | "tv",
     };
 
-    // Add to watch history in the background (legacy)
     addToWatchHistory(mediaData).catch((error) => {
       console.error("Failed to update watch history:", error);
     });
@@ -378,7 +346,7 @@ function Info() {
         handlePlayClick={handlePlayClick}
         isInMyList={isInMyList}
         setShowRatingModal={setShowRatingModal}
-        user={user}
+        user={null}
         navigate={navigate}
         type={type}
       />

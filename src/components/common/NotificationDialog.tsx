@@ -35,7 +35,13 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
         const upcomingRes = await axios.get('/movie/upcoming');
         const newReleasesRes = await axios.get('/movie/now_playing');
 
-        const upcomingNotifications = upcomingRes.data.results.slice(0, 5).map((movie: any) => ({
+        interface TmdbMovie {
+          id: number;
+          title: string;
+          release_date: string;
+          poster_path: string | null;
+        }
+        const upcomingNotifications = upcomingRes.data.results.slice(0, 5).map((movie: TmdbMovie) => ({
           id: movie.id,
           title: 'Upcoming Release',
           message: `${movie.title} will be released on ${new Date(movie.release_date).toLocaleDateString()}`,
@@ -45,7 +51,7 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
           type: 'upcoming' as const
         }));
 
-        const newReleaseNotifications = newReleasesRes.data.results.slice(0, 5).map((movie: any) => ({
+        const newReleaseNotifications = newReleasesRes.data.results.slice(0, 5).map((movie: TmdbMovie) => ({
           id: movie.id,
           title: 'New Release',
           message: `${movie.title} is now available to watch`,

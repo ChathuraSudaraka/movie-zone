@@ -74,12 +74,13 @@ export function Register() {
 
       // Show email verification screen
       setIsEmailSent(true);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Registration error:", error);
-      if (error.message.includes("already registered")) {
+      const regError = error as { message?: string };
+      if (regError.message?.includes("already registered")) {
         setError("This email is already registered. Please sign in instead.");
       } else {
-        setError(error.message || "Failed to create account");
+        setError(regError.message || "Failed to create account");
       }
     } finally {
       setLoading(false);
@@ -103,9 +104,10 @@ export function Register() {
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google sign up error:", error);
-      setError(error.message || "Failed to sign up with Google");
+      const gError = error as { message?: string };
+      setError(gError.message || "Failed to sign up with Google");
     } finally {
       setLoading(false);
     }
@@ -126,8 +128,9 @@ export function Register() {
 
       // Show success message
       setError("Verification email has been resent! Please check your inbox.");
-    } catch (error: any) {
-      setError(error.message || "Failed to resend verification email");
+    } catch (error: unknown) {
+      const resendError = error as { message?: string };
+      setError(resendError.message || "Failed to resend verification email");
     } finally {
       setLoading(false);
     }

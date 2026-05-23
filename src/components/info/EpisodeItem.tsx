@@ -105,7 +105,7 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
             `Using ${source} source for episode ${episode.episode_number}: ${embedUrl}`
           );
           return;
-        } catch (error) {
+        } catch {
           console.warn(
             `${source} source failed for episode ${episode.episode_number}, trying next...`
           );

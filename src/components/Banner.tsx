@@ -31,18 +31,24 @@ function Banner({ fetchUrl }: Props) {
         ]);
 
         // Process and combine the results
-        const allMedia = [
-          ...moviesResponse.data.results.map((item: any) => ({
+        interface MediaItem {
+          id: number;
+          backdrop_path: string | null;
+          media_type: string;
+          videos?: { results: { key: string; type: string }[] };
+        }
+        const allMedia: MediaItem[] = [
+          ...moviesResponse.data.results.map((item: MediaItem) => ({
             ...item,
             media_type: "movie",
             videos: item.videos?.results || [],
           })),
-          ...tvResponse.data.results.map((item: any) => ({
+          ...tvResponse.data.results.map((item: MediaItem) => ({
             ...item,
             media_type: "tv",
             videos: item.videos?.results || [],
           })),
-        ].filter((item: any) => item.backdrop_path);
+        ].filter((item: MediaItem) => item.backdrop_path);
 
         // Get a random item from the combined results
         const randomItem =
@@ -57,7 +63,7 @@ function Banner({ fetchUrl }: Props) {
         if (mediaDetails.videos?.results?.length > 0) {
           const trailer =
             mediaDetails.videos.results.find(
-              (video: any) => video.type === "Trailer"
+              (video: { type: string; key: string }) => video.type === "Trailer"
             ) || mediaDetails.videos.results[0];
 
           if (trailer) {

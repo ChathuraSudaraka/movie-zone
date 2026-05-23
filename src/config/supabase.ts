@@ -82,7 +82,16 @@ export const handleAuthCallback = async () => {
   }
 };
 
-export const initializeUserProfile = async (userId: string, userData: any) => {
+interface UserData {
+  full_name?: string;
+  name?: string;
+  email?: string;
+  picture?: string;
+  provider?: string;
+  app_metadata?: { provider?: string };
+}
+
+export const initializeUserProfile = async (userId: string, userData: UserData) => {
   try {
     console.log('Initializing user profile with data:', userData);
     

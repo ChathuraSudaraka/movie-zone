@@ -1,19 +1,21 @@
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
-  BellIcon,
   ChevronDownIcon,
   SearchIcon,
-  UserCircle2,
   XIcon,
 } from "lucide-react";
 import { baseUrl } from "@/utils/requests";
 import { Movie } from "../types/movie";
-import { NotificationDialog } from "./common/NotificationDialog";
-import { useAuth } from "../context/AuthContext";
 
 interface SearchResult extends Movie {
   media_type: "movie" | "tv" | string;
+}
+
+interface CompanySuggestion {
+  id: number;
+  name: string;
+  movie_count?: number;
 }
 
 function Header() {
@@ -23,13 +25,10 @@ function Header() {
   const [searchTerm, setSearchTerm] = useState("");
   const [suggestions, setSuggestions] = useState<SearchResult[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
-  const [showUserMenu, setShowUserMenu] = useState(false);
-  const [companySuggestions, setCompanySuggestions] = useState<any[]>([]);
+  const [companySuggestions, setCompanySuggestions] = useState<CompanySuggestion[]>([]);
   const [searchTab, setSearchTab] = useState<"titles" | "companies">("titles");
   const navigate = useNavigate();
   const location = useLocation();
-  const { user, signOut } = useAuth();
 
   const navigation = [
     { name: "Home", href: "/" },
@@ -90,9 +89,9 @@ function Header() {
   };
 
   // Filter out companies with no productions and sort by most productions
-  const getValidCompanySuggestions = async (companies: any[]) => {
+  const getValidCompanySuggestions = async (companies: CompanySuggestion[]) => {
     const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-    const companyCounts: { company: any; count: number }[] = [];
+    const companyCounts: { company: CompanySuggestion; count: number }[] = [];
     for (const company of companies) {
       const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${company.id}&language=en-US&page=1`;
       try {
@@ -108,7 +107,7 @@ function Header() {
             count: data.total_results || data.results.length,
           });
         }
-      } catch {}
+      } catch { /* skip companies that fail to load */ }
     }
     // Sort by most productions
     companyCounts.sort((a, b) => b.count - a.count);
@@ -133,7 +132,7 @@ function Header() {
         data.results || []
       );
       setCompanySuggestions(validCompanies);
-    } catch (error) {
+    } catch {
       setCompanySuggestions([]);
     }
   };
@@ -163,7 +162,7 @@ function Header() {
     setShowSuggestions(false);
   };
 
-  const handleCompanyClick = async (company: any) => {
+  const handleCompanyClick = async (company: CompanySuggestion) => {
     // Check if the company has at least one production
     try {
       const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -180,13 +179,9 @@ function Header() {
       } else {
         alert("No productions found for this company.");
       }
-    } catch (error) {
+    } catch {
       alert("Failed to check company productions.");
     }
-  };
-
-  const handleSignOut = async () => {
-    await signOut();
   };
 
   return (
@@ -288,111 +283,6 @@ function Header() {
           >
             <SearchIcon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </button>
-
-          {/* Notifications */}
-          {user && (
-            <button
-              className="p-2 hover:bg-white/10 rounded-full transition-colors relative"
-              onClick={() => setIsNotificationOpen(true)}
-            >
-              <BellIcon className="w-5 h-5 text-white" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-600 rounded-full" />
-            </button>
-          )}
-
-          <NotificationDialog
-            isOpen={isNotificationOpen}
-            onClose={() => setIsNotificationOpen(false)}
-          />
-
-          <div className="relative">
-            <button
-              className="flex items-center gap-2 p-1 rounded-full hover:bg-white/10 transition-colors"
-              onClick={() => setShowUserMenu(!showUserMenu)}
-            >
-              {user ? (
-                <>
-                  <img
-                    src={
-                      user?.user_metadata?.avatar_url ||
-                      `https://ui-avatars.com/api/?name=${
-                        user?.email || "User"
-                      }&size=200`
-                    }
-                    alt={user?.email || "Profile"}
-                    className="w-8 h-8 md:w-10 md:h-10 rounded-full object-cover"
-                  />
-
-                  <ChevronDownIcon
-                    className={`w-4 h-4 text-white transition-transform duration-200 ${
-                      showUserMenu ? "rotate-180" : ""
-                    }`}
-                  />
-                </>
-              ) : (
-                <UserCircle2 className="w-6 h-6 text-gray-300" />
-              )}
-            </button>
-
-            {showUserMenu && (
-              <div className="absolute right-0 top-full mt-2 w-56 origin-top-right rounded-md bg-black/95 border border-zinc-800 shadow-xl animate-in fade-in slide-in-from-top-2">
-                {user ? (
-                  <div className="divide-y divide-zinc-800">
-                    <div className="px-4 py-3">
-                      <p className="text-sm font-medium text-white truncate">
-                        {user.user_metadata?.full_name ||
-                          user.email?.split("@")[0]}
-                      </p>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">
-                        {user.email}
-                      </p>
-                    </div>
-                    <div className="py-1">
-                      {[
-                        { label: "Profile Settings", href: "/profile" },
-                        // { label: "Subtitles", href: "/subtitle" },
-                        { label: "My List", href: "/my-list" },
-                      ].map((item) => (
-                        <button
-                          key={item.label}
-                          onClick={() => {
-                            navigate(item.href);
-                            setShowUserMenu(false);
-                          }}
-                          className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                        >
-                          {item.label}
-                        </button>
-                      ))}
-                      <button
-                        onClick={handleSignOut}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                      >
-                        Sign Out
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="py-1">
-                    <Link
-                      to="/auth/login"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      to="/auth/register"
-                      className="block px-4 py-2 text-sm text-gray-300 hover:bg-white/5 hover:text-white transition-colors"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      Register
-                    </Link>
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
         </div>
       </div>
 

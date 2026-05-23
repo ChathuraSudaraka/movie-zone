@@ -3,8 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { FaPlay, FaPlus, FaCheck } from "react-icons/fa";
 import { XIcon } from "lucide-react";
 import { Movie } from "../types/movie";
-import { supabase } from "../config/supabase";
-import { useAuth } from "../context/AuthContext";
 import toast from "react-hot-toast";
 import { useMovieList } from "../hooks/useMovieList";
 import { useWatchHistory } from "../hooks/useWatchHistory";
@@ -28,16 +26,11 @@ export function MovieCard({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const navigate = useNavigate();
-  const { user } = useAuth();
   const { isInList, addToList, removeFromList } = useMovieList();
-  const { watchHistory, addToWatchHistory } = useWatchHistory();
+  const { addToWatchHistory } = useWatchHistory();
 
   const handleListUpdate = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) {
-      navigate("/auth/login");
-      return;
-    }
 
     try {
       setIsUpdating(true);
@@ -62,17 +55,9 @@ export function MovieCard({
 
   const handleRemove = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!user) return;
-
     try {
       setIsUpdating(true);
-      const { error } = await supabase
-        .from("user_lists")
-        .delete()
-        .eq("user_id", user.id)
-        .eq("movie_id", movie.id);
-
-      if (error) throw error;
+      await removeFromList(movie.id);
       toast.success("Removed from your list");
       onListUpdate?.();
     } catch (error) {
@@ -85,20 +70,15 @@ export function MovieCard({
 
   const handleCardClick = () => {
     window.scrollTo(0, 0);
-    if (user) {
-      addToWatchHistory({
-        id: movie.id,
-        title: movie.title,
-        poster_path: movie.poster_path || "",
-        media_type: (movie.media_type || "movie") as "movie" | "tv",
-      });
-    }
+    addToWatchHistory({
+      id: movie.id,
+      title: movie.title,
+      poster_path: movie.poster_path || "",
+      media_type: (movie.media_type || "movie") as "movie" | "tv",
+    });
     navigate(`/info/${movie.media_type}/${movie.id}`);
   };
 
-  const isWatched = watchHistory.some(
-    (item) => item.id === String(movie.id) || Number(item.id) === movie.id
-  );
   const isInMyList = isInList(movie.id);
 
   const imageUrl =
@@ -134,11 +114,7 @@ export function MovieCard({
                    transition-opacity duration-300 
                    ${isHovered ? "opacity-100" : "opacity-0 sm:opacity-0"}`}
       >
-        <div className="flex items-center gap-2">
-          {isWatched && (
-            <div className="bg-white/20 px-2 py-1 rounded text-xs">Watched</div>
-          )}
-        </div>
+        <div className="flex items-center gap-2" />
 
         <div className="flex flex-col gap-1 sm:gap-2">
           <div className="flex items-center gap-1 sm:gap-2">

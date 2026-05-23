@@ -1,14 +1,12 @@
 import { useState, FormEvent } from "react";
 import { Send, Mail, User, Loader2, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
-import { useAuth } from "../../context/AuthContext";
 import emailjs from "@emailjs/browser";
 
 export function Contact() {
-  const { user } = useAuth();
   const [formData, setFormData] = useState({
-    name: user?.user_metadata?.full_name || "",
-    email: user?.email || "",
+    name: "",
+    email: "",
     subject: "",
     message: "",
   });

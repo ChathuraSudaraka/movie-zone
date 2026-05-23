@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Star } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
 interface RatingModalProps {
@@ -17,22 +16,12 @@ export function RatingModal({ isOpen, onClose, mediaTitle }: RatingModalProps) {
   const [hoveredStar, setHoveredStar] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   
-  const { user } = useAuth();
-  
   if (!isOpen) return null;
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!user) {
-      toast.error('Please sign in to rate content');
-      return;
-    }
-    
     setSubmitting(true);
-    
     try {
-      // TODO: Implement rating submission logic here (e.g., call an API or update database)
       toast.success('Thanks for your rating!');
       onClose();
     } catch (error) {

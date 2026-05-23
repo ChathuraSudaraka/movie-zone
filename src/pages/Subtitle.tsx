@@ -26,7 +26,7 @@ const translateText = async (text: string, targetLang: string): Promise<string> 
     
     // Extract translated text from the response
     if (result && result[0] && Array.isArray(result[0])) {
-      return result[0].map((item: any[]) => item[0]).join('');
+      return result[0].map((item: [string, ...unknown[]]) => item[0]).join('');
     }
     
     throw new Error('Invalid response format');

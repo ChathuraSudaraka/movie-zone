@@ -39,7 +39,7 @@ function Movies() {
         // Ensure page number is within valid range (TMDB typically limits to 500 pages)
         const safeCurrentPage = Math.min(currentPage, 500);
 
-        let params: any = {
+        const params: Record<string, string | number | boolean> = {
           page: safeCurrentPage,
           include_adult: false,
         };
@@ -78,7 +78,7 @@ function Movies() {
         // Handle tag filters
         if (activeFilters.tag) {
           switch (activeFilters.tag) {
-            case "New Releases":
+            case "New Releases": {
               const threeMonthsAgo = new Date();
               threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
               params.sort_by = "release_date.desc";
@@ -86,6 +86,7 @@ function Movies() {
                 .toISOString()
                 .split("T")[0];
               break;
+            }
             case "Trending Now":
               endpoint = "/trending/movie/day";
               break;
@@ -120,15 +121,16 @@ function Movies() {
         setTotalPages(apiTotalPages);
         setTotalResults(apiTotalPages * ITEMS_PER_PAGE); // Adjust total results based on page limit
         setError(null);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { status: number } };
         setError(
-          error.response?.status === 400
+          axiosError.response?.status === 400
             ? "Invalid page number. Showing first page instead."
             : "Failed to load movies. Please try again later."
         );
 
         // If we get a 400 error, reset to page 1
-        if (error.response?.status === 400) {
+        if (axiosError.response?.status === 400) {
           setCurrentPage(1);
         }
         console.error("Error fetching movies:", error);

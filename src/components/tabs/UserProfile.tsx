@@ -68,7 +68,7 @@ export function UserProfile({
               </h2>
               <select
                 value={filterType}
-                onChange={(e) => setFilterType(e.target.value as any)}
+                onChange={(e) => setFilterType(e.target.value as "all" | "movie" | "tv")}
                 className="bg-zinc-800 text-white text-sm rounded-md px-3 py-1.5 border border-zinc-700 focus:border-red-500 focus:ring-red-500 transition duration-200 
                 focus:outline-none"
                 aria-label="Filter watch history"

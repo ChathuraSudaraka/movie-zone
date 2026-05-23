@@ -1,10 +1,10 @@
-import { useEffect, useState, useCallback, useRef } from "react"; // Add useRef
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   FaChevronDown,
   FaSpinner,
   FaChevronLeft,
   FaChevronRight,
-} from "react-icons/fa"; // Add chevron icons
+} from "react-icons/fa";
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
 import EpisodeList from "./EpisodeList";
@@ -23,8 +23,19 @@ interface TVProcessProps {
   itemsPerPage: number;
 }
 
-const TORRENTIO_BASE_URL = "/api/torrentio";
+// EZTV API is proxied via /api/eztv in vite.config.ts
+const EZTV_BASE_URL = "/api/eztv";
+
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** Normalise quality string from EZTV title */
+function parseQuality(title: string): string {
+  if (/2160p|4k/i.test(title)) return "2160p";
+  if (/1080p/i.test(title)) return "1080p";
+  if (/720p/i.test(title)) return "720p";
+  if (/480p/i.test(title)) return "480p";
+  return "Unknown";
+}
 
 export const TVProcess = ({
   content,
@@ -54,15 +65,13 @@ export const TVProcess = ({
 
   const scrollSeasons = (direction: "left" | "right") => {
     if (seasonListRef.current) {
-      const scrollAmount = 300; // Adjust scroll amount as needed
+      const scrollAmount = 300;
       const currentScroll = seasonListRef.current.scrollLeft;
-      const newScroll =
-        direction === "left"
-          ? currentScroll - scrollAmount
-          : currentScroll + scrollAmount;
-
       seasonListRef.current.scrollTo({
-        left: newScroll,
+        left:
+          direction === "left"
+            ? currentScroll - scrollAmount
+            : currentScroll + scrollAmount,
         behavior: "smooth",
       });
     }
@@ -81,11 +90,10 @@ export const TVProcess = ({
     return () => window.removeEventListener("resize", checkNavigationNeeded);
   }, [checkNavigationNeeded, seasons]);
 
-  // Fetch seasons only once
+  // ── Fetch seasons ──────────────────────────────────────────────────────────
   useEffect(() => {
     const fetchSeasons = async () => {
       if (!content?.id) return;
-
       setIsLoading(true);
       try {
         const response = await axios.get(
@@ -93,60 +101,97 @@ export const TVProcess = ({
             import.meta.env.VITE_TMDB_API_KEY
           }`
         );
-        // Filter out season 0
         const filteredSeasons = (response.data.seasons || []).filter(
           (season: TMDBSeason) => season.season_number > 0
         );
         setSeasons(filteredSeasons);
-        // Auto-select first season if none selected
         if (!selectedSeason && filteredSeasons.length > 0) {
           setSelectedSeason(filteredSeasons[0].season_number);
         }
-      } catch (error) {
-        console.error("Error fetching seasons:", error);
+      } catch (err) {
+        console.error("Error fetching seasons:", err);
         setError("Failed to load seasons");
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchSeasons();
   }, [content?.id]);
 
-  const fetchTorrents = useCallback(
-    async (imdbId: string, seasonNumber: number, episodeNumber: number) => {
+  // ── Fetch torrents for one episode via EZTV ────────────────────────────────
+  const fetchTorrentsForEpisode = useCallback(
+    async (
+      imdbId: string,
+      seasonNumber: number,
+      episodeNumber: number
+    ): Promise<TorrentInfo[] | null> => {
       try {
+        // EZTV expects a numeric imdb id (strip leading "tt")
+        const numericImdbId = imdbId.replace(/^tt/i, "");
         const response = await axios.get(
-          `${TORRENTIO_BASE_URL}/stream/series/${imdbId}:${seasonNumber}:${episodeNumber}.json`
+          `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`
         );
 
-        if (!response.data?.streams?.length) return null;
+        if (!response.data?.torrents?.length) return null;
 
-        return response.data.streams
-          .map((stream: any) => ({
-            infoHash: stream.infoHash,
-            quality:
-              stream.title.match(/\b(2160p|1080p|720p|480p)\b/i)?.[1] ||
-              "Unknown",
-            size: stream.title.match(/\{(.*?)\}/)?.[1] || "Unknown",
-            seeds: parseInt(stream.title.match(/Seeds: (\d+)/)?.[1] || "0"),
-            peers: parseInt(stream.title.match(/Peers: (\d+)/)?.[1] || "0"),
-            provider: stream.title.split("\n")[0],
-            title: stream.title,
-            magnetLink: `magnet:?xt=urn:btih:${stream.infoHash}&tr=udp://tracker.opentrackr.org:1337/announce`,
+        interface EztvTorrent {
+          id: number;
+          title: string;
+          season: string;
+          episode: string;
+          hash: string;
+          magnet_url: string;
+          torrent_url: string;
+          size_bytes: string;
+          seeds: number;
+          peers: number;
+          date_released_unix: number;
+        }
+
+        // Filter to the exact season + episode
+        const matched: EztvTorrent[] = response.data.torrents.filter(
+          (t: EztvTorrent) =>
+            parseInt(t.season) === seasonNumber &&
+            parseInt(t.episode) === episodeNumber
+        );
+
+        if (!matched.length) return null;
+
+        return matched
+          .map((t: EztvTorrent) => ({
+            url: t.torrent_url,
+            hash: t.hash,
+            quality: parseQuality(t.title),
+            type: "web",
+            seeds: t.seeds || 0,
+            peers: t.peers || 0,
+            size: t.size_bytes
+              ? `${(parseInt(t.size_bytes) / 1073741824).toFixed(2)} GB`
+              : "Unknown",
+            infoHash: t.hash,
+            provider: "EZTV",
+            resolution: parseQuality(t.title),
+            is_main_movie: false,
+            download_url: t.torrent_url,
+            magnetLink: t.magnet_url,
+            trustScore: t.seeds > 50 ? 90 : t.seeds > 10 ? 70 : 50,
+            size_bytes: parseInt(t.size_bytes) || 0,
+            date_uploaded: new Date(
+              t.date_released_unix * 1000
+            ).toISOString(),
           }))
-          .sort((a: TorrentInfo, b: TorrentInfo) => b.seeds - a.seeds);
-      } catch (error) {
-        console.error(
-          `Error fetching torrent: S${seasonNumber}E${episodeNumber}`,
-          error
-        );
+          .sort(
+            (a: TorrentInfo, b: TorrentInfo) => (b.seeds || 0) - (a.seeds || 0)
+          );
+      } catch (err) {
+        console.error(`Error fetching torrent S${seasonNumber}E${episodeNumber}:`, err);
         return null;
       }
     },
     []
   );
 
+  // ── Fetch episodes + their torrents for a season ───────────────────────────
   const fetchEpisodesForSeason = useCallback(
     async (seasonNumber: number) => {
       if (!content?.id || !content?.imdb_id || episodeCache[seasonNumber])
@@ -160,21 +205,18 @@ export const TVProcess = ({
           }/season/${seasonNumber}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
         );
 
-        const episodes = episodesResponse.data.episodes;
-        setEpisodeCache((prev) => ({
-          ...prev,
-          [seasonNumber]: episodes,
-        }));
+        const eps: TMDBEpisode[] = episodesResponse.data.episodes;
+        setEpisodeCache((prev) => ({ ...prev, [seasonNumber]: eps }));
 
         if (seasonNumber === selectedSeason) {
-          setEpisodes(episodes);
+          setEpisodes(eps);
 
-          // Fetch torrents for each episode
+          // Fetch EZTV torrents for all episodes in this season
           const newTorrents: { [key: string]: TorrentInfo[] } = {};
-          for (const episode of episodes) {
+          for (const episode of eps) {
             setLoadingTorrents((prev) => [...prev, episode.episode_number]);
-            await delay(300);
-            const torrentData = await fetchTorrents(
+            await delay(200); // gentle rate limiting
+            const torrentData = await fetchTorrentsForEpisode(
               content.imdb_id,
               seasonNumber,
               episode.episode_number
@@ -188,16 +230,13 @@ export const TVProcess = ({
           }
           setTorrents(newTorrents);
         }
-      } catch (error) {
-        console.error(
-          `Error fetching episodes for season ${seasonNumber}:`,
-          error
-        );
+      } catch (err) {
+        console.error(`Error fetching episodes for season ${seasonNumber}:`, err);
       } finally {
         setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
       }
     },
-    [content?.id, content?.imdb_id, selectedSeason, episodeCache, fetchTorrents]
+    [content?.id, content?.imdb_id, selectedSeason, episodeCache, fetchTorrentsForEpisode]
   );
 
   // Handle season change
@@ -222,10 +261,7 @@ export const TVProcess = ({
   }, [selectedSeason, seasons, fetchEpisodesForSeason]);
 
   if (error) return <ErrorMessage message={error} />;
-
-  if (isLoading) {
-    return <LoadingIndicator />;
-  }
+  if (isLoading) return <LoadingIndicator />;
 
   return (
     <div className="space-y-8">
@@ -287,9 +323,8 @@ export const TVProcess = ({
         {/* Desktop Season List */}
         <div className="hidden md:block">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
 
-            {/* Previous Button */}
             {showNavigation && (
               <button
                 onClick={() => scrollSeasons("left")}
@@ -303,7 +338,6 @@ export const TVProcess = ({
               </button>
             )}
 
-            {/* Season List */}
             <div
               ref={seasonListRef}
               className={`flex flex-nowrap gap-3 p-4 overflow-x-auto scrollbar-none
@@ -339,7 +373,6 @@ export const TVProcess = ({
               ))}
             </div>
 
-            {/* Next Button */}
             {showNavigation && (
               <button
                 onClick={() => scrollSeasons("right")}

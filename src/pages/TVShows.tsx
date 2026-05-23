@@ -42,7 +42,7 @@ function TVShows() {
         else setLoading(true); // Also set loading on initial load
 
         let endpoint = "/tv/top_rated";
-        let params: any = {
+        const params: Record<string, string | number | boolean> = {
           page: currentPage,
           include_adult: false,
         };
@@ -82,7 +82,7 @@ function TVShows() {
         if (activeFilters.tag) {
           endpoint = "/discover/tv";
           switch (activeFilters.tag) {
-            case "New Releases":
+            case "New Releases": {
               const threeMonthsAgo = new Date();
               threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
               params.sort_by = "first_air_date.desc";
@@ -90,6 +90,7 @@ function TVShows() {
                 .toISOString()
                 .split("T")[0];
               break;
+            }
             case "Trending Now":
               endpoint = "/trending/tv/day";
               break;
@@ -109,10 +110,10 @@ function TVShows() {
 
         const processedShows = response.data.results
           .filter(
-            (show: any) =>
+            (show: Movie) =>
               show.backdrop_path !== null && show.poster_path !== null
           )
-          .map((show: any) => ({
+          .map((show: Movie & { name?: string; first_air_date?: string }) => ({
             ...show,
             media_type: "tv",
             title: show.name,
@@ -131,14 +132,15 @@ function TVShows() {
         setTotalPages(actualTotalPages);
         setTotalResults(maxResults);
         setError(null);
-      } catch (error: any) {
+      } catch (error: unknown) {
+        const axiosError = error as { response?: { status: number } };
         setError(
-          error.response?.status === 400
+          axiosError.response?.status === 400
             ? "Invalid page number. Showing first page instead."
             : "Failed to load TV shows. Please try again later."
         );
         
-        if (error.response?.status === 400) {
+        if (axiosError.response?.status === 400) {
           setCurrentPage(1);
         }
       } finally {

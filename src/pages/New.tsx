@@ -18,7 +18,7 @@ function New() {
     try {
       const response = await axios.get("/trending/all/week");
       const results: Movie[] = response.data.results
-        .map((item: any): Movie => ({
+        .map((item: Movie): Movie => ({
           ...item,
           media_type: item.media_type || "movie",
         }))
@@ -36,9 +36,10 @@ function New() {
 
       setMovies(uniqueMovies);
       setError(null);
-    } catch (error: any) {
+    } catch (error: unknown) {
       setError("Failed to load new content. Please try again later.");
-      console.error("Error fetching new content:", error.message || error);
+      const errMsg = error as { message?: string };
+      console.error("Error fetching new content:", errMsg.message || error);
     } finally {
       setLoading(false);
     }

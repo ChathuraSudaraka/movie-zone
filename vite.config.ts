@@ -2,7 +2,39 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-// https://vitejs.dev/config/
+// YTS mirrors — all DNS-verified working on this machine.
+// Each gets its own proxy route so MovieProcess.tsx can try them in order
+// without any direct browser calls (which all fail with CORS).
+const ytsMirrors: Record<string, string> = {
+  '/api/yts':  'https://yts.ag',
+  '/api/yts2': 'https://yts.lt',
+  '/api/yts3': 'https://yts.rs',
+  '/api/yts4': 'https://yts.am',
+  '/api/yts5': 'https://yts1.mx',
+  '/api/yts6': 'https://yts-official.app',
+  '/api/yts7': 'https://yts.ninjaproxy1.com',
+  '/api/yts8': 'https://yts.proxyninja.org',
+}
+
+const ytsProxyEntries = Object.fromEntries(
+  Object.entries(ytsMirrors).map(([route, target]) => [
+    route,
+    {
+      target,
+      changeOrigin: true,
+      secure: true,
+      rewrite: (p: string) => p.replace(new RegExp(`^${route}`), '/api/v2'),
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'application/json, text/plain, */*',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Referer': `${target}/`,
+        'Origin': target,
+      },
+    },
+  ])
+)
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -19,31 +51,7 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/tmdb/, ''),
       },
-      '/api/torrentio': {
-        target: 'https://torrentio.strem.fun',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/torrentio/, ''),
-        headers: {
-          'Accept': 'application/json',
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        },
-        configure: (proxy, _options) => {
-          proxy.on('error', (err, _req, _res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, _res) => {
-            console.log('Sending Request to the Target:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, _res) => {
-            console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
-          });
-        }
-      },
-      '/api/yts': {
-        target: 'https://yts.mx/api/v2',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/yts/, ''),
-      },
+      ...ytsProxyEntries,
       '/api/eztv': {
         target: 'https://eztv.re/api',
         changeOrigin: true,
@@ -53,29 +61,6 @@ export default defineConfig({
         target: 'https://v2.sg.media-imdb.com',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api\/imdb/, ''),
-      },
-      '/torrentio': {
-        target: 'https://torrentio.strem.fun',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/torrentio/, ''),
-        secure: false,
-      },
-      '/api/contact': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.log('proxy error', err);
-          });
-          proxy.on('proxyReq', (proxyReq, req, res) => {
-            console.log('Sending Request:', req.method, req.url);
-          });
-          proxy.on('proxyRes', (proxyRes, req, res) => {
-            console.log('Received Response:', proxyRes.statusCode);
-          });
-        }
       },
     },
     watch: {

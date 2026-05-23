@@ -79,12 +79,13 @@ export function Login() {
 
       navigate("/");
       toast.success('Successfully logged in');
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
-      setError(error.message || "Failed to sign in");
+      const authError = error as { message?: string };
+      setError(authError.message || "Failed to sign in");
       
       // Check for common errors and provide user-friendly messages
-      if (error.message.includes("Invalid login credentials")) {
+      if (authError.message?.includes("Invalid login credentials")) {
         setError("Incorrect email or password. Please try again.");
       }
     } finally {
@@ -105,7 +106,7 @@ export function Login() {
       });
 
       if (error) throw error;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Google sign in error:", error);
       setError("Failed to sign in with Google");
     } finally {
@@ -125,9 +126,10 @@ export function Login() {
       if (error) throw error;
       
       toast.success("Verification email sent. Please check your inbox.");
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error sending verification email:", error);
-      setError(error.message || "Failed to send verification email");
+      const authError = error as { message?: string };
+      setError(authError.message || "Failed to send verification email");
     } finally {
       setLoading(false);
     }

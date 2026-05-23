@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { Movie } from "../../types/movie";
-import { User } from "@supabase/supabase-js";
 import toast from "react-hot-toast";
 import { NavigateFunction } from "react-router-dom";
-import { supabase } from "../../config/supabase";
+import { addToList, removeFromList } from "../../utils/localList";
 import InfoActions from "./InfoActions";
 
 interface InfoHeroProps {
@@ -14,7 +13,7 @@ interface InfoHeroProps {
   handlePlayClick?: (source?: string) => void;
   isInMyList: boolean;
   setShowRatingModal: (show: boolean) => void;
-  user: User | null;
+  user: null;
   navigate: NavigateFunction;
   type: string | undefined;
 }
@@ -27,8 +26,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
   handlePlayClick,
   isInMyList,
   setShowRatingModal,
-  user,
-  navigate,
   type,
 }) => {
   // Add local state for optimistic UI updates
@@ -41,49 +38,27 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
   }, [isInMyList]);
 
   const handleMyList = async () => {
-    if (!content || !user) {
-      navigate("/auth/login");
-      return;
-    }
+    if (!content) return;
 
-    // Prevent multiple rapid clicks
     if (isUpdatingList) return;
 
-    // Optimistic update
     setIsUpdatingList(true);
     const wasInList = optimisticInList;
     setOptimisticInList(!wasInList);
 
-    // Show immediate feedback
     toast.success(!wasInList ? "Added to your list" : "Removed from your list");
 
     try {
       if (wasInList) {
-        // Remove from list
-        const { error: deleteError } = await supabase
-          .from("user_lists")
-          .delete()
-          .eq("user_id", user.id)
-          .eq("movie_id", content.id);
-
-        if (deleteError) throw deleteError;
+        removeFromList(content.id);
       } else {
-        // Add to list
-        const { error: insertError } = await supabase
-          .from("user_lists")
-          .insert({
-            user_id: user.id,
-            movie_id: content.id,
-            title: content.title,
-            poster_path: content.poster_path,
-            media_type: content.media_type || type,
-          });
-
-        if (insertError) throw insertError;
+        addToList({
+          ...content,
+          media_type: content.media_type || type,
+        } as Movie);
       }
     } catch (error) {
       console.error("Error updating list:", error);
-      // Revert optimistic update on error
       setOptimisticInList(wasInList);
       toast.error("Failed to update list");
     } finally {
@@ -92,11 +67,6 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
   };
 
   const handleLike = async () => {
-    if (!content || !user) {
-      navigate("/auth/login");
-      return;
-    }
-
     try {
       toast.success("Added to your likes");
     } catch (error) {
@@ -215,7 +185,7 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
               <div className="line-clamp-1">
                 <span className="text-white/60">Genres: </span>
                 <span className="font-medium">
-                  {content.genres.map((g: any) => g.name).join(", ")}
+                  {content.genres.map((g: { id: number; name: string }) => g.name).join(", ")}
                 </span>
               </div>
             )}

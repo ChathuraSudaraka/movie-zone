@@ -35,7 +35,7 @@ export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
           <div>
             <span className="text-gray-400 text-sm">Genres: </span>
             <div className="flex flex-wrap gap-2 mt-1">
-              {content.genres.map((genre: any) => (
+              {content.genres.map((genre) => (
                 <span
                   key={genre.id}
                   className="px-3 py-1 bg-gray-800 rounded-full text-sm font-medium"
@@ -65,7 +65,7 @@ export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
           <div className="text-white">
             <h3 className="text-lg font-semibold mb-3">Production</h3>
             <div className="space-y-4">
-              {content.production_companies.map((company: any) => (
+              {content.production_companies.map((company) => (
                 <div key={company.id} className="flex items-center gap-3">
                   {company.logo_path ? (
                     <div className="relative h-8 flex items-center">

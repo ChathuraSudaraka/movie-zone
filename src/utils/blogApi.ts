@@ -84,10 +84,30 @@ export const omdbApi = {
   }
 };
 
+interface MovieData {
+  id: number | string;
+  title?: string;
+  overview?: string;
+  backdrop_path?: string;
+  vote_average?: number;
+  release_date?: string;
+}
+
+interface NewsArticle {
+  title: string;
+  description: string;
+  content?: string;
+  urlToImage?: string;
+  author?: string;
+  publishedAt: string;
+  url: string;
+  source: { name: string };
+}
+
 // Utility functions for blog content
 export const blogUtils = {
   // Generate blog post from movie data
-  generateMovieReview: (movie: any) => {
+  generateMovieReview: (movie: MovieData) => {
     return {
       id: `review-${movie.id}`,
       title: `Review: ${movie.title}`,
@@ -103,7 +123,7 @@ export const blogUtils = {
   },
 
   // Format news article for blog
-  formatNewsForBlog: (article: any) => {
+  formatNewsForBlog: (article: NewsArticle) => {
     return {
       id: `news-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       title: article.title,
@@ -145,7 +165,7 @@ export const blogUtils = {
 };
 
 // Error handling wrapper
-export const apiWithErrorHandling = async (apiCall: () => Promise<any>) => {
+export const apiWithErrorHandling = async (apiCall: () => Promise<unknown>) => {
   try {
     const result = await apiCall();
     return { success: true, data: result };

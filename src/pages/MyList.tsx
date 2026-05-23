@@ -1,124 +1,31 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { Movie } from "../types/movie";
 import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "@mui/material";
-import { useAuth } from "../context/AuthContext";
-import { supabase } from "../config/supabase";
 import { MovieCard } from "../components/MovieCard";
+import { getList, removeFromList } from "../utils/localList";
 
 function MyList() {
-  const [myList, setMyList] = useState<Movie[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const { user } = useAuth();
+  const [myList, setMyList] = useState<Movie[]>(() => getList());
+  const [isLoading] = useState(false);
   const navigate = useNavigate();
 
-  const fetchMyList = async () => {
-    try {
-      setIsLoading(true);
-      const { data, error } = await supabase
-        .from("user_lists")
-        .select("movie_id, title, poster_path, media_type, added_at")
-        .eq("user_id", user?.id)
-        .order("added_at", { ascending: false });
+  useEffect(() => {
+    document.title = "My List - MovieZone";
+    // Refresh from localStorage on mount
+    setMyList(getList());
+  }, []);
 
-      if (error) throw error;
-
-      const formattedList = data.map(
-        (item) =>
-          ({
-            id: item.movie_id,
-            title: item.title,
-            poster_path: item.poster_path,
-            media_type: item.media_type,
-            adult: false,
-            backdrop_path: "",
-            genre_ids: [],
-            original_language: "",
-            original_title: item.title,
-            overview: "",
-            popularity: 0,
-            release_date: "",
-            video: false,
-            vote_average: 0,
-            vote_count: 0,
-          } as Movie)
-      );
-
-      setMyList(formattedList);
-    } catch (error) {
-      console.error("Error fetching my list:", error);
-    } finally {
-      setIsLoading(false);
-    }
+  const handleRemove = (movieId: number) => {
+    removeFromList(movieId);
+    setMyList(getList());
   };
-
-  // Update useEffect to properly handle dependencies
-  useEffect(() => {
-    document.title = `My List - MovieZone`;
-
-    if (user) {
-      fetchMyList();
-    }
-  }, [user?.id]); // Add proper dependency
-
-  // Add subscription for real-time updates
-  useEffect(() => {
-    if (!user) return;
-
-    const subscription = supabase
-      .channel("user_lists_changes")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "user_lists",
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          if (payload.new && "movies" in payload.new) {
-            setMyList(payload.new.movies || []);
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(subscription);
-    };
-  }, [user]);
-
-  if (!user) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#141414] text-white px-4">
-        <div className="max-w-md w-full text-center space-y-6 py-16">
-          <div className="mx-auto w-24 h-24 rounded-full bg-[#2f2f2f] flex items-center justify-center mb-8">
-            <FaPlus className="w-12 h-12 text-[#686868]" />
-          </div>
-          <h1 className="text-3xl md:text-4xl font-bold">
-            Sign in to access your list
-          </h1>
-          <p className="text-lg text-[#686868]">
-            Keep track of what you want to watch by adding movies and shows to
-            your list.
-          </p>
-          <button
-            onClick={() => navigate("/auth/login")}
-            className="bg-red-600 text-white px-8 py-3 rounded-md font-medium hover:bg-red-700 transition duration-300"
-          >
-            Sign In
-          </button>
-        </div>
-      </div>
-    );
-  }
 
   if (isLoading) {
     return (
       <div className="mt-[68px] min-h-screen bg-[#141414]">
         <div className="px-4 py-6 md:px-6 lg:px-8">
-          {/* Header Skeleton */}
           <div className="mb-6">
             <Skeleton
               variant="rectangular"
@@ -127,8 +34,6 @@ function MyList() {
               sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
             />
           </div>
-
-          {/* Grid Skeleton */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {[...Array(10)].map((_, index) => (
               <div
@@ -141,13 +46,6 @@ function MyList() {
                   height="100%"
                   sx={{ bgcolor: "#1f1f1f" }}
                 />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <Skeleton
-                    variant="text"
-                    width="60%"
-                    sx={{ bgcolor: "#1f1f1f" }}
-                  />
-                </div>
               </div>
             ))}
           </div>
@@ -194,7 +92,7 @@ function MyList() {
               key={item.id}
               movie={item}
               showRemoveButton={true}
-              onListUpdate={fetchMyList}
+              onListUpdate={() => handleRemove(item.id)}
             />
           ))}
         </div>

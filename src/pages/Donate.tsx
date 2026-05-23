@@ -4,10 +4,29 @@ import toast from 'react-hot-toast';
 import { saveDonationRecord, DonationData, getDonationStats, sendDonationNotification } from '../utils/donationUtils';
 
 
+interface PayPalDetails {
+  id?: string;
+  purchase_units?: Array<{
+    payments?: {
+      captures?: Array<{
+        id?: string;
+        amount?: { value?: string };
+      }>;
+    };
+  }>;
+}
+
+interface PayPalActions {
+  order: {
+    create: (data: object) => Promise<string>;
+    capture: () => Promise<PayPalDetails>;
+  };
+}
+
 interface PayPalButtonProps {
   amount: number;
-  onSuccess: (details: any) => void;
-  onError: (error: any) => void;
+  onSuccess: (details: PayPalDetails) => void;
+  onError: (error: unknown) => void;
 }
 
 // PayPal Button Component with fixed ID generation
@@ -24,7 +43,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({ amount, onSuccess, onError 
       container.innerHTML = '';
 
       window.paypal.Buttons({
-        createOrder: (_data: any, actions: any) => {
+        createOrder: (_data: unknown, actions: PayPalActions) => {
           return actions.order.create({
             purchase_units: [{
               amount: {
@@ -34,7 +53,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({ amount, onSuccess, onError 
             }]
           });
         },
-        onApprove: async (_data: any, actions: any) => {
+        onApprove: async (_data: unknown, actions: PayPalActions) => {
           try {
             const details = await actions.order.capture();
             onSuccess(details);
@@ -42,7 +61,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({ amount, onSuccess, onError 
             onError(error);
           }
         },
-        onError: (error: any) => {
+        onError: (error: unknown) => {
           console.error('PayPal error:', error);
           onError(error);
         },
@@ -143,7 +162,7 @@ function Donate() {
     }
   };
 
-  const handlePaymentSuccess = async (details: any) => {
+  const handlePaymentSuccess = async (details: PayPalDetails) => {
     toast.success('🎉 Thank you for your generous donation!');
     console.log('Payment successful:', details);
 
@@ -185,7 +204,7 @@ function Donate() {
     setIsAnonymous(false);
   };
 
-  const handlePaymentError = (error: any) => {
+  const handlePaymentError = (error: unknown) => {
     toast.error('Payment failed. Please try again.');
     console.error('Payment error:', error);
   };
@@ -437,7 +456,9 @@ function Donate() {
 // Extend window interface for PayPal
 declare global {
   interface Window {
-    paypal: any;
+    paypal: {
+      Buttons: (config: object) => { render: (selector: string) => void };
+    };
   }
 }
 

@@ -29,7 +29,7 @@ export function Preferences({ preferences, updatePreferences }: PreferencesProps
               value={preferences.defaultPlaybackQuality}
               onChange={(e) =>
                 updatePreferences({
-                  defaultPlaybackQuality: e.target.value as any,
+                  defaultPlaybackQuality: e.target.value as 'auto' | '720p' | '1080p' | '4k',
                 })
               }
               className="w-full bg-zinc-700 text-white rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
