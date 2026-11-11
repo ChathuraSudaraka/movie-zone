@@ -78,13 +78,13 @@ export function Callback() {
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-[#141414] px-4">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-[#060608] px-4">
       {error ? (
-        <div className="bg-red-500/10 border border-red-500 text-red-500 px-6 py-4 rounded-lg max-w-md w-full text-center">
+        <div className="bg-brand-500/10 border border-brand-500 text-brand-500 px-6 py-4 rounded-lg max-w-md w-full text-center">
           <p className="font-medium mb-2">Error</p>
           <p>{error}</p>
           <button
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded"
+            className="mt-4 px-4 py-2 bg-brand-600 text-white rounded"
             onClick={() => navigate('/auth/login')}
           >
             Go to Login
@@ -92,7 +92,7 @@ export function Callback() {
         </div>
       ) : (
         <div className="text-center space-y-4">
-          <Loader2 className="w-12 h-12 text-red-500 animate-spin mx-auto" />
+          <Loader2 className="w-12 h-12 text-brand-500 animate-spin mx-auto" />
           <h1 className="text-xl text-white font-medium">Setting up your account...</h1>
           <p className="text-gray-400">Please wait while we complete the process.</p>
         </div>

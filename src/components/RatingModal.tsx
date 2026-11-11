@@ -34,7 +34,7 @@ export function RatingModal({ isOpen, onClose, mediaTitle }: RatingModalProps) {
   
   return (
     <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-xl p-6 max-w-md w-full">
+      <div className="bg-neutral-900 rounded-xl p-6 max-w-md w-full">
         <h2 className="text-2xl font-bold text-white mb-4">Rate this title</h2>
         <h3 className="text-lg text-gray-200 mb-6">{mediaTitle}</h3>
         
@@ -80,7 +80,7 @@ export function RatingModal({ isOpen, onClose, mediaTitle }: RatingModalProps) {
               value={review}
               onChange={(e) => setReview(e.target.value)}
               rows={4}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+              className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500"
               placeholder="Share your thoughts about this title..."
             />
           </div>
@@ -89,14 +89,14 @@ export function RatingModal({ isOpen, onClose, mediaTitle }: RatingModalProps) {
           <div className="flex justify-end gap-4">
             <button 
               type="button"
-              className="px-4 py-2 bg-zinc-800 text-white rounded-lg"
+              className="px-4 py-2 bg-neutral-800 text-white rounded-lg"
               onClick={onClose}
             >
               Cancel
             </button>
             <button 
               type="submit"
-              className="px-4 py-2 bg-red-600 text-white rounded-lg disabled:opacity-50"
+              className="px-4 py-2 bg-brand-600 text-white rounded-lg disabled:opacity-50"
               disabled={submitting}
             >
               {submitting ? 'Submitting...' : 'Submit Rating'}

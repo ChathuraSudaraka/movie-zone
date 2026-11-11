@@ -75,34 +75,35 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
 
   if (isLoading) {
     return (
-      <div className="space-y-2 mb-12">
+      <div className="row-perf space-y-2 mb-12">
         <div className="flex justify-between items-center px-4 md:px-8 lg:px-16 md:mb-8 mb-4">
           <Skeleton
             variant="rectangular"
             width={200}
             height={32}
-            sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+            sx={{ bgcolor: "rgba(255,255,255,0.06)", borderRadius: 3 }}
           />
         </div>
         <div className="relative">
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-8 lg:px-16">            {[...Array(6)].map((_, index) => (
+          <div className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth px-4 md:px-8 lg:px-16">
+            {[...Array(6)].map((_, index) => (
               <div
                 key={index}
-                className="relative flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] aspect-[2/3] bg-zinc-900 rounded-md overflow-hidden"
+                className="relative flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px] aspect-[2/3] bg-white/[0.05] rounded-[20px] overflow-hidden ring-1 ring-white/10"
               >
                 <Skeleton
                   variant="rectangular"
                   width="100%"
                   height="100%"
                   sx={{
-                    bgcolor: "#1f1f1f",
+                    bgcolor: "rgba(255,255,255,0.05)",
                   }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <Skeleton
                     variant="text"
                     width="60%"
-                    sx={{ bgcolor: "#1f1f1f" }}
+                    sx={{ bgcolor: "rgba(255,255,255,0.08)" }}
                   />
                 </div>
               </div>
@@ -114,24 +115,26 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
   }
 
   return (
-    <div className="mb-12">
-      <div className="flex justify-between items-center px-4 md:px-8 lg:px-16">
-        <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
+    <div className="row-perf mb-10 md:mb-12">
+      <div className="flex justify-between items-center px-4 md:px-8 lg:px-16 mb-1">
+        <h2 className="font-display text-xl font-semibold tracking-tight text-white md:text-2xl lg:text-[1.65rem]">
           {title}
         </h2>
         {!isMobile && (
-          <div className="flex gap-4">
+          <div className="flex gap-2">
             <button
               onClick={() => handleNavigation("left")}
-              className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
+              aria-label={`Scroll ${title} left`}
+              className="liquid-glass liquid-refract-orb flex h-10 w-10 items-center justify-center rounded-full text-white/90 transition-transform duration-300 ease-spring hover:scale-105 hover:text-white active:scale-90"
             >
-              <ChevronLeftIcon className="h-6 w-6 text-white" />
+              <ChevronLeftIcon className="h-5 w-5" />
             </button>
             <button
               onClick={() => handleNavigation("right")}
-              className="p-3 rounded-full bg-black/60 hover:bg-black/80 transition-colors duration-300"
+              aria-label={`Scroll ${title} right`}
+              className="liquid-glass liquid-refract-orb flex h-10 w-10 items-center justify-center rounded-full text-white/90 transition-transform duration-300 ease-spring hover:scale-105 hover:text-white active:scale-90"
             >
-              <ChevronRightIcon className="h-6 w-6 text-white" />
+              <ChevronRightIcon className="h-5 w-5" />
             </button>
           </div>
         )}

@@ -24,14 +24,14 @@ function MyList() {
 
   if (isLoading) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#141414]">
+      <div className="mt-[68px] min-h-screen bg-[#060608]">
         <div className="px-4 py-6 md:px-6 lg:px-8">
           <div className="mb-6">
             <Skeleton
               variant="rectangular"
               width={160}
               height={32}
-              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+              sx={{ bgcolor: "#141417", borderRadius: 1 }}
             />
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
@@ -44,7 +44,7 @@ function MyList() {
                   variant="rectangular"
                   width="100%"
                   height="100%"
-                  sx={{ bgcolor: "#1f1f1f" }}
+                  sx={{ bgcolor: "#141417" }}
                 />
               </div>
             ))}
@@ -56,9 +56,9 @@ function MyList() {
 
   if (myList.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#141414] text-white px-4">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#060608] text-white px-4">
         <div className="max-w-md w-full text-center space-y-6 py-16">
-          <div className="mx-auto w-24 h-24 rounded-full bg-[#2f2f2f] flex items-center justify-center mb-8">
+          <div className="mx-auto w-24 h-24 rounded-full bg-[#242427] flex items-center justify-center mb-8">
             <FaPlus className="w-12 h-12 text-[#686868]" />
           </div>
           <h1 className="text-3xl md:text-4xl font-bold">Your list is empty</h1>
@@ -78,7 +78,7 @@ function MyList() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
         <h1
           className="mb-4 sm:mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl 

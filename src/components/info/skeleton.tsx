@@ -6,12 +6,12 @@ const ContentSkeleton = styled("div")({
     width: "100%",
     minHeight: "100vh",
     position: "relative",
-    backgroundColor: "#141414",
+    backgroundColor: "#050507",
 });
 
 const ImageSkeleton = styled(Skeleton)({
     transform: "scale(1, 1)",
-    backgroundColor: "#2b2b2b",
+    backgroundColor: "rgba(255, 255, 255, 0.05)",
     "&::after": {
         background:
             "linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.04), transparent)",
@@ -32,7 +32,7 @@ export const LoadingSkeleton = () => (
                     left: 0,
                 }}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-[#141414] via-[#141414]/40 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink-950 via-ink-950/45 to-transparent" />
 
             {/* Content Skeleton */}
             <div className="absolute bottom-0 left-0 right-0 px-4 pb-16 md:px-8 lg:px-16">
@@ -41,7 +41,7 @@ export const LoadingSkeleton = () => (
                         variant="text"
                         width="70%"
                         height={80}
-                        sx={{ bgcolor: "#2b2b2b" }}
+                        sx={{ bgcolor: "#1C1C1F" }}
                     />
 
                     <div className="flex flex-wrap items-center gap-4">
@@ -51,7 +51,7 @@ export const LoadingSkeleton = () => (
                                 variant="text"
                                 width={80}
                                 height={24}
-                                sx={{ bgcolor: "#2b2b2b" }}
+                                sx={{ bgcolor: "#1C1C1F" }}
                             />
                         ))}
                     </div>
@@ -63,7 +63,7 @@ export const LoadingSkeleton = () => (
                                 variant="text"
                                 width={`${90 - i * 15}%`}
                                 height={24}
-                                sx={{ bgcolor: "#2b2b2b" }}
+                                sx={{ bgcolor: "#1C1C1F" }}
                             />
                         ))}
                     </div>
@@ -73,19 +73,19 @@ export const LoadingSkeleton = () => (
                             variant="rectangular"
                             width={150}
                             height={48}
-                            sx={{ bgcolor: "#2b2b2b", borderRadius: 1 }}
+                            sx={{ bgcolor: "#1C1C1F", borderRadius: 1 }}
                         />
                         <Skeleton
                             variant="circular"
                             width={48}
                             height={48}
-                            sx={{ bgcolor: "#2b2b2b" }}
+                            sx={{ bgcolor: "#1C1C1F" }}
                         />
                         <Skeleton
                             variant="circular"
                             width={48}
                             height={48}
-                            sx={{ bgcolor: "#2b2b2b" }}
+                            sx={{ bgcolor: "#1C1C1F" }}
                         />
                     </div>
                 </div>
@@ -99,7 +99,7 @@ export const LoadingSkeleton = () => (
                     variant="text"
                     width={200}
                     height={40}
-                    sx={{ bgcolor: "#2b2b2b", marginBottom: 4 }}
+                    sx={{ bgcolor: "#1C1C1F", marginBottom: 4 }}
                 />
 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
@@ -118,13 +118,13 @@ export const LoadingSkeleton = () => (
                                 variant="text"
                                 width="80%"
                                 height={24}
-                                sx={{ bgcolor: "#2b2b2b" }}
+                                sx={{ bgcolor: "#1C1C1F" }}
                             />
                             <Skeleton
                                 variant="text"
                                 width="60%"
                                 height={20}
-                                sx={{ bgcolor: "#2b2b2b" }}
+                                sx={{ bgcolor: "#1C1C1F" }}
                             />
                         </div>
                     ))}
@@ -140,13 +140,13 @@ export const LoadingSkeleton = () => (
                                         variant="text"
                                         width={100}
                                         height={20}
-                                        sx={{ bgcolor: "#2b2b2b" }}
+                                        sx={{ bgcolor: "#1C1C1F" }}
                                     />
                                     <Skeleton
                                         variant="text"
                                         width="100%"
                                         height={24}
-                                        sx={{ bgcolor: "#2b2b2b" }}
+                                        sx={{ bgcolor: "#1C1C1F" }}
                                     />
                                 </div>
                             ))}

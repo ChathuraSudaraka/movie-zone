@@ -1,5 +1,5 @@
-import React from 'react';
-import { FaChevronLeft, FaChevronRight } from 'react-icons/fa';
+import React, { useEffect } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface PaginationProps {
   currentPage: number;
@@ -14,118 +14,115 @@ const Pagination: React.FC<PaginationProps> = ({
   itemsPerPage,
   onPageChange,
 }) => {
-  // Calculate real total pages
   const calculatedPages = Math.ceil(totalItems / itemsPerPage);
   const totalPages = calculatedPages > 0 ? calculatedPages : 1;
-  
-  // Don't show pagination if there's only one page or no items
-  if (totalPages <= 1 || totalItems === 0) return null;
-
-  // Ensure current page is within bounds
   const safePage = Math.min(Math.max(1, currentPage), totalPages);
-  if (safePage !== currentPage) {
-    onPageChange(safePage);
-    return null;
-  }
+
+  useEffect(() => {
+    if (totalPages > 1 && totalItems > 0 && safePage !== currentPage) {
+      onPageChange(safePage);
+    }
+  }, [safePage, currentPage, totalPages, totalItems, onPageChange]);
+
+  if (totalPages <= 1 || totalItems === 0) return null;
 
   const getPageNumbers = () => {
     const pages: (number | string)[] = [];
     const showEllipsis = totalPages > 7;
-    
+
     if (showEllipsis) {
       if (currentPage <= 4) {
-        // Show first 5 pages + ellipsis + last page
         for (let i = 1; i <= Math.min(5, totalPages); i++) pages.push(i);
         if (totalPages > 5) {
-          pages.push('...');
+          pages.push("...");
           pages.push(totalPages);
         }
       } else if (currentPage >= totalPages - 3) {
-        // Show first page + ellipsis + last 5 pages
         pages.push(1);
         if (totalPages > 5) {
-          pages.push('...');
-          for (let i = Math.max(totalPages - 4, 2); i <= totalPages; i++) pages.push(i);
+          pages.push("...");
+          for (let i = Math.max(totalPages - 4, 2); i <= totalPages; i++)
+            pages.push(i);
         }
       } else {
-        // Show first page + ellipsis + current-1, current, current+1 + ellipsis + last page
         pages.push(1);
-        pages.push('...');
-        for (let i = currentPage - 1; i <= Math.min(currentPage + 1, totalPages); i++) {
+        pages.push("...");
+        for (
+          let i = currentPage - 1;
+          i <= Math.min(currentPage + 1, totalPages);
+          i++
+        ) {
           pages.push(i);
         }
         if (currentPage + 1 < totalPages) {
-          pages.push('...');
+          pages.push("...");
           pages.push(totalPages);
         }
       }
     } else {
-      // Show all pages when total pages is small
       for (let i = 1; i <= totalPages; i++) pages.push(i);
     }
-    
+
     return pages;
   };
 
   return (
-    <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-8 px-4 py-3
-                  bg-[#1a1a1a]/90 border border-gray-800/50 rounded-xl">
-      {/* Info */}
-      <div className="text-sm text-gray-400">
-        <span>Page {currentPage} of {totalPages}</span>
-        <span className="mx-2">•</span>
-        <span>{totalItems} Results</span>
+    <div className="glass-chip w-full flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 rounded-[20px]">
+      <div className="text-xs sm:text-sm text-neutral-400">
+        <span>
+          Page <strong className="text-neutral-200 font-medium">{safePage}</strong> of{" "}
+          <strong className="text-neutral-200 font-medium">{totalPages}</strong>
+        </span>
+        <span className="mx-2 text-white/25">•</span>
+        <span>{totalItems} total</span>
       </div>
 
-      {/* Navigation */}
       <div className="flex items-center gap-1.5">
-        {/* Previous */}
         <button
-          onClick={() => onPageChange(currentPage - 1)}
-          disabled={currentPage === 1}
-          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium
-            ${currentPage === 1
-              ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-              : 'bg-[#232323] hover:bg-red-500/20 hover:text-red-500 text-gray-400'
-            }`}
+          onClick={() => onPageChange(safePage - 1)}
+          disabled={safePage === 1}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+            safePage === 1
+              ? "text-neutral-600 cursor-not-allowed"
+              : "bg-white/[0.06] text-neutral-300 hover:bg-white/15 hover:text-white border border-white/10"
+          }`}
         >
-          <FaChevronLeft className="w-3.5 h-3.5" />
-          <span className="hidden sm:inline">Previous</span>
+          <ChevronLeft className="w-3.5 h-3.5" />
+          <span className="hidden sm:inline">Prev</span>
         </button>
 
-        {/* Pages */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-1">
           {getPageNumbers().map((page, index) => (
             <button
               key={index}
-              onClick={() => typeof page === 'number' ? onPageChange(page) : null}
-              disabled={page === '...'}
-              className={`min-w-[32px] h-8 flex items-center justify-center text-sm font-medium
-                         rounded-lg transition-colors
-                ${page === currentPage
-                  ? 'bg-red-500 text-white'
-                  : page === '...'
-                    ? 'text-gray-500 cursor-default px-1'
-                    : 'hover:bg-red-500/20 hover:text-red-500 text-gray-400'
-                }`}
+              onClick={() =>
+                typeof page === "number" ? onPageChange(page) : null
+              }
+              disabled={page === "..."}
+              className={`min-w-[32px] h-8 px-2 flex items-center justify-center text-xs sm:text-sm font-medium rounded-full transition-colors ${
+                page === safePage
+                  ? "bg-white text-neutral-950 font-semibold shadow-sm"
+                  : page === "..."
+                  ? "text-neutral-500 cursor-default"
+                  : "text-neutral-300 hover:bg-white/10 hover:text-white"
+              }`}
             >
               {page}
             </button>
           ))}
         </div>
 
-        {/* Next */}
         <button
-          onClick={() => onPageChange(currentPage + 1)}
-          disabled={currentPage === totalPages}
-          className={`flex items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium
-            ${currentPage === totalPages
-              ? 'bg-gray-800/50 text-gray-600 cursor-not-allowed'
-              : 'bg-[#232323] hover:bg-red-500/20 hover:text-red-500 text-gray-400'
-            }`}
+          onClick={() => onPageChange(safePage + 1)}
+          disabled={safePage === totalPages}
+          className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs sm:text-sm font-medium transition-colors ${
+            safePage === totalPages
+              ? "text-neutral-600 cursor-not-allowed"
+              : "bg-white/[0.06] text-neutral-300 hover:bg-white/15 hover:text-white border border-white/10"
+          }`}
         >
           <span className="hidden sm:inline">Next</span>
-          <FaChevronRight className="w-3.5 h-3.5" />
+          <ChevronRight className="w-3.5 h-3.5" />
         </button>
       </div>
     </div>

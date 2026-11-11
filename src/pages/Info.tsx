@@ -335,8 +335,7 @@ function Info() {
         )}
       </Helmet>
       
-      <div className="relative min-h-screen bg-[#141414]">
-      {" "}
+      <div className="relative min-h-screen">
       {/* Hero Section */}
       <InfoHero
         content={content}
@@ -351,8 +350,8 @@ function Info() {
         type={type}
       />
       {/* Details Section */}
-      <div className="px-4 py-12 md:px-8 lg:px-16 bg-[#141414]">
-        <div className="max-w-6xl mx-auto">
+      <div className="relative z-10 px-4 py-10 md:px-8 lg:px-16">
+        <div className="max-w-6xl mx-auto space-y-12">
           {/* Download Section */}
           <DownloadSection
             type={type}

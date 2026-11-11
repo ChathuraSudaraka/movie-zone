@@ -40,7 +40,7 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #0C0C0F;
   cursor: pointer;
   transition: border-color 0.25s;
 }
@@ -71,7 +71,7 @@ button:focus-visible {
 
 @layer base {
   body {
-    @apply bg-[#141414] text-white !scrollbar-thin !scrollbar-track-transparent !scrollbar-thumb-red-600;
+    @apply bg-[#060608] text-white !scrollbar-thin !scrollbar-track-transparent !scrollbar-thumb-brand-600;
   }
 }
 
@@ -98,18 +98,18 @@ button:focus-visible {
 
   .modalButton {
     @apply flex h-8 w-8 items-center justify-center rounded-full border-2 border-[gray] 
-    bg-[#2a2a2a]/60 transition hover:border-white hover:bg-white/10;
+    bg-[#1C1C1F]/60 transition hover:border-white hover:bg-white/10;
   }
 
   .input {
-    @apply w-full rounded bg-[#333] px-5 py-3.5 placeholder-[gray] outline-none focus:bg-[#454545];
+    @apply w-full rounded bg-[#2C2C2E] px-5 py-3.5 placeholder-[gray] outline-none focus:bg-[#3A3A3C];
   }
 
   .planBox {
     @apply relative mx-1.5 flex h-20 w-[calc(100%/3)] cursor-default items-center justify-center 
-    rounded-sm bg-[#e50914] font-semibold shadow after:absolute after:top-full after:left-1/2 
+    rounded-sm bg-[#5E554C] font-semibold shadow after:absolute after:top-full after:left-1/2 
     after:block after:-translate-x-1/2 after:border-8 after:border-b-0 after:border-transparent 
-    after:border-t-[#e50914] after:content-[""] md:h-32 lg:mx-8;
+    after:border-t-[#5E554C] after:content-[""] md:h-32 lg:mx-8;
   }
 
   /* Netflix scrollbar style */
@@ -188,7 +188,7 @@ button:focus-visible {
   }
 
   .banner__fadeBottom {
-    @apply absolute bottom-0 h-32 w-full bg-gradient-to-t from-[#141414] to-transparent;
+    @apply absolute bottom-0 h-32 w-full bg-gradient-to-t from-[#060608] to-transparent;
   }
 
   .banner__fadeLeft {
@@ -200,8 +200,8 @@ button:focus-visible {
     scrollbar-width: thin;
   }
 
-  .scrollbar-thumb-red-600::-webkit-scrollbar-thumb {
-    background-color: #e50914;
+  .scrollbar-thumb-brand-600::-webkit-scrollbar-thumb {
+    background-color: rgba(255, 255, 255, 0.22);
     border-radius: 4px;
   }
 

@@ -47,14 +47,14 @@ function New() {
 
   if (loading) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#141414]">
+      <div className="mt-[68px] min-h-screen bg-[#060608]">
         <div className="px-2 py-6 md:px-3 lg:px-4">
           <Skeleton
             variant="text"
             aria-label="Loading header text"
             width={200}
             height={40}
-            sx={{ bgcolor: '#2b2b2b', marginBottom: '24px' }}
+            sx={{ bgcolor: '#1C1C1F', marginBottom: '24px' }}
           />
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
             {[...Array(15)].map((_, index) => (
@@ -65,7 +65,7 @@ function New() {
                   width="100%"
                   height="100%"
                   sx={{
-                    bgcolor: '#2b2b2b',
+                    bgcolor: '#1C1C1F',
                     borderRadius: '0.125rem',
                     transform: 'scale(1)',
                   }}
@@ -80,7 +80,7 @@ function New() {
 
   if (error) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#141414] flex items-center justify-center">
+      <div className="mt-[68px] min-h-screen bg-[#060608] flex items-center justify-center">
         <div className="text-white text-center">
           <p className="text-xl">{error}</p>
           <button
@@ -88,7 +88,7 @@ function New() {
               setLoading(true);
               fetchNewContent();
             }}
-            className="mt-4 px-6 py-2 bg-red-600 rounded hover:bg-red-700 transition"
+            className="mt-4 px-6 py-2 bg-brand-600 rounded hover:bg-brand-700 transition"
           >
             Try Again
           </button>
@@ -98,7 +98,7 @@ function New() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <div className="px-2 py-6 md:px-3 lg:px-4">
         <h2 className="mb-6 text-xl font-semibold text-white md:text-2xl lg:text-3xl">
           New & Popular

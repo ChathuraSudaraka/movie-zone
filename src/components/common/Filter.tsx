@@ -5,6 +5,7 @@ import { BsCalendar3, BsStarFill } from "react-icons/bs";
 import { TbArrowsSort } from "react-icons/tb";
 import { loadFilterState, saveFilterState } from "@/utils/filterState";
 import { FilterOptions } from "@/types/filters";
+import { LiquidSlider } from "./LiquidGlassControls";
 
 interface FilterProps {
   initialFilters?: FilterOptions;
@@ -45,29 +46,30 @@ const FilterSection: React.FC<FilterSectionProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
 
   return (
-    <div className="border-b border-gray-800/50 last:border-0">
+    <div className="border-b border-white/10 last:border-0">
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        className="w-full flex items-center justify-between p-3 sm:p-4 
-                 hover:bg-gray-800/30 transition-all duration-200 group"
+        className="w-full flex items-center justify-between p-3.5 sm:p-4 hover:bg-white/[0.04] transition-colors duration-200 group"
       >
-        <div className="flex items-center gap-3 text-gray-200">
-          <Icon className="w-5 h-5 text-red-500 group-hover:scale-110 transition-transform" />
-          <span className="font-medium group-hover:text-white transition-colors">
+        <div className="flex items-center gap-3 text-neutral-200">
+          <Icon className="w-4 h-4 text-neutral-300 group-hover:scale-110 transition-transform" />
+          <span className="text-sm font-medium group-hover:text-white transition-colors">
             {title}
           </span>
         </div>
         <FiChevronDown
-          className={`w-5 h-5 text-gray-400 transition-all duration-300
-            group-hover:text-white ${isExpanded ? "rotate-180" : "rotate-0"}`}
+          className={`w-4 h-4 text-neutral-400 transition-transform duration-300 group-hover:text-white ${
+            isExpanded ? "rotate-180" : "rotate-0"
+          }`}
         />
       </button>
       <div
-        className={`overflow-hidden transition-all duration-300 ease-in-out
-        ${isExpanded ? "h-full opacity-100" : "max-h-0 opacity-0"}`}
+        className={`overflow-hidden transition-all duration-300 ease-in-out ${
+          isExpanded ? "h-full opacity-100" : "max-h-0 opacity-0"
+        }`}
       >
-        <div className="p-3 sm:p-4 overflow-y-auto">{children}</div>
+        <div className="px-3.5 pb-4 pt-1 sm:px-4 overflow-y-auto">{children}</div>
       </div>
     </div>
   );
@@ -149,24 +151,21 @@ export default function Filter({
   };
 
   return (
-    <div className={`w-full flex flex-col bg-[#141414] ${isMobile ? 'h-screen' : 'h-full'}`}>
+    <div className={`w-full flex flex-col bg-transparent ${isMobile ? "h-screen" : "h-full"}`}>
       {/* Sticky Header */}
-      <div className="sticky top-0 z-20 p-4 border-b border-gray-800/50
-                     bg-[#141414] flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-white flex items-center gap-3">
-          <FiFilter className="w-5 h-5 text-red-500" />
+      <div className="sticky top-0 z-20 p-4 border-b border-white/10 backdrop-blur-md bg-ink-950/35 flex items-center justify-between">
+        <h3 className="text-base font-semibold text-white flex items-center gap-2.5">
+          <FiFilter className="w-4 h-4 text-neutral-300" />
           <span>Filters</span>
         </h3>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={handleReset}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg
-                     text-gray-400 hover:text-white hover:bg-gray-800/50 
-                     transition-all group"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-neutral-300 hover:text-white hover:bg-white/10 transition-colors group"
           >
-            <FiRefreshCw className="w-4 h-4 group-hover:rotate-180 transition-transform duration-500" />
-            <span className="text-sm">Reset</span>
+            <FiRefreshCw className="w-3.5 h-3.5 group-hover:rotate-180 transition-transform duration-500" />
+            <span className="text-xs font-medium">Reset</span>
           </button>
           {onClose && (
             <button
@@ -196,7 +195,7 @@ export default function Filter({
 
       {/* Scrollable Content with Better Mobile Support */}
       <div className="flex-1 overflow-y-auto overscroll-contain pb-safe">
-        <div className="divide-y divide-gray-800/50">
+        <div>
           {/* Genres Section */}
           <FilterSection title="Genres" icon={MdOutlineCategory}>
             <div className="grid grid-cols-2 gap-2">
@@ -204,18 +203,17 @@ export default function Filter({
                 <React.Fragment key={category}>
                   {genres.map((genre) => {
                     const genreValue = genre.toLowerCase();
-                    const isActive = isFilterActive('genre', genreValue);
+                    const isActive = isFilterActive("genre", genreValue);
                     return (
                       <button
                         key={genre}
                         type="button"
                         onClick={() => handleFilterChange("genre", genreValue)}
-                        className={`px-4 py-2.5 text-sm rounded-xl border transition-all duration-200
-                          hover:scale-[1.02] active:scale-[0.98]
-                          ${isActive
-                            ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
-                            : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
-                          }`}
+                        className={`px-3.5 py-2 text-xs sm:text-sm rounded-[14px] border transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                          isActive
+                            ? "liquid-refract bg-white/[0.2] text-white border-white/35 font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                            : "bg-white/[0.04] text-neutral-300 border-white/10 hover:bg-white/10 hover:text-white"
+                        }`}
                       >
                         {genre}
                       </button>
@@ -228,34 +226,22 @@ export default function Filter({
 
           {/* Year Section */}
           <FilterSection title="Year" icon={BsCalendar3}>
-            <div className="space-y-4">
-              <input
-                type="range"
+            <div className="space-y-3">
+              <LiquidSlider
                 min={YEARS[YEARS.length - 1]}
                 max={CURRENT_YEAR}
-                value={filters.year || CURRENT_YEAR}
-                onChange={(e) => handleFilterChange("year", e.target.value)}
-                className="w-full h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer
-                         accent-red-500 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                         [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:shadow-lg
-                         focus:outline-none focus:ring-2 focus:ring-red-500/50"
-                style={{
-                  background: filters.year 
-                    ? `linear-gradient(to right, #ef4444 ${((parseInt(filters.year) - YEARS[YEARS.length - 1]) / (CURRENT_YEAR - YEARS[YEARS.length - 1])) * 100}%, #374151 0%)`
-                    : '#374151'
-                }}
+                value={Number(filters.year) || CURRENT_YEAR}
+                onChange={(val) => handleFilterChange("year", val)}
+                ariaLabel="Release Year"
               />
               <div className="flex justify-between items-center">
-                <span className="text-sm text-gray-500">
+                <span className="text-xs text-neutral-500">
                   {YEARS[YEARS.length - 1]}
                 </span>
-                <span
-                  className="text-sm font-medium px-3 py-1 rounded-full
-                             bg-red-500/10 text-red-500"
-                >
+                <span className="glass-chip text-xs font-medium px-3 py-1 rounded-full text-white">
                   {filters.year || "All Years"}
                 </span>
-                <span className="text-sm text-gray-500">{CURRENT_YEAR}</span>
+                <span className="text-xs text-neutral-500">{CURRENT_YEAR}</span>
               </div>
             </div>
           </FilterSection>
@@ -264,21 +250,20 @@ export default function Filter({
           <FilterSection title="Sort By" icon={TbArrowsSort}>
             <div className="grid grid-cols-2 gap-2">
               {SORT_OPTIONS.map(({ value, label, icon: Icon }) => {
-                const isActive = isFilterActive('sort', value);
+                const isActive = isFilterActive("sort", value);
                 return (
                   <button
                     key={value}
                     type="button"
                     onClick={() => handleFilterChange("sort", value)}
-                    className={`px-4 py-2.5 text-sm rounded-xl border flex items-center gap-2
-                      transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]
-                      ${isActive
-                        ? "bg-red-500/10 text-red-500 border-red-500/30 shadow-lg shadow-red-500/10"
-                        : "bg-gray-800/30 text-gray-300 border-gray-700/50 hover:bg-gray-700/50 hover:text-white"
-                      }`}
+                    className={`px-3 py-2 text-xs sm:text-sm rounded-[14px] border flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] ${
+                      isActive
+                        ? "liquid-refract bg-white/[0.2] text-white border-white/35 font-semibold shadow-[inset_0_1px_0_rgba(255,255,255,0.45)]"
+                        : "bg-white/[0.04] text-neutral-300 border-white/10 hover:bg-white/10 hover:text-white"
+                    }`}
                   >
-                    <Icon className="w-4 h-4" />
-                    {label}
+                    <Icon className="w-3.5 h-3.5 shrink-0" />
+                    <span className="truncate">{label}</span>
                   </button>
                 );
               })}
@@ -289,12 +274,11 @@ export default function Filter({
 
       {/* Mobile Action Bar */}
       {isMobile && (
-        <div className="sticky bottom-0 p-4 border-t border-gray-800/50 bg-[#141414]">
+        <div className="sticky bottom-0 p-4 border-t border-white/10 backdrop-blur-md bg-ink-950/40">
           <button
             type="button"
             onClick={handleApply}
-            className="w-full py-3 px-4 bg-red-600 hover:bg-red-700 
-                     text-white font-medium rounded-xl transition-colors"
+            className="btn-primary w-full py-3 px-4 text-sm"
           >
             Apply Filters
           </button>

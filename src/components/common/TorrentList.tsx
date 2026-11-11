@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
-import { TorrentItem } from './TorrentItem';
-import { Quality, TorrentInfo } from '../../types/torrent';
-import { FaFilter, FaSort } from 'react-icons/fa';
-import Pagination from './Pagination';
+import React, { useMemo, useState } from "react";
+import { SlidersHorizontal, ArrowUpDown } from "lucide-react";
+import { TorrentItem } from "./TorrentItem";
+import { Quality, TorrentInfo } from "../../types/torrent";
+import Pagination from "./Pagination";
+import { LiquidSegmentedControl } from "./LiquidGlassControls";
 
-type QualityType = '4K' | '1080p' | '720p' | '480p' | 'all';
+type QualityType = "4K" | "1080p" | "720p" | "480p" | "all";
 
 interface TorrentListProps {
   torrents: TorrentInfo[];
@@ -15,6 +16,24 @@ interface TorrentListProps {
   onMagnetDownload: (torrent: TorrentInfo) => void;
 }
 
+const normalizeQuality = (quality: string): string => {
+  const q = quality.toLowerCase();
+  if (q.includes("2160") || q.includes("4k")) return "4K";
+  if (q.includes("1080")) return "1080p";
+  if (q.includes("720")) return "720p";
+  if (q.includes("480")) return "480p";
+  return quality;
+};
+
+const QUALITY_ORDER: Record<string, number> = {
+  "4K": 5,
+  "2160p": 5,
+  "1080p": 4,
+  "720p": 3,
+  "480p": 2,
+  all: 1,
+};
+
 export const TorrentList: React.FC<TorrentListProps> = ({
   torrents,
   currentPage,
@@ -23,120 +42,112 @@ export const TorrentList: React.FC<TorrentListProps> = ({
   onDownload,
   onMagnetDownload,
 }) => {
-  const [sortBy, setSortBy] = useState<'seeds' | 'quality'>('seeds');
-  const [qualityFilter, setQualityFilter] = useState<Quality>('all');
+  const [sortBy, setSortBy] = useState<"seeds" | "quality">("seeds");
+  const [qualityFilter, setQualityFilter] = useState<Quality>("all");
 
-  const qualities: Quality[] = ['4K', '1080p', '720p', '480p', 'all'];
+  const qualities: Quality[] = ["all", "4K", "1080p", "720p", "480p"];
 
-  // Normalize quality for comparison
-  const normalizeQuality = (quality: string): string => {
-    quality = quality.toLowerCase();
-    if (quality.includes('2160') || quality.includes('4k')) return '4K';
-    if (quality.includes('1080')) return '1080p';
-    if (quality.includes('720')) return '720p';
-    if (quality.includes('480')) return '480p';
-    return quality;
-  };
-
-  // Updated quality priority mapping
-  const qualityOrder: Record<string, number> = {
-    '4K': 5,
-    '2160p': 5,
-    '1080p': 4,
-    '720p': 3,
-    '480p': 2,
-    'all': 1,
-  };
-
-  // Updated sorting logic
-  const sortedTorrents = [...torrents].sort((a, b) => {
-    if (sortBy === 'seeds') {
-      const seedsA = Number(a.seeds) || 0;
-      const seedsB = Number(b.seeds) || 0;
-      return seedsB - seedsA;
-    } else {
-      const qualityA = normalizeQuality(a.quality);
-      const qualityB = normalizeQuality(b.quality);
-      return (qualityOrder[qualityB] || 0) - (qualityOrder[qualityA] || 0);
+  const qualityCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: torrents.length };
+    for (const t of torrents) {
+      const nq = normalizeQuality(t.quality);
+      counts[nq] = (counts[nq] || 0) + 1;
     }
-  });
+    return counts;
+  }, [torrents]);
 
-  // Updated filter logic
-  const filteredTorrents = sortedTorrents.filter(torrent => {
-    if (qualityFilter === 'all') return true;
-    return normalizeQuality(torrent.quality) === normalizeQuality(qualityFilter);
-  });
+  const sortedTorrents = useMemo(() => {
+    return [...torrents].sort((a, b) => {
+      if (sortBy === "seeds") {
+        return (Number(b.seeds) || 0) - (Number(a.seeds) || 0);
+      }
+      const qA = normalizeQuality(a.quality);
+      const qB = normalizeQuality(b.quality);
+      return (QUALITY_ORDER[qB] || 0) - (QUALITY_ORDER[qA] || 0);
+    });
+  }, [torrents, sortBy]);
 
-  // Calculate pagination
+  const filteredTorrents = useMemo(() => {
+    if (qualityFilter === "all") return sortedTorrents;
+    return sortedTorrents.filter(
+      (t) => normalizeQuality(t.quality) === normalizeQuality(qualityFilter)
+    );
+  }, [sortedTorrents, qualityFilter]);
+
   const indexOfLastItem = currentPage * itemsPerPage;
   const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  const currentTorrents = filteredTorrents.slice(indexOfFirstItem, indexOfLastItem);
+  const currentTorrents = filteredTorrents.slice(
+    indexOfFirstItem,
+    indexOfLastItem
+  );
 
-  // Reset to first page when filter/sort changes
   const handleFilterChange = (quality: string) => {
     setQualityFilter(quality as QualityType);
     onPageChange(1);
   };
 
-  const handleSortChange = (sort: 'seeds' | 'quality') => {
+  const handleSortChange = (sort: "seeds" | "quality") => {
     setSortBy(sort);
     onPageChange(1);
   };
 
   return (
     <div className="w-full space-y-4">
-      {/* Filters and Sort */}
-      <div className="flex flex-wrap items-center justify-between gap-4 p-4 
-                    bg-[#1a1a1a]/90 backdrop-blur-lg border border-gray-800/50 rounded-xl">
+      {/* Frosted Controls Bar */}
+      <div className="glass-chip flex flex-col lg:flex-row lg:items-center justify-between gap-4 p-3.5 sm:p-4 rounded-[22px]">
         {/* Quality Filter */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-gray-400">
-            <FaFilter className="w-4 h-4 text-red-500" />
-            <span className="text-sm">Quality:</span>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-neutral-400 text-xs sm:text-sm font-medium">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-300" />
+            <span>Quality</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {qualities.map(quality => (
-              <button
-                key={quality}
-                onClick={() => handleFilterChange(quality)}
-                className={`px-3 py-1.5 text-sm rounded-xl transition-all duration-200 border ${
-                  qualityFilter === quality
-                    ? 'bg-red-500/10 text-red-500 border-red-500/30'
-                    : 'bg-gray-800/30 text-gray-400 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
-                }`}
-              >
-                {quality.toUpperCase()}
-              </button>
-            ))}
-          </div>
+          <LiquidSegmentedControl<Quality>
+            layoutId="torrent-quality-lens"
+            value={qualityFilter}
+            onChange={(q) => handleFilterChange(q)}
+            options={qualities.map((quality) => {
+              const count = qualityCounts[quality] || 0;
+              return {
+                value: quality,
+                label: quality === "all" ? "All" : quality,
+                count,
+                disabled: quality !== "all" && count === 0,
+              };
+            })}
+          />
         </div>
 
         {/* Sort Options */}
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-2 text-gray-400">
-            <FaSort className="w-4 h-4 text-red-500" />
-            <span className="text-sm">Sort by:</span>
+        <div className="flex items-center gap-2.5 self-start lg:self-auto">
+          <div className="flex items-center gap-1.5 text-neutral-400 text-xs sm:text-sm font-medium">
+            <ArrowUpDown className="w-3.5 h-3.5 text-neutral-300" />
+            <span>Sort</span>
           </div>
-          <div className="flex gap-2">
-            {['seeds', 'quality'].map((sortOption) => (
-              <button
-                key={sortOption}
-                onClick={() => handleSortChange(sortOption as 'seeds' | 'quality')}
-                className={`px-3 py-1.5 text-sm rounded-xl transition-all duration-200 border ${
-                  sortBy === sortOption
-                    ? 'bg-red-500/10 text-red-500 border-red-500/30'
-                    : 'bg-gray-800/30 text-gray-400 border-gray-700/50 hover:bg-gray-700/50 hover:text-white'
-                }`}
-              >
-                {sortOption.charAt(0).toUpperCase() + sortOption.slice(1)}
-              </button>
-            ))}
-          </div>
+          <LiquidSegmentedControl<"seeds" | "quality">
+            layoutId="torrent-sort-lens"
+            value={sortBy}
+            onChange={handleSortChange}
+            options={[
+              { value: "seeds", label: "Fastest" },
+              { value: "quality", label: "Quality" },
+            ]}
+          />
         </div>
       </div>
 
-      {/* Torrent List */}
-      <div className="space-y-2">
+      {/* Release Summary */}
+      <div className="flex items-center justify-between px-1 text-xs text-neutral-400">
+        <span>
+          {filteredTorrents.length}{" "}
+          {filteredTorrents.length === 1 ? "release" : "releases"} available
+        </span>
+        <span className="hidden sm:inline">
+          Recommended options have strong active seed counts
+        </span>
+      </div>
+
+      {/* Torrent Rows */}
+      <div className="space-y-2.5">
         {currentTorrents.length > 0 ? (
           currentTorrents.map((torrent, index) => (
             <TorrentItem
@@ -144,19 +155,29 @@ export const TorrentList: React.FC<TorrentListProps> = ({
               torrent={torrent}
               onDownload={onDownload}
               onMagnetDownload={onMagnetDownload}
+              isRecommended={
+                currentPage === 1 &&
+                index === 0 &&
+                sortBy === "seeds" &&
+                (Number(torrent.seeds) || 0) >= 20
+              }
             />
           ))
         ) : (
-          <div className="flex items-center justify-center p-8 text-gray-400 
-                        bg-[#1a1a1a]/90 backdrop-blur-lg border border-gray-800/50 rounded-xl">
-            <p>No torrents found matching your criteria</p>
+          <div className="glass-chip flex flex-col items-center justify-center p-8 text-center rounded-[22px]">
+            <p className="text-sm font-medium text-neutral-200">
+              No releases found for {qualityFilter}
+            </p>
+            <p className="text-xs text-neutral-400 mt-1">
+              Try selecting “All” to see every available quality.
+            </p>
           </div>
         )}
       </div>
 
       {/* Pagination */}
       {filteredTorrents.length > itemsPerPage && (
-        <div className="flex justify-center pt-4">
+        <div className="pt-2">
           <Pagination
             currentPage={currentPage}
             totalItems={filteredTorrents.length}

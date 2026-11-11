@@ -37,13 +37,13 @@ function Blog() {
 
   // Skeleton Components
   const NewsArticleSkeleton = () => (
-    <article className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-6 animate-pulse">
+    <article className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-6 animate-pulse">
       <div className="flex items-start gap-4">
         <Skeleton
           variant="rectangular"
           width={96}
           height={96}
-          sx={{ bgcolor: '#2b2b2b', borderRadius: 1 }}
+          sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
         />
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-2">
@@ -51,44 +51,44 @@ function Blog() {
               variant="text"
               width={100}
               height={16}
-              sx={{ bgcolor: '#2b2b2b' }}
+              sx={{ bgcolor: '#1C1C1F' }}
             />
             <Skeleton
               variant="text"
               width={4}
               height={16}
-              sx={{ bgcolor: '#2b2b2b' }}
+              sx={{ bgcolor: '#1C1C1F' }}
             />
             <Skeleton
               variant="text"
               width={80}
               height={16}
-              sx={{ bgcolor: '#2b2b2b' }}
+              sx={{ bgcolor: '#1C1C1F' }}
             />
           </div>
           <Skeleton
             variant="text"
             width="85%"
             height={24}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
           <Skeleton
             variant="text"
             width="100%"
             height={20}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
           <Skeleton
             variant="text"
             width="75%"
             height={20}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
           <Skeleton
             variant="text"
             width={120}
             height={16}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
         </div>
       </div>
@@ -96,40 +96,40 @@ function Blog() {
   );
 
   const TrendingMovieSkeleton = () => (
-    <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 animate-pulse">
+    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
       <div className="flex items-start gap-3">
         <Skeleton
           variant="rectangular"
           width={60}
           height={90}
-          sx={{ bgcolor: '#2b2b2b', borderRadius: 1 }}
+          sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
         />
         <div className="flex-1 space-y-2">
           <Skeleton
             variant="text"
             width="90%"
             height={18}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
           <div className="flex items-center gap-1">
             <Skeleton
               variant="rectangular"
               width={16}
               height={16}
-              sx={{ bgcolor: '#2b2b2b' }}
+              sx={{ bgcolor: '#1C1C1F' }}
             />
             <Skeleton
               variant="text"
               width={30}
               height={14}
-              sx={{ bgcolor: '#2b2b2b' }}
+              sx={{ bgcolor: '#1C1C1F' }}
             />
           </div>
           <Skeleton
             variant="text"
             width="70%"
             height={14}
-            sx={{ bgcolor: '#2b2b2b' }}
+            sx={{ bgcolor: '#1C1C1F' }}
           />
         </div>
       </div>
@@ -137,7 +137,7 @@ function Blog() {
   );
 
   const BlogLoadingSkeleton = () => (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <div className="relative">
         {/* Hero Section Skeleton */}
         <div className="relative px-4 py-16 md:px-8 lg:px-16">
@@ -149,19 +149,19 @@ function Blog() {
                 variant="circular"
                 width={64}
                 height={64}
-                sx={{ bgcolor: '#2b2b2b', mx: 'auto' }}
+                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
               />
               <Skeleton
                 variant="text"
                 width={400}
                 height={72}
-                sx={{ bgcolor: '#2b2b2b', mx: 'auto' }}
+                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
               />
               <Skeleton
                 variant="text"
                 width={600}
                 height={24}
-                sx={{ bgcolor: '#2b2b2b', mx: 'auto' }}
+                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
               />
             </div>
 
@@ -175,19 +175,19 @@ function Blog() {
                     variant="rectangular"
                     width={24}
                     height={24}
-                    sx={{ bgcolor: '#2b2b2b' }}
+                    sx={{ bgcolor: '#1C1C1F' }}
                   />
                   <Skeleton
                     variant="text"
                     width={200}
                     height={32}
-                    sx={{ bgcolor: '#2b2b2b' }}
+                    sx={{ bgcolor: '#1C1C1F' }}
                   />
                   <Skeleton
                     variant="circular"
                     width={20}
                     height={20}
-                    sx={{ bgcolor: '#2b2b2b' }}
+                    sx={{ bgcolor: '#1C1C1F' }}
                   />
                 </div>
                 
@@ -206,7 +206,7 @@ function Blog() {
                         variant="rectangular"
                         width={40}
                         height={40}
-                        sx={{ bgcolor: '#2b2b2b', borderRadius: 1 }}
+                        sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
                       />
                     ))}
                   </div>
@@ -222,13 +222,13 @@ function Blog() {
                       variant="rectangular"
                       width={24}
                       height={24}
-                      sx={{ bgcolor: '#2b2b2b' }}
+                      sx={{ bgcolor: '#1C1C1F' }}
                     />
                     <Skeleton
                       variant="text"
                       width={150}
                       height={32}
-                      sx={{ bgcolor: '#2b2b2b' }}
+                      sx={{ bgcolor: '#1C1C1F' }}
                     />
                   </div>
                   
@@ -240,12 +240,12 @@ function Blog() {
                 </div>
 
                 {/* Additional Sidebar Content Skeleton */}
-                <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-6">
+                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
                   <Skeleton
                     variant="text"
                     width={120}
                     height={24}
-                    sx={{ bgcolor: '#2b2b2b', mb: 3 }}
+                    sx={{ bgcolor: '#1C1C1F', mb: 3 }}
                   />
                   <div className="space-y-2">
                     {[...Array(4)].map((_, i) => (
@@ -254,7 +254,7 @@ function Blog() {
                         variant="text"
                         width={`${90 - i * 10}%`}
                         height={16}
-                        sx={{ bgcolor: '#2b2b2b' }}
+                        sx={{ bgcolor: '#1C1C1F' }}
                       />
                     ))}
                   </div>
@@ -372,7 +372,7 @@ function Blog() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <div className="relative">
         {/* Hero Section */}
         <div className="relative px-4 py-16 md:px-8 lg:px-16">
@@ -380,7 +380,7 @@ function Blog() {
             
             {/* Header */}
             <div className="text-center mb-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-full mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-full mb-6">
                 <Newspaper className="w-8 h-8 text-white" />
               </div>
               
@@ -388,7 +388,7 @@ function Blog() {
                 Movie Zone Blog
               </h1>
               
-              <p className="text-xl text-zinc-300 max-w-2xl mx-auto">
+              <p className="text-xl text-neutral-300 max-w-2xl mx-auto">
                 Stay updated with the latest movie news, reviews, and industry insights
               </p>
             </div>
@@ -399,10 +399,10 @@ function Blog() {
               {/* Movie News Section */}
               <div className="lg:col-span-2">
                 <h2 className="text-2xl font-bold text-white mb-6 flex items-center gap-3">
-                  <Newspaper className="w-6 h-6 text-red-500" />
+                  <Newspaper className="w-6 h-6 text-brand-500" />
                   Latest Movie News
                   {newsLoading && (
-                    <div className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-5 h-5 border-2 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
                   )}
                 </h2>
                 
@@ -416,7 +416,7 @@ function Blog() {
                   <>
                     <div className="space-y-6">
                       {paginatedNews.map((article, index) => (
-                        <article key={index} className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-6 hover:border-red-600 transition-all duration-300">
+                        <article key={index} className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-6 hover:border-brand-600 transition-all duration-300">
                           <div className="flex items-start gap-4">
                             {article.urlToImage && (
                               <img
@@ -429,17 +429,17 @@ function Blog() {
                               />
                             )}
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-2 text-sm text-zinc-400">
-                                <span className="font-medium text-red-500">{article.source.name}</span>
+                              <div className="flex items-center gap-2 mb-2 text-sm text-neutral-400">
+                                <span className="font-medium text-brand-500">{article.source.name}</span>
                                 <span>•</span>
                                 <span>{new Date(article.publishedAt).toLocaleDateString()}</span>
                               </div>
                               
-                              <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 hover:text-red-400 transition-colors">
+                              <h3 className="text-lg font-semibold text-white mb-2 line-clamp-2 hover:text-brand-400 transition-colors">
                                 {article.title}
                               </h3>
                               
-                              <p className="text-zinc-300 text-sm line-clamp-2 mb-3">
+                              <p className="text-neutral-300 text-sm line-clamp-2 mb-3">
                                 {article.description}
                               </p>
                               
@@ -447,7 +447,7 @@ function Blog() {
                                 href={article.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1 text-red-500 hover:text-red-400 transition-colors text-sm font-medium"
+                                className="inline-flex items-center gap-1 text-brand-500 hover:text-brand-400 transition-colors text-sm font-medium"
                               >
                                 Read Full Article
                                 <ExternalLink className="w-3 h-3" />
@@ -471,10 +471,10 @@ function Blog() {
                     )}
                   </>
                 ) : (
-                  <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-8 text-center">
-                    <Newspaper className="w-12 h-12 text-zinc-600 mx-auto mb-4" />
-                    <p className="text-zinc-400 mb-2">No movie news available at the moment.</p>
-                    <p className="text-zinc-500 text-sm">Check back later for the latest updates!</p>
+                  <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-8 text-center">
+                    <Newspaper className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                    <p className="text-neutral-400 mb-2">No movie news available at the moment.</p>
+                    <p className="text-neutral-500 text-sm">Check back later for the latest updates!</p>
                   </div>
                 )}
               </div>
@@ -484,7 +484,7 @@ function Blog() {
                 {/* Trending Movies */}
                 <div>
                   <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                    <TrendingUp className="w-5 h-5 text-red-500" />
+                    <TrendingUp className="w-5 h-5 text-brand-500" />
                     Trending Movies
                   </h3>
                   
@@ -493,7 +493,7 @@ function Blog() {
                       <Link
                         key={movie.id}
                         to={`/info/movie/${movie.id}`}
-                        className="flex items-start gap-3 p-4 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:border-red-600 transition-all duration-300 group"
+                        className="flex items-start gap-3 p-4 bg-neutral-900/50 border border-neutral-800 rounded-lg hover:border-brand-600 transition-all duration-300 group"
                       >
                         <div className="relative flex-shrink-0">
                           <img
@@ -510,18 +510,18 @@ function Blog() {
                         </div>
                         
                         <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-white group-hover:text-red-400 transition-colors line-clamp-2 mb-1">
+                          <h4 className="font-semibold text-white group-hover:text-brand-400 transition-colors line-clamp-2 mb-1">
                             {movie.title}
                           </h4>
                           
                           <div className="flex items-center gap-1 mb-2">
                             <Star className="w-3 h-3 text-yellow-500" />
-                            <span className="text-xs text-zinc-400">
+                            <span className="text-xs text-neutral-400">
                               {movie.vote_average.toFixed(1)}
                             </span>
                           </div>
                           
-                          <p className="text-xs text-zinc-500 line-clamp-2">
+                          <p className="text-xs text-neutral-500 line-clamp-2">
                             {new Date(movie.release_date).getFullYear()}
                           </p>
                         </div>
@@ -531,9 +531,9 @@ function Blog() {
                 </div>
 
                 {/* Additional Info Box */}
-                <div className="bg-zinc-900/30 border border-zinc-800 rounded-lg p-6">
+                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
                   <h4 className="text-lg font-semibold text-white mb-4">About Movie Zone</h4>
-                  <p className="text-zinc-400 text-sm leading-relaxed">
+                  <p className="text-neutral-400 text-sm leading-relaxed">
                     Your ultimate destination for the latest movie news, reviews, and entertainment updates. 
                     Stay connected with Hollywood's biggest stories and trending films.
                   </p>

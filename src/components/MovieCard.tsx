@@ -88,13 +88,13 @@ export function MovieCard({
 
   return (
     <div
-      className="aspect-[2/3] w-full relative rounded-md overflow-hidden cursor-pointer transition-transform duration-300 ease-in-out hover:z-20 hover:scale-105"
+      className="group aspect-[2/3] w-full relative rounded-[20px] overflow-hidden cursor-pointer bg-neutral-900 ring-1 ring-white/15 transition-transform duration-300 ease-ios hover:z-20 hover:-translate-y-1.5 hover:scale-[1.03] hover:ring-white/40 hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)] will-change-transform"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleCardClick}
     >
       {!isLoaded && (
-        <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
+        <div className="absolute inset-0 bg-white/[0.06] animate-pulse rounded-[20px]" />
       )}
 
       <img
@@ -104,40 +104,42 @@ export function MovieCard({
         decoding="async"
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
-        className={`rounded-md object-cover w-full h-full transition-all duration-300 
-                   ${isHovered ? "scale-105 brightness-75" : ""}
+        className={`object-cover w-full h-full transition-transform duration-500 ease-ios
+                   ${isHovered ? "scale-105" : "scale-100"}
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
 
+      {/* Subtle top-edge glass reflection */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+
       <div
-        className={`absolute inset-0 flex flex-col justify-between p-2 sm:p-4 
+        className={`absolute inset-0 flex flex-col justify-between p-2.5 sm:p-4 bg-gradient-to-t from-black/95 via-black/45 to-transparent 
                    transition-opacity duration-300 
-                   ${isHovered ? "opacity-100" : "opacity-0 sm:opacity-0"}`}
+                   ${isHovered ? "opacity-100" : "opacity-0"}`}
       >
         <div className="flex items-center gap-2" />
 
-        <div className="flex flex-col gap-1 sm:gap-2">
-          <div className="flex items-center gap-1 sm:gap-2">
+        <div className="flex flex-col gap-1.5 sm:gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             <button
-              className="flex items-center justify-center w-8 h-8 sm:w-10 sm:h-10 rounded-full 
-                       bg-white/90 hover:bg-white transition group-hover:scale-110"
+              className="btn-primary flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full group-hover:scale-105"
               onClick={(e) => {
                 e.stopPropagation();
                 handleCardClick();
               }}
+              aria-label={`Play ${movie.title}`}
             >
-              <FaPlay className="h-3 w-3 sm:h-5 sm:w-5 text-black pl-0.5" />
+              <FaPlay className="h-3 w-3 sm:h-4 sm:w-4 text-neutral-950 pl-0.5" />
             </button>
             {showRemoveButton ? (
               <button
                 onClick={handleRemove}
                 disabled={isUpdating}
-                className="flex items-center justify-center w-10 h-10 rounded-full 
-                         bg-red-600/60 hover:bg-red-600 transition group-hover:scale-110"
+                className="liquid-glass liquid-refract-orb flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full hover:!bg-red-500/75 transition-transform duration-300 ease-spring group-hover:scale-105"
                 title="Remove from list"
               >
                 <XIcon
-                  className={`text-white w-5 h-5 ${
+                  className={`text-white w-4 h-4 sm:w-5 sm:h-5 ${
                     isUpdating ? "opacity-50" : ""
                   }`}
                 />
@@ -146,23 +148,24 @@ export function MovieCard({
               <button
                 onClick={handleListUpdate}
                 disabled={isUpdating}
-                className={`flex items-center justify-center w-10 h-10 rounded-full 
-                         transition group-hover:scale-110
+                className={`liquid-glass liquid-refract-orb flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-full 
+                         transition-transform duration-300 ease-spring group-hover:scale-105
                          ${
                            isInMyList
-                             ? "bg-[#2a2a2a]/60 hover:bg-[#2a2a2a]"
-                             : "bg-red-600/60 hover:bg-red-600"
+                             ? "!bg-white/25"
+                             : ""
                          }`}
+                title={isInMyList ? "In My List" : "Add to My List"}
               >
                 {isInMyList ? (
                   <FaCheck
-                    className={`text-white text-sm ${
+                    className={`text-white text-xs sm:text-sm ${
                       isUpdating ? "opacity-50" : ""
                     }`}
                   />
                 ) : (
                   <FaPlus
-                    className={`text-white text-sm ${
+                    className={`text-white text-xs sm:text-sm ${
                       isUpdating ? "opacity-50" : ""
                     }`}
                   />
@@ -171,7 +174,7 @@ export function MovieCard({
             )}
           </div>
           <h3
-            className="text-sm sm:text-base text-white font-semibold drop-shadow-lg 
+            className="font-display text-sm sm:text-base text-white font-semibold drop-shadow-lg 
                        line-clamp-1 sm:line-clamp-2"
           >
             {movie.title}

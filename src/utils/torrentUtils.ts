@@ -119,3 +119,35 @@ export const sortTorrents = (torrents: TorrentInfo[]): TorrentInfo[] => {
     return (b.trustScore || 0) - (a.trustScore || 0);
   });
 };
+
+export const getTorrentHealth = (seeds: number) => {
+  if (seeds >= 50) {
+    return {
+      label: "Fast",
+      dotClass: "bg-emerald-400",
+      textClass: "text-emerald-300",
+    };
+  }
+  if (seeds >= 15) {
+    return {
+      label: "Good",
+      dotClass: "bg-sky-400",
+      textClass: "text-sky-300",
+    };
+  }
+  if (seeds >= 1) {
+    return {
+      label: "Slow",
+      dotClass: "bg-amber-400",
+      textClass: "text-amber-300",
+    };
+  }
+  return {
+    label: "Inactive",
+    dotClass: "bg-neutral-500",
+    textClass: "text-neutral-400",
+  };
+};
+
+export const formatTorrentQuality = (quality?: string) =>
+  quality?.toLowerCase() === "2160p" ? "4K UHD" : quality || "Standard";

@@ -234,11 +234,11 @@ export const MovieProcess = ({
 
   if (unreachable) {
     return (
-      <div className="flex flex-col items-center gap-5 p-8 rounded-xl bg-zinc-900/60 border border-zinc-700/50 text-center">
-        <AlertTriangle className="w-10 h-10 text-yellow-500" />
+      <div className="glass-chip flex flex-col items-center gap-5 p-8 rounded-[20px] text-center">
+        <AlertTriangle className="w-10 h-10 text-amber-400" />
         <div>
           <p className="text-white font-semibold text-lg">Download Service Unavailable</p>
-          <p className="text-zinc-400 text-sm mt-1 max-w-sm">
+          <p className="text-neutral-400 text-sm mt-1 max-w-sm">
             All YTS mirror servers are currently unreachable. This may be a
             temporary outage. Try again shortly or search manually.
           </p>
@@ -246,8 +246,7 @@ export const MovieProcess = ({
         <div className="flex flex-wrap justify-center gap-3">
           <button
             onClick={() => setRetryCount((c) => c + 1)}
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700
-                       border border-zinc-600 text-zinc-300 rounded-lg transition-colors text-sm"
+            className="btn-glass px-4 py-2 text-sm"
           >
             <RefreshCw className="w-4 h-4" />
             Retry
@@ -257,8 +256,7 @@ export const MovieProcess = ({
               href={`https://yts.ag/browse-movies/${encodeURIComponent(content.title)}/all/all/0/latest/0/all`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-yellow-500/10 hover:bg-yellow-500/20
-                         border border-yellow-500/30 text-yellow-400 rounded-lg transition-colors text-sm"
+              className="btn-primary px-4 py-2 text-sm"
             >
               <ExternalLink className="w-4 h-4" />
               Search on YTS
@@ -271,11 +269,11 @@ export const MovieProcess = ({
 
   if (notFound) {
     return (
-      <div className="flex flex-col items-center gap-4 p-8 rounded-xl bg-zinc-900/60 border border-zinc-700/50 text-center">
-        <Download className="w-10 h-10 text-zinc-500" />
+      <div className="glass-chip flex flex-col items-center gap-4 p-8 rounded-[20px] text-center">
+        <Download className="w-10 h-10 text-neutral-400" />
         <div>
           <p className="text-white font-semibold text-lg">Not Available on YTS</p>
-          <p className="text-zinc-400 text-sm mt-1">
+          <p className="text-neutral-400 text-sm mt-1">
             This title isn't indexed on YTS yet.
           </p>
         </div>
@@ -284,8 +282,7 @@ export const MovieProcess = ({
             href={`https://yts.ag/browse-movies/${encodeURIComponent(content.title)}/all/all/0/latest/0/all`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700
-                       border border-zinc-600 text-zinc-300 rounded-lg transition-colors text-sm"
+            className="btn-glass px-4 py-2 text-sm"
           >
             <ExternalLink className="w-4 h-4" />
             Search "{content.title}" on YTS

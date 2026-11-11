@@ -105,7 +105,7 @@ function Search() {
 
   if (loading) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#141414] px-2 py-6 md:px-3 lg:px-4">
+      <div className="mt-[68px] min-h-screen bg-[#060608] px-2 py-6 md:px-3 lg:px-4">
         <h1 className="text-3xl font-bold mb-4 text-white">
           {results.length > 0
             ? `Search results for "${query}"`
@@ -115,22 +115,22 @@ function Search() {
           {Array.from({ length: 10 }).map((_, index) => (
             <div
               key={index}
-              className="relative group flex flex-col overflow-hidden rounded-md bg-zinc-900 shadow-md min-h-[220px] h-full"
+              className="relative group flex flex-col overflow-hidden rounded-md bg-neutral-900 shadow-md min-h-[220px] h-full"
               style={{ willChange: "transform" }}
             >
-              <div className="relative w-full aspect-[2/3] bg-zinc-800">
+              <div className="relative w-full aspect-[2/3] bg-neutral-800">
                 <Skeleton
                   variant="rectangular"
                   width="100%"
                   height="100%"
-                  sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+                  sx={{ bgcolor: "#141417", borderRadius: 1 }}
                   style={{ aspectRatio: "2 / 3" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4">
                   <Skeleton
                     variant="text"
                     width="60%"
-                    sx={{ bgcolor: "#1f1f1f" }}
+                    sx={{ bgcolor: "#141417" }}
                   />
                 </div>
               </div>
@@ -142,7 +142,7 @@ function Search() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414] px-2 py-6 md:px-3 lg:px-4">
+    <div className="mt-[68px] min-h-screen bg-[#060608] px-2 py-6 md:px-3 lg:px-4">
       <h1 className="text-3xl font-bold mb-4 text-white">
         {results.length > 0
           ? companyId && totalResults
@@ -156,13 +156,13 @@ function Search() {
         {results.map((result) => (
           <div
             key={result.id}
-            className="relative group flex flex-col overflow-hidden rounded-md bg-zinc-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
+            className="relative group flex flex-col overflow-hidden rounded-md bg-neutral-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
             onMouseEnter={() => setHoveredId(result.id)}
             onMouseLeave={() => setHoveredId(null)}
             onClick={() => handleNavigateToInfo(result)}
             style={{ willChange: "transform" }}
           >
-            <div className="relative w-full aspect-[2/3] bg-zinc-800">
+            <div className="relative w-full aspect-[2/3] bg-neutral-800">
               <img
                 src={getImageUrl(result)}
                 alt={result.title || result.name}
@@ -182,7 +182,7 @@ function Search() {
                 }}
               />
               {!isLoaded && (
-                <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
+                <div className="absolute inset-0 bg-neutral-900 animate-pulse rounded-md" />
               )}
               <div
                 className={`absolute inset-0 flex flex-col justify-end p-2 md:p-4 transition-opacity duration-300 ${
@@ -221,7 +221,7 @@ function Search() {
       {companyId && totalResults && results.length < totalResults && (
         <div className="flex justify-center mt-6">
           <button
-            className="px-6 py-2 rounded bg-red-600 text-white font-semibold hover:bg-red-700 transition disabled:opacity-60"
+            className="px-6 py-2 rounded bg-brand-600 text-white font-semibold hover:bg-brand-700 transition disabled:opacity-60"
             onClick={handleLoadMore}
             disabled={loadingMore}
           >

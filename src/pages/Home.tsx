@@ -11,13 +11,13 @@ const Home = () => {
   }, []);
   
   return (
-    <div className="relative h-screen">
+    <div className="relative min-h-screen">
       {/* Banner Section */}
       <Banner fetchUrl={requests.fetchNetflixOriginals} />
 
       {/* Main Content */}
-      <main className="relative z-10 -mt-[55px] pb-6 md:pb-12 lg:-mt-[100px] lg:space-y-16">
-        <section className="space-y-6 md:space-y-12">
+      <main className="relative z-10 -mt-[55px] pb-12 md:pb-16 lg:-mt-[100px] lg:space-y-12">
+        <section className="space-y-4 md:space-y-8">
           <Row title="Netflix Originals" fetchUrl={requests.fetchNetflixOriginals} />
           <Row title="Trending Now" fetchUrl={requests.fetchTrending} />
           <Row title="Top Rated TV" fetchUrl={requests.fetchTopRatedTV} />
@@ -29,9 +29,6 @@ const Home = () => {
           <Row title="Documentaries" fetchUrl={requests.fetchDocumentaries} />
         </section>
       </main>
-
-      {/* Background Gradient */}
-      <div className="absolute inset-0 bg-gradient-to-t from-[#010511] via-gray-900/90 to-transparent -z-10" />
     </div>
   );
 };

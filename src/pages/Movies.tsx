@@ -230,13 +230,13 @@ function Movies() {
                   variant="rectangular"
                   width="100%"
                   height="100%"
-                  sx={{ bgcolor: "#1f1f1f" }}
+                  sx={{ bgcolor: "#141417" }}
                 />
                 <div className="absolute bottom-0 left-0 right-0 p-4">
                   <Skeleton
                     variant="text"
                     width="60%"
-                    sx={{ bgcolor: "#1f1f1f" }}
+                    sx={{ bgcolor: "#141417" }}
                   />
                 </div>
               </div>
@@ -261,10 +261,10 @@ function Movies() {
   );
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
         {error && (
-          <div className="bg-red-500 text-white px-4 py-2 rounded mb-4">
+          <div className="bg-brand-500 text-white px-4 py-2 rounded mb-4">
             {error}
           </div>
         )}
@@ -275,13 +275,13 @@ function Movies() {
               variant="rectangular"
               width={200}
               height={40}
-              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+              sx={{ bgcolor: "#141417", borderRadius: 1 }}
             />
             <Skeleton
               variant="rectangular"
               width={100}
               height={40}
-              sx={{ bgcolor: "#1f1f1f", borderRadius: 1 }}
+              sx={{ bgcolor: "#141417", borderRadius: 1 }}
             />
           </div>
         ) : (

@@ -69,8 +69,8 @@ export function Contact() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3 pb-4 border-b border-zinc-800">
-        <MessageSquare className="w-6 h-6 text-red-500" />
+      <div className="flex items-center gap-3 pb-4 border-b border-neutral-800">
+        <MessageSquare className="w-6 h-6 text-brand-500" />
         <h2 className="text-xl font-semibold text-white">Contact Us</h2>
       </div>
 
@@ -95,7 +95,7 @@ export function Contact() {
                   onChange={(e) =>
                     setFormData((prev) => ({ ...prev, name: e.target.value }))
                   }
-                  className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+                  className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500"
                   placeholder="Your name"
                 />
               </div>
@@ -117,7 +117,7 @@ export function Contact() {
                       email: e.target.value,
                     }))
                   }
-                  className="w-full pl-10 pr-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+                  className="w-full pl-10 pr-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500"
                   placeholder="your@email.com"
                 />
               </div>
@@ -135,7 +135,7 @@ export function Contact() {
               onChange={(e) =>
                 setFormData((prev) => ({ ...prev, subject: e.target.value }))
               }
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+              className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500"
               placeholder="Message subject"
             />
           </div>
@@ -151,7 +151,7 @@ export function Contact() {
                 setFormData((prev) => ({ ...prev, message: e.target.value }))
               }
               rows={5}
-              className="w-full px-4 py-2 bg-zinc-800 border border-zinc-700 rounded-md text-white placeholder-gray-400 focus:border-red-500 focus:ring-red-500"
+              className="w-full px-4 py-2 bg-neutral-800 border border-neutral-700 rounded-md text-white placeholder-gray-400 focus:border-brand-500 focus:ring-brand-500"
               placeholder="Your message..."
             />
           </div>
@@ -160,7 +160,7 @@ export function Contact() {
             <button
               type="submit"
               disabled={status === "loading"}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {status === "loading" ? (
                 <>
@@ -184,7 +184,7 @@ export function Contact() {
           )}
 
           {status === "error" && (
-            <div className="p-4 bg-red-500/10 border border-red-500 text-red-500 rounded-md">
+            <div className="p-4 bg-brand-500/10 border border-brand-500 text-brand-500 rounded-md">
               {errorMessage}
             </div>
           )}

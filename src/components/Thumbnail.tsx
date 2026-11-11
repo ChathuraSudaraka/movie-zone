@@ -61,23 +61,22 @@ function Thumbnail({ movie, viewMode }: Props) {
 
   if (viewMode === "list") {
     return (
-      <div className="group relative bg-zinc-900/80 rounded-xl overflow-hidden transition-all duration-300
-                     border border-zinc-800/50 hover:border-zinc-700/50 hover:bg-zinc-900/90
-                     hover:shadow-xl hover:shadow-black/20">
+      <div className="group relative rounded-[24px] overflow-hidden transition-transform duration-300 ease-ios
+                     glass-chip hover:border-white/30 hover:-translate-y-0.5">
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4">
           {/* Movie Poster */}
           <div className="relative h-[300px] sm:h-[200px] w-full sm:w-[140px] 
-                         rounded-lg overflow-hidden sm:flex-shrink-0">
+                         rounded-[18px] overflow-hidden sm:flex-shrink-0 ring-1 ring-white/10">
             <img
               src={imageUrl}
               alt={movie.title}
-              className="h-full w-full object-cover transition-transform duration-300 
+              className="h-full w-full object-cover transition-transform duration-500 ease-ios
                          group-hover:scale-105"
               onError={() => setImgError(true)}
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-sm bg-black/60 px-2 py-1 rounded-md">
-              <BiTime className="w-4 h-4" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
+            <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs glass-chip px-2.5 py-1 rounded-full">
+              <BiTime className="w-3.5 h-3.5" />
               {runtime ? (
                 <span>{Math.floor(runtime / 60)}h {runtime % 60}m</span>
               ) : (
@@ -90,35 +89,34 @@ function Thumbnail({ movie, viewMode }: Props) {
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h2 className="text-lg sm:text-xl font-bold text-white group-hover:text-red-500 
+                <h2 className="font-display text-lg sm:text-xl font-bold text-white/95 group-hover:text-white 
                              transition-colors line-clamp-1">
                   {movie.title}
                 </h2>
-                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-sm text-gray-400">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-sm text-neutral-400">
                   {movie.release_date && <span>{formatYear(movie.release_date)}</span>}
-                  <span className="w-1 h-1 rounded-full bg-gray-600 hidden sm:block" />
+                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
                   <div className="flex items-center gap-1">
-                    <BsStarFill className="w-4 h-4 text-yellow-500" />
-                    <span className="font-medium">{movie.vote_average?.toFixed(1)}</span>
+                    <BsStarFill className="w-3.5 h-3.5 text-amber-400" />
+                    <span className="font-medium text-white/90">{movie.vote_average?.toFixed(1)}</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <p className="mt-3 sm:mt-4 text-sm text-gray-300 line-clamp-2 sm:line-clamp-3">
+            <p className="mt-3 sm:mt-4 text-sm text-neutral-300 line-clamp-2 sm:line-clamp-3 leading-relaxed">
               {movie.overview}
             </p>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 sm:mt-6">
               <button 
-                className="flex items-center gap-2 px-4 sm:px-6 py-2 sm:py-2.5 rounded-lg 
-                         bg-red-600 text-white hover:bg-red-700 transition-colors 
-                         text-sm sm:text-base font-medium"
+                className="btn-primary shine px-5 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleClick();
                 }}
               >
+                <span className="shine-bar" />
                 <BsPlayFill className="w-5 h-5" />
                 Watch Now
               </button>
@@ -129,8 +127,7 @@ function Thumbnail({ movie, viewMode }: Props) {
               {movie.genre_ids?.slice(0, 3).map((genreId) => (
                 <span 
                   key={genreId}
-                  className="px-2 py-1 text-xs rounded-md bg-gray-800/80 text-gray-400
-                           border border-gray-700/50"
+                  className="px-2.5 py-1 text-xs rounded-full glass-chip text-white/80"
                 >
                   {getGenreName(genreId)}
                 </span>
@@ -144,9 +141,10 @@ function Thumbnail({ movie, viewMode }: Props) {
 
   return (
     <div
-      className="group relative cursor-pointer transition-transform duration-300 ease-in-out
-                 aspect-[2/3] w-full overflow-hidden rounded-md bg-zinc-900/50
-                 hover:z-20 hover:scale-105"
+      className="group relative cursor-pointer transition-transform duration-300 ease-ios
+                 aspect-[2/3] w-full overflow-hidden rounded-[20px] bg-neutral-900
+                 ring-1 ring-white/15 hover:z-20 hover:-translate-y-1.5 hover:scale-[1.03]
+                 hover:ring-white/40 hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)] will-change-transform"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
@@ -158,59 +156,68 @@ function Thumbnail({ movie, viewMode }: Props) {
         decoding="async"
         onError={() => setImgError(true)}
         onLoad={() => setIsLoaded(true)}
-        className={`w-full h-full object-cover transition-all duration-300
-                   ${isHovered ? "scale-105 brightness-[0.3]" : "brightness-90"}
+        className={`w-full h-full object-cover transition-transform duration-500 ease-ios
+                   ${isHovered ? "scale-108" : "scale-100"}
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
 
       {!isLoaded && (
-        <div className="absolute inset-0 bg-zinc-900 animate-pulse rounded-md" />
+        <div className="absolute inset-0 bg-white/[0.06] animate-pulse rounded-[20px]" />
       )}
 
+      {/* Subtle top-edge glass reflection */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+
+      {/* Rating badge (lightweight glass chip — zero backdrop-filter lag in grids) */}
+      {movie.vote_average > 0 && (
+        <div className="glass-chip absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white">
+          <BsStarFill className="h-2.5 w-2.5 text-amber-400" />
+          {movie.vote_average.toFixed(1)}
+        </div>
+      )}
+
+      {/* Hover overlay */}
       <div
-        className={`absolute inset-0 flex flex-col justify-between p-3 transition-opacity duration-300 
+        className={`absolute inset-0 flex flex-col justify-end gap-3 p-3.5 sm:p-4
+                   bg-gradient-to-t from-black/95 via-black/55 to-transparent
+                   transition-opacity duration-300 
                    ${isHovered ? "opacity-100" : "opacity-0"}`}
       >
-        {/* Top section */}
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <button
-              className="flex items-center justify-center w-9 h-9 rounded-full 
-                       bg-white hover:bg-white/90 transition transform-gpu
-                       group-hover:scale-105 active:scale-95"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleClick();
-              }}
-            >
-              <FaPlay className="w-4 h-4 text-black pl-0.5" />
-            </button>
-          </div>
-        </div>
+        <button
+          className={`liquid-glass liquid-refract-orb absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full
+                   transition-transform duration-300 ease-spring
+                   ${isHovered ? "scale-100" : "scale-75"} hover:scale-110 active:scale-90`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleClick();
+          }}
+          aria-label={`Open ${movie.title || movie.name}`}
+        >
+          <FaPlay className="h-4 w-4 sm:h-5 sm:w-5 text-white pl-0.5" />
+        </button>
 
-        {/* Bottom section */}
         <div className="space-y-1.5">
-          <h3 className="text-sm font-semibold text-white line-clamp-2">
+          <h3 className="font-display text-sm sm:text-base font-semibold leading-tight text-white line-clamp-2">
             {movie.title || movie.name}
           </h3>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {movie.vote_average > 0 && (
-              <span className="text-green-400 font-medium">
-                {Math.round(movie.vote_average * 10)}% Match
-              </span>
-            )}
+          <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-300">
             {(movie.release_date || movie.first_air_date) && (
-              <span className="text-gray-400">
-                {formatYear(movie.release_date || movie.first_air_date)}
-              </span>
+              <span>{formatYear(movie.release_date || movie.first_air_date)}</span>
+            )}
+            {movie.media_type && (
+              <>
+                <span className="h-1 w-1 rounded-full bg-white/50" />
+                <span className="uppercase tracking-wider text-[10px] text-white/80">
+                  {movie.media_type === "tv" ? "Series" : "Movie"}
+                </span>
+              </>
             )}
           </div>
           <div className="flex flex-wrap gap-1.5">
             {movie.genre_ids?.slice(0, 2).map((genreId) => (
               <span
                 key={genreId}
-                className="px-1.5 py-0.5 text-[10px] font-medium rounded-sm 
-                         bg-white/10 text-white/90"
+                className="glass-chip rounded-full px-2 py-0.5 text-[10px] font-medium text-white/85"
               >
                 {getGenreName(genreId)}
               </span>

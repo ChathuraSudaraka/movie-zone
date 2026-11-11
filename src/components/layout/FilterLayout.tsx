@@ -59,11 +59,11 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
   };
 
   return (
-    <div className="relative min-h-[calc(100vh-68px)]">
+    <div className="relative min-h-[calc(100vh-68px)] pt-4">
       {/* Desktop Filter */}
-      <aside className="hidden md:block fixed left-0 w-[280px] lg:w-[300px] xl:w-[320px] 
-                       top-[68px] bottom-0 bg-[#141414] border-r border-gray-800/50">
-        <div className="sticky top-0 h-[calc(100vh-68px)] overflow-y-auto">
+      <aside className="hidden md:block fixed left-3 w-[276px] lg:w-[296px] xl:w-[312px] 
+                       top-[84px] bottom-4 liquid-glass liquid-glass-strong rounded-[28px] overflow-hidden">
+        <div className="h-full overflow-y-auto">
           <Filter
             initialFilters={initialFilters}
             onFilterChange={onFilterChange}
@@ -73,16 +73,12 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
 
       {/* Mobile Filter Button */}
       <div className={`md:hidden fixed top-20 right-4 z-40
-        transition-all duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-[115%]'}`}>
-        <div className="absolute inset-0 rounded-full -z-10 bg-gradient-to-b from-black/50 to-transparent blur-md" />
+        transition-transform duration-300 ${isScrolled ? 'translate-y-0' : 'translate-y-[115%]'}`}>
         <button
           type="button"
           onClick={() => setIsMobileFilterOpen(true)}
-          className={`relative flex items-center justify-center w-11 h-11
-                    bg-red-600 hover:bg-red-700 rounded-full 
-                    text-white shadow-lg shadow-black/20
-                    transition-all duration-300 hover:scale-110
-                    border border-red-500/30`}
+          aria-label="Open filters"
+          className="liquid-glass liquid-glass-strong liquid-refract-orb relative flex items-center justify-center w-11 h-11 rounded-full text-white border-fuchsia-300/30 shadow-[0_8px_24px_-6px_rgba(217,70,239,0.5)] transition-transform duration-300 ease-spring hover:scale-110 active:scale-90"
         >
           <FiFilter className="w-5 h-5" />
         </button>
@@ -91,9 +87,8 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
       {/* Mobile Filter Drawer */}
       {isMobileFilterOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="fixed inset-0 bg-black/80 backdrop-blur-sm" onClick={handleMobileClose} />
-          <div className="fixed right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-[400px] 
-                         bg-[#141414] border-l border-gray-800/50">
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm" onClick={handleMobileClose} />
+          <div className="liquid-glass liquid-glass-strong fixed right-0 top-0 bottom-0 w-full max-w-[90%] sm:max-w-[400px] rounded-l-[28px]">
             <Filter
               initialFilters={tempFilters}
               onFilterChange={handleMobileFilterChange}
@@ -106,7 +101,7 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
       )}
 
       {/* Main Content */}
-      <main className="md:pl-[280px] lg:pl-[300px] xl:pl-[320px]">
+      <main className="md:pl-[292px] lg:pl-[312px] xl:pl-[328px]">
         <div className="p-2 md:p-4">
           {children}
         </div>

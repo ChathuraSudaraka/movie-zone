@@ -1,137 +1,113 @@
-import React from 'react';
-import { FaSeedling, FaFileDownload, FaMagnet, FaFilm, FaHdd, FaUsers, FaShieldAlt } from "react-icons/fa";
-import { TorrentInfo } from '../../types/torrent';
+import React from "react";
+import { Download, Magnet, HardDrive, Users, Sparkles } from "lucide-react";
+import { TorrentInfo } from "../../types/torrent";
+import {
+  formatTorrentQuality,
+  getTorrentHealth,
+} from "../../utils/torrentUtils";
 
 interface TorrentItemProps {
   torrent: TorrentInfo;
   onDownload: (torrent: TorrentInfo) => void;
   onMagnetDownload: (torrent: TorrentInfo) => void;
+  isRecommended?: boolean;
 }
 
-const getTrustLevelColor = (trustScore: number) => {
-  if (trustScore >= 80) return "text-emerald-500 bg-emerald-500/10 border-emerald-500/30";
-  if (trustScore >= 60) return "text-blue-500 bg-blue-500/10 border-blue-500/30";
-  if (trustScore >= 40) return "text-yellow-500 bg-yellow-500/10 border-yellow-500/30";
-  return "text-red-500 bg-red-500/10 border-red-500/30";
+const formatSize = (size: string) =>
+  size
+    ? size
+        .replace(/\s*bytes/i, "B")
+        .replace(/\s*gigabytes/i, " GB")
+        .replace(/\s*megabytes/i, " MB")
+    : "Unknown";
+
+const formatType = (type: string) => {
+  if (!type) return "Standard";
+  const lower = type.toLowerCase();
+  if (lower === "bluray") return "BluRay";
+  if (lower === "web") return "WEB-DL";
+  return type.toUpperCase();
 };
 
-const formatSize = (size: string) => {
-  return size.replace(/\s*bytes/i, 'B').replace(/\s*gigabytes/i, 'GB').replace(/\s*megabytes/i, 'MB');
-};
+export const TorrentItem: React.FC<TorrentItemProps> = ({
+  torrent,
+  onDownload,
+  onMagnetDownload,
+  isRecommended = false,
+}) => {
+  const seeds = Number(torrent.seeds) || 0;
+  const peers = Number(torrent.peers) || 0;
+  const health = getTorrentHealth(seeds);
+  const qualityLabel = formatTorrentQuality(torrent.quality);
 
-export const TorrentItem: React.FC<TorrentItemProps> = ({ torrent, onDownload, onMagnetDownload }) => {
-  const trustLevelClass = getTrustLevelColor(torrent.trustScore || 0);
-  
   return (
-    <div className="group relative flex flex-col p-4 
-                    bg-[#1a1a1a]/90 hover:bg-[#232323]/90 border border-gray-800/50 rounded-xl 
-                    transition-all duration-200">
-      {/* Mobile Layout */}
-      <div className="flex flex-col gap-4 w-full md:hidden">
-        {/* Top Row - Quality and Size */}
-        <div className="flex items-center justify-between">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border ${trustLevelClass}`}>
-            <FaShieldAlt className="w-3.5 h-3.5" />
-            <span className="text-sm font-medium">{torrent.quality}</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-300">
-            <FaHdd className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm">{formatSize(torrent.size)}</span>
+    <div className="glass-chip group relative flex flex-col md:flex-row md:items-center justify-between gap-4 p-4 sm:px-5 sm:py-4 rounded-[20px] hover:border-white/25 transition-colors duration-200">
+      {/* Left: Quality + Format + Recommended Badge */}
+      <div className="flex flex-wrap items-center gap-2.5 min-w-0">
+        <span className="inline-flex items-center px-3 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs sm:text-sm font-semibold tracking-tight">
+          {qualityLabel}
+        </span>
+
+        <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-white/[0.04] border border-white/10 text-neutral-300 text-xs font-medium">
+          {formatType(torrent.type)}
+        </span>
+
+        {isRecommended && (
+          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-400/10 border border-emerald-400/25 text-emerald-300 text-[11px] font-medium">
+            <Sparkles className="w-3 h-3" />
+            <span>Recommended</span>
+          </span>
+        )}
+      </div>
+
+      {/* Middle: Clear Labeled Metrics */}
+      <div className="grid grid-cols-3 sm:flex sm:flex-wrap items-center gap-3 sm:gap-6 text-xs sm:text-sm">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+          <span className="text-[11px] text-neutral-500 sm:hidden">Size</span>
+          <div className="flex items-center gap-1.5 text-neutral-200 font-medium">
+            <HardDrive className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+            <span>{formatSize(torrent.size)}</span>
           </div>
         </div>
 
-        {/* Middle Row - Seeds and Provider */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2">
-              <FaSeedling className="w-4 h-4 text-emerald-500" />
-              <span className="text-sm font-medium text-emerald-500">{torrent.seeds}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FaUsers className="w-4 h-4 text-blue-500" />
-              <span className="text-sm font-medium text-blue-500">{torrent.peers}</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 text-gray-300">
-            <FaFilm className="w-4 h-4 text-blue-500" />
-            <span className="text-sm">{torrent.type}</span>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+          <span className="text-[11px] text-neutral-500 sm:hidden">Health</span>
+          <div className="flex items-center gap-1.5">
+            <span className={`h-2 w-2 rounded-full shrink-0 ${health.dotClass}`} />
+            <span className={`font-medium ${health.textClass}`}>
+              {health.label}
+            </span>
+            <span className="text-neutral-400 text-xs">({seeds} seeds)</span>
           </div>
         </div>
 
-        {/* Bottom Row - Download Buttons */}
-        <div className="flex items-center gap-2 w-full">
-          <button
-            onClick={() => onDownload(torrent)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 
-                     bg-red-500/10 hover:bg-red-500 border border-red-500/30 
-                     rounded-xl transition-all duration-200"
-          >
-            <FaFileDownload className="w-4 h-4" />
-            <span className="text-sm font-medium">Torrent</span>
-          </button>
-          <button
-            onClick={() => onMagnetDownload(torrent)}
-            className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 
-                     bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/30 
-                     rounded-xl transition-all duration-200"
-          >
-            <FaMagnet className="w-4 h-4" />
-            <span className="text-sm font-medium">Magnet</span>
-          </button>
+        <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5">
+          <span className="text-[11px] text-neutral-500 sm:hidden">Peers</span>
+          <div className="flex items-center gap-1.5 text-neutral-400">
+            <Users className="w-3.5 h-3.5 shrink-0" />
+            <span>{peers} peers</span>
+          </div>
         </div>
       </div>
 
-      {/* Desktop Layout */}
-      <div className="hidden md:flex md:items-center md:gap-4">
-        {/* Left Section - Quality and Trust Score */}
-        <div className="flex items-center gap-3 min-w-[140px]">
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-md border ${trustLevelClass}`}>
-            <FaShieldAlt className="w-3.5 h-3.5" />
-            <span className="text-sm font-medium">{torrent.quality}</span>
-          </div>
-        </div>
-
-        {/* Middle Section - Info */}
-        <div className="flex items-center gap-6 flex-1">
-          <div className="flex items-center gap-2 text-gray-300">
-            <FaFilm className="w-4 h-4 text-red-500" />
-            <span className="text-sm">{torrent.type}</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-300">
-            <FaHdd className="w-4 h-4 text-emerald-500" />
-            <span className="text-sm">{formatSize(torrent.size)}</span>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <FaSeedling className="w-4 h-4 text-emerald-500" />
-              <span className="text-sm font-medium text-emerald-500">{torrent.seeds}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <FaUsers className="w-4 h-4 text-blue-500" />
-              <span className="text-sm font-medium text-blue-500">{torrent.peers}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Section - Buttons */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onDownload(torrent)}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/10 hover:bg-red-500 
-                     border border-red-500/30 rounded-xl transition-all duration-200"
-          >
-            <FaFileDownload className="w-4 h-4" />
-            <span className="text-sm font-medium">Torrent</span>
-          </button>
-          <button
-            onClick={() => onMagnetDownload(torrent)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500 
-                     border border-emerald-500/30 rounded-xl transition-all duration-200"
-          >
-            <FaMagnet className="w-4 h-4" />
-            <span className="text-sm font-medium">Magnet</span>
-          </button>
-        </div>
+      {/* Right: Download Buttons */}
+      <div className="flex items-center gap-2 w-full md:w-auto pt-1 md:pt-0">
+        <button
+          onClick={() => onDownload(torrent)}
+          className="btn-primary flex-1 md:flex-initial px-4 py-2 text-xs sm:text-sm"
+          title="Download .torrent file"
+        >
+          <Download className="w-3.5 h-3.5" />
+          <span>.torrent</span>
+        </button>
+        <button
+          onClick={() => onMagnetDownload(torrent)}
+          className="btn-glass flex-1 md:flex-initial px-4 py-2 text-xs sm:text-sm"
+          title="Open Magnet Link in your torrent client"
+        >
+          <Magnet className="w-3.5 h-3.5" />
+          <span>Magnet</span>
+        </button>
       </div>
     </div>
   );

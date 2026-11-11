@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
-import EpisodeItem from './EpisodeItem';
-import Pagination from '../common/Pagination';
-import { TMDBEpisode } from '@/types/movie';
-import { TorrentInfo } from '@/types/torrent';
-import { FaInfoCircle } from 'react-icons/fa';
+import { useEffect } from "react";
+import { SlidersHorizontal, Info } from "lucide-react";
+import EpisodeItem from "./EpisodeItem";
+import Pagination from "../common/Pagination";
+import { LiquidSegmentedControl } from "../common/LiquidGlassControls";
+import { TMDBEpisode } from "@/types/movie";
+import { TorrentInfo } from "@/types/torrent";
 
 interface EpisodeListProps {
   episodes: TMDBEpisode[];
@@ -20,6 +21,14 @@ interface EpisodeListProps {
   loadingTorrents?: number[];
 }
 
+const QUALITY_OPTIONS = [
+  { value: "All", label: "All Qualities" },
+  { value: "2160p", label: "4K" },
+  { value: "1080p", label: "1080p" },
+  { value: "720p", label: "720p" },
+  { value: "480p", label: "480p" },
+];
+
 const EpisodeList = ({
   episodes,
   selectedSeason,
@@ -32,25 +41,22 @@ const EpisodeList = ({
   itemsPerPage,
   imdbId,
   tmdbId,
-  loadingTorrents = []
+  loadingTorrents = [],
 }: EpisodeListProps) => {
-  // Reset pagination when season changes
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedSeason, setCurrentPage]);
 
-  const qualities = ['2160p', '1080p', '720p', '480p', 'All'];
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const currentEpisodes = episodes.slice(startIndex, endIndex);
 
   const filterTorrents = (episodeTorrents: TorrentInfo[]) => {
     if (!episodeTorrents) return [];
-    
-    if (selectedQuality === 'All') {
-      // Group by quality and take top 2 from each
+
+    if (selectedQuality === "All") {
       const qualityGroups: { [key: string]: TorrentInfo[] } = {};
-      episodeTorrents.forEach(torrent => {
+      episodeTorrents.forEach((torrent) => {
         if (!qualityGroups[torrent.quality]) {
           qualityGroups[torrent.quality] = [];
         }
@@ -60,64 +66,66 @@ const EpisodeList = ({
       });
       return Object.values(qualityGroups).flat();
     }
-    
-    // Filter by selected quality and take top 3
+
     return episodeTorrents
-      .filter(t => t.quality === selectedQuality)
+      .filter((t) => t.quality === selectedQuality)
       .slice(0, 3);
   };
 
   return (
-    <div className="space-y-6">
-      {/* Quality Filter - Mobile Optimized */}
-      <div className="overflow-x-auto -mx-4 sm:mx-0">
-        <div className="flex flex-nowrap sm:flex-wrap gap-2 p-4 sm:p-1 min-w-min">
-          {qualities.map((quality) => (
-            <button
-              key={quality}
-              onClick={() => setSelectedQuality(quality)}
-              className={`flex-shrink-0 px-4 py-2 rounded-xl text-sm font-medium 
-                         whitespace-nowrap transition-all duration-200 
-                ${selectedQuality === quality
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-emerald-500/10 hover:bg-emerald-500 border border-emerald-500/30'
-                }`}
-            >
-              {quality}
-            </button>
-          ))}
+    <div className="space-y-4">
+      {/* Frosted Quality Bar + Count */}
+      <div className="glass-chip flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 rounded-[20px]">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex items-center gap-1.5 text-neutral-400 text-xs sm:text-sm font-medium">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-300" />
+            <span>Quality</span>
+          </div>
+          <LiquidSegmentedControl<string>
+            layoutId="tv-episode-quality-lens"
+            value={selectedQuality}
+            onChange={setSelectedQuality}
+            options={QUALITY_OPTIONS}
+          />
         </div>
+
+        <span className="text-xs text-neutral-400">
+          Season {selectedSeason} • {episodes.length}{" "}
+          {episodes.length === 1 ? "episode" : "episodes"}
+        </span>
       </div>
 
-      {/* Episodes Grid */}
+      {/* Episodes List */}
       {!Array.isArray(episodes) || episodes.length === 0 ? (
-        <div className="flex items-center justify-center gap-3 p-6 
-                        bg-amber-500/10 border border-amber-500/30 rounded-xl">
-          <FaInfoCircle className="w-5 h-5 text-amber-500" />
-          <div className="space-y-1">
-            <p className="text-sm font-medium text-amber-500">
+        <div className="glass-chip flex items-center gap-3.5 p-6 rounded-[20px]">
+          <Info className="w-5 h-5 text-amber-300 shrink-0" />
+          <div className="space-y-0.5">
+            <p className="text-sm font-semibold text-white">
               No Episodes Available
             </p>
-            <p className="text-sm text-amber-500/80">
-              {selectedQuality === 'All'
+            <p className="text-xs sm:text-sm text-neutral-400">
+              {selectedQuality === "All"
                 ? "No episodes found for this season."
-                : `No episodes available with ${selectedQuality} quality. Try selecting a different quality option.`
-              }
+                : `No episodes matched ${selectedQuality}. Try selecting All Qualities.`}
             </p>
           </div>
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-1">
+        <div className="space-y-3">
           {currentEpisodes.map((episode) => (
             <EpisodeItem
               key={episode.id}
               episode={episode}
               onWatch={() => onWatch(episode)}
-              torrents={filterTorrents(torrents[`${episode.episode_number}`] || [])}
+              torrents={filterTorrents(
+                torrents[`${episode.episode_number}`] || []
+              )}
               selectedQuality={selectedQuality}
               imdbId={imdbId}
               tmdbId={tmdbId}
-              isLoadingTorrents={loadingTorrents.includes(episode.episode_number)}
+              isLoadingTorrents={loadingTorrents.includes(
+                episode.episode_number
+              )}
             />
           ))}
         </div>
@@ -125,12 +133,14 @@ const EpisodeList = ({
 
       {/* Pagination */}
       {episodes.length > itemsPerPage && (
-        <Pagination
-          currentPage={currentPage}
-          totalItems={episodes.length}
-          itemsPerPage={itemsPerPage}
-          onPageChange={setCurrentPage}
-        />
+        <div className="pt-2">
+          <Pagination
+            currentPage={currentPage}
+            totalItems={episodes.length}
+            itemsPerPage={itemsPerPage}
+            onPageChange={setCurrentPage}
+          />
+        </div>
       )}
     </div>
   );

@@ -210,14 +210,14 @@ function Donate() {
   };
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414]">
+    <div className="mt-[68px] min-h-screen bg-[#060608]">
       <div className="relative">
         <div className="relative px-4 py-16 md:px-8 lg:px-16">
           <div className="max-w-6xl mx-auto">
             
             {/* Hero Section */}
             <div className="text-center mb-16">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-full mb-6">
+              <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-full mb-6">
                 <Heart className="w-8 h-8 text-white" />
               </div>
               
@@ -225,13 +225,13 @@ function Donate() {
                 Support Movie Zone
               </h1>
               
-              <p className="text-xl text-zinc-300 max-w-2xl mx-auto mb-8">
+              <p className="text-xl text-neutral-300 max-w-2xl mx-auto mb-8">
                 Help us keep Movie Zone free for everyone. Your support keeps our servers running 
                 and helps us add new features.
               </p>
               
               {/* Stats */}
-              <div className="flex items-center justify-center gap-8 text-sm text-zinc-400 mb-8">
+              <div className="flex items-center justify-center gap-8 text-sm text-neutral-400 mb-8">
                 <div className="flex items-center gap-2">
                   <Users className="w-4 h-4" />
                   <span>{formattedStats.donationCount} supporters</span>
@@ -260,13 +260,13 @@ function Donate() {
                       <button
                         key={donation.amount}
                         onClick={() => handleAmountSelect(donation.amount)}
-                        className={`relative p-6 bg-zinc-900/80 border border-zinc-800 rounded-lg hover:border-red-600 hover:bg-zinc-900 transition-all duration-300 group ${
-                          donation.popular ? 'ring-2 ring-red-600/50 border-red-600' : ''
+                        className={`relative p-6 bg-neutral-900/80 border border-neutral-800 rounded-lg hover:border-brand-600 hover:bg-neutral-900 transition-all duration-300 group ${
+                          donation.popular ? 'ring-2 ring-brand-600/50 border-brand-600' : ''
                         }`}
                       >
                         {donation.popular && (
                           <div className="absolute -top-3 left-1/2 transform -translate-x-1/2">
-                            <span className="bg-red-600 text-white px-3 py-1 rounded-full text-xs font-medium">
+                            <span className="bg-brand-600 text-white px-3 py-1 rounded-full text-xs font-medium">
                               Popular
                             </span>
                           </div>
@@ -275,28 +275,28 @@ function Donate() {
                         <div className="text-3xl font-bold text-white mb-2">
                           ${donation.amount}
                         </div>
-                        <div className="text-red-500 font-medium mb-1">
+                        <div className="text-brand-500 font-medium mb-1">
                           {donation.label}
                         </div>
-                        <div className="text-sm text-zinc-400">
+                        <div className="text-sm text-neutral-400">
                           {donation.description}
                         </div>
                         
-                        <ArrowRight className="w-5 h-5 text-zinc-600 group-hover:text-red-500 transition-colors mt-4 mx-auto" />
+                        <ArrowRight className="w-5 h-5 text-neutral-600 group-hover:text-brand-500 transition-colors mt-4 mx-auto" />
                       </button>
                     ))}
                   </div>
                   
                   {/* Custom Amount */}
                   <div className="max-w-md mx-auto">
-                    <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-6">
+                    <div className="bg-neutral-900/80 border border-neutral-800 rounded-lg p-6">
                       <h3 className="text-lg font-semibold text-white mb-4 text-center">
                         Or enter a custom amount
                       </h3>
                       
                       <div className="flex gap-3">
                         <div className="relative flex-1">
-                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-zinc-400">
+                          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400">
                             $
                           </span>
                           <input
@@ -306,12 +306,12 @@ function Donate() {
                             placeholder="25.00"
                             value={customAmount}
                             onChange={(e) => setCustomAmount(e.target.value)}
-                            className="w-full bg-zinc-800 text-white border border-zinc-700 rounded-md px-4 py-3 pl-8 focus:outline-none focus:border-red-600"
+                            className="w-full bg-neutral-800 text-white border border-neutral-700 rounded-md px-4 py-3 pl-8 focus:outline-none focus:border-brand-600"
                           />
                         </div>
                         <button
                           onClick={handleCustomAmount}
-                          className="px-6 py-3 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors font-medium"
+                          className="px-6 py-3 bg-brand-600 text-white rounded-md hover:bg-brand-700 transition-colors font-medium"
                         >
                           Continue
                         </button>
@@ -321,38 +321,38 @@ function Donate() {
                 </div>
 
                 {/* Why Support */}
-                <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-8">
+                <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-8">
                   <h3 className="text-xl font-bold text-white text-center mb-6">
                     Why your support matters
                   </h3>
                   
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="text-center">
-                      <div className="w-12 h-12 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Zap className="w-6 h-6 text-red-500" />
+                      <div className="w-12 h-12 bg-brand-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Zap className="w-6 h-6 text-brand-500" />
                       </div>
                       <h4 className="font-semibold text-white mb-2">Server Costs</h4>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-neutral-400">
                         Keep our servers running 24/7 for fast, reliable streaming
                       </p>
                     </div>
                     
                     <div className="text-center">
-                      <div className="w-12 h-12 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Star className="w-6 h-6 text-red-500" />
+                      <div className="w-12 h-12 bg-brand-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Star className="w-6 h-6 text-brand-500" />
                       </div>
                       <h4 className="font-semibold text-white mb-2">New Features</h4>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-neutral-400">
                         Fund development of new features and improvements
                       </p>
                     </div>
                     
                     <div className="text-center">
-                      <div className="w-12 h-12 bg-red-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <Users className="w-6 h-6 text-red-500" />
+                      <div className="w-12 h-12 bg-brand-600/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <Users className="w-6 h-6 text-brand-500" />
                       </div>
                       <h4 className="font-semibold text-white mb-2">Ad-Free</h4>
-                      <p className="text-sm text-zinc-400">
+                      <p className="text-sm text-neutral-400">
                         Keep the platform completely free and ad-free for everyone
                       </p>
                     </div>
@@ -362,17 +362,17 @@ function Donate() {
             ) : (
               /* Payment Section */
               <div className="max-w-2xl mx-auto">
-                <div className="bg-zinc-900/80 border border-zinc-800 rounded-lg p-8">
+                <div className="bg-neutral-900/80 border border-neutral-800 rounded-lg p-8">
                   
                   {/* Payment Header */}
                   <div className="text-center mb-8">
-                    <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <div className="w-16 h-16 bg-brand-600 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Heart className="w-8 h-8 text-white" />
                     </div>
                     <h2 className="text-2xl font-bold text-white mb-2">
                       Complete your donation
                     </h2>
-                    <p className="text-lg text-red-500 font-semibold">
+                    <p className="text-lg text-brand-500 font-semibold">
                       ${selectedAmount?.toFixed(2)} USD
                     </p>
                   </div>
@@ -385,7 +385,7 @@ function Donate() {
                         id="anonymous"
                         checked={isAnonymous}
                         onChange={(e) => setIsAnonymous(e.target.checked)}
-                        className="w-4 h-4 text-red-600 bg-zinc-800 border-zinc-600 rounded focus:ring-red-600 focus:ring-2"
+                        className="w-4 h-4 text-brand-600 bg-neutral-800 border-neutral-600 rounded focus:ring-brand-600 focus:ring-2"
                       />
                       <label htmlFor="anonymous" className="text-white">
                         Make this donation anonymous
@@ -402,7 +402,7 @@ function Donate() {
                           placeholder="Enter your name"
                           value={donorName}
                           onChange={(e) => setDonorName(e.target.value)}
-                          className="w-full bg-zinc-800 text-white border border-zinc-700 rounded-md px-4 py-3 focus:outline-none focus:border-red-600"
+                          className="w-full bg-neutral-800 text-white border border-neutral-700 rounded-md px-4 py-3 focus:outline-none focus:border-brand-600"
                         />
                       </div>
                     )}
@@ -416,7 +416,7 @@ function Donate() {
                         value={message}
                         onChange={(e) => setMessage(e.target.value)}
                         rows={3}
-                        className="w-full bg-zinc-800 text-white border border-zinc-700 rounded-md px-4 py-3 focus:outline-none focus:border-red-600"
+                        className="w-full bg-neutral-800 text-white border border-neutral-700 rounded-md px-4 py-3 focus:outline-none focus:border-brand-600"
                       />
                     </div>
                   </div>
@@ -432,13 +432,13 @@ function Donate() {
                     <div className="text-center">
                       <button
                         onClick={() => setShowPayment(false)}
-                        className="text-zinc-400 hover:text-white transition-colors"
+                        className="text-neutral-400 hover:text-white transition-colors"
                       >
                         ← Back to amounts
                       </button>
                     </div>
                     
-                    <p className="text-xs text-zinc-500 text-center">
+                    <p className="text-xs text-neutral-500 text-center">
                       Secure payment powered by PayPal. Your information is encrypted and secure.
                     </p>
                   </div>

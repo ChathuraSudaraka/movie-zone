@@ -110,7 +110,7 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
               leaveFrom="opacity-100 translate-y-0"
               leaveTo="opacity-0 -translate-y-4"
             >
-              <Dialog.Panel className="w-[400px] max-w-md transform overflow-hidden rounded-lg bg-[#141414] border border-gray-800/50 shadow-xl transition-all">
+              <Dialog.Panel className="w-[400px] max-w-md transform overflow-hidden rounded-lg bg-[#060608] border border-gray-800/50 shadow-xl transition-all">
                 <NotificationContent notifications={notificationItems} loading={loading} />
               </Dialog.Panel>
             </Transition.Child>
@@ -129,7 +129,7 @@ export function NotificationDialog({ isOpen, onClose }: NotificationDialogProps)
               leaveFrom="opacity-100 translate-y-0"
               leaveTo="opacity-0 translate-y-4"
             >
-              <Dialog.Panel className="w-full transform overflow-hidden rounded-t-xl bg-[#141414] border-t border-gray-800/50 shadow-xl transition-all">
+              <Dialog.Panel className="w-full transform overflow-hidden rounded-t-xl bg-[#060608] border-t border-gray-800/50 shadow-xl transition-all">
                 <div className="relative">
                   {/* Handle */}
                   <div className="absolute left-1/2 -translate-x-1/2 -top-3">
@@ -161,7 +161,7 @@ function NotificationContent({
     return (
       <div className="p-4">
         <div className="flex items-center justify-center py-8">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-red-500 border-t-transparent" />
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-brand-500 border-t-transparent" />
         </div>
       </div>
     );
@@ -196,7 +196,7 @@ function NotificationContent({
                       onError={() => setImgLoaded((prev) => ({ ...prev, [notification.uniqueId ?? '']: true }))}
                     />
                     {!imgLoaded[notification.uniqueId ?? ''] && (
-                      <div className="absolute inset-0 w-12 h-12 rounded-md bg-zinc-900 animate-pulse" />
+                      <div className="absolute inset-0 w-12 h-12 rounded-md bg-neutral-900 animate-pulse" />
                     )}
                   </div>
                 ) : (
@@ -220,7 +220,7 @@ function NotificationContent({
                   </span>
                 </div>
                 {!notification.read && (
-                  <div className="w-2 h-2 rounded-full bg-red-500 mt-2" />
+                  <div className="w-2 h-2 rounded-full bg-brand-500 mt-2" />
                 )}
               </div>
             ))}

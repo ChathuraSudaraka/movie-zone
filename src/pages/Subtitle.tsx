@@ -393,28 +393,28 @@ function SubtitlePage() {
   };
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#141414] text-white">
+    <div className="mt-[68px] min-h-screen bg-[#060608] text-white">
       <div className="max-w-4xl mx-auto px-4 py-12">
         
         {/* Header */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-red-600 rounded-full mb-6">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-brand-600 rounded-full mb-6">
             <Languages className="w-8 h-8" />
           </div>
           <h1 className="text-4xl font-bold mb-4">Subtitle Translator</h1>
-          <p className="text-xl text-zinc-400">
+          <p className="text-xl text-neutral-400">
             Translate your SRT subtitle files using Google Translate API
           </p>
         </div>
 
         {/* Upload Section */}
-        <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+        <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-8 mb-8">
           <div className="flex items-center gap-3 mb-6">
-            <Upload className="w-6 h-6 text-red-500" />
+            <Upload className="w-6 h-6 text-brand-500" />
             <h2 className="text-2xl font-semibold">Upload Subtitle File</h2>
           </div>
 
-          <div className="border-2 border-dashed border-zinc-700 rounded-lg p-8 text-center">
+          <div className="border-2 border-dashed border-neutral-700 rounded-lg p-8 text-center">
             <input
               type="file"
               accept=".srt"
@@ -426,12 +426,12 @@ function SubtitlePage() {
               htmlFor="subtitle-upload"
               className="cursor-pointer flex flex-col items-center gap-4"
             >
-              <FileText className="w-12 h-12 text-zinc-500" />
+              <FileText className="w-12 h-12 text-neutral-500" />
               <div>
                 <p className="text-lg font-medium mb-2">
                   Click to upload your .srt file
                 </p>
-                <p className="text-sm text-zinc-500">
+                <p className="text-sm text-neutral-500">
                   Maximum file size: 10MB
                 </p>
               </div>
@@ -444,7 +444,7 @@ function SubtitlePage() {
                 <CheckCircle className="w-5 h-5 text-green-500" />
                 <div>
                   <p className="font-medium text-green-400">File uploaded successfully!</p>
-                  <p className="text-sm text-zinc-400">
+                  <p className="text-sm text-neutral-400">
                     {uploadedFile.name} • {subtitles.length} subtitle entries
                   </p>
                 </div>
@@ -453,9 +453,9 @@ function SubtitlePage() {
           )}
 
           {error && (
-            <div className="mt-6 p-4 bg-red-900/20 border border-red-800 rounded-lg">
+            <div className="mt-6 p-4 bg-brand-900/20 border border-brand-800 rounded-lg">
               <div className="flex items-center gap-3">
-                <AlertCircle className="w-5 h-5 text-red-500" />
+                <AlertCircle className="w-5 h-5 text-brand-500" />
                 <p className="text-red-400">{error}</p>
               </div>
             </div>
@@ -478,17 +478,17 @@ function SubtitlePage() {
               </div>
             )}
 
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+            <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-8 mb-8">
             <div className="flex items-center gap-3 mb-6">
-              <Globe className="w-6 h-6 text-red-500" />
+              <Globe className="w-6 h-6 text-brand-500" />
               <h2 className="text-2xl font-semibold">Select Target Language</h2>
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
               {isLoadingLanguages ? (
                 <div className="col-span-full flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-red-500" />
-                  <span className="ml-2 text-zinc-400">Loading languages...</span>
+                  <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
+                  <span className="ml-2 text-neutral-400">Loading languages...</span>
                 </div>
               ) : (
                 availableLanguages.map((lang) => (
@@ -497,8 +497,8 @@ function SubtitlePage() {
                     onClick={() => setSelectedLanguage(lang.code)}
                     className={`p-4 rounded-lg border transition-all duration-200 ${ 
                       selectedLanguage === lang.code
-                        ? 'bg-red-600 border-red-600 text-white'
-                        : 'bg-zinc-800 border-zinc-700 text-zinc-300 hover:border-red-600'
+                        ? 'bg-brand-600 border-brand-600 text-white'
+                        : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:border-brand-600'
                     }`}
                   >
                     <div className="text-2xl mb-2">{lang.flag}</div>
@@ -513,7 +513,7 @@ function SubtitlePage() {
                 <button
                   onClick={handleTranslate}
                   disabled={isTranslating}
-                  className="px-8 py-3 bg-red-600 text-white rounded-lg font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="px-8 py-3 bg-brand-600 text-white rounded-lg font-medium hover:bg-brand-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   {isTranslating ? (
                     <div className="flex items-center gap-2">
@@ -532,15 +532,15 @@ function SubtitlePage() {
 
         {/* Translation Progress */}
         {isTranslating && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 mb-8">
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-8 mb-8">
             <h3 className="text-xl font-semibold mb-4">Translation Progress</h3>
-            <div className="w-full bg-zinc-800 rounded-full h-3 mb-4">
+            <div className="w-full bg-neutral-800 rounded-full h-3 mb-4">
               <div 
-                className="bg-red-600 h-3 rounded-full transition-all duration-300"
+                className="bg-brand-600 h-3 rounded-full transition-all duration-300"
                 style={{ width: `${translationProgress.percentage}%` }}
               />
             </div>
-            <p className="text-center text-zinc-400">
+            <p className="text-center text-neutral-400">
               {translationProgress.current} / {translationProgress.total} entries translated
             </p>
           </div>
@@ -548,14 +548,14 @@ function SubtitlePage() {
 
         {/* Download Section */}
         {translationComplete && translatedSubtitles.length > 0 && (
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8">
+          <div className="bg-neutral-900/50 border border-neutral-800 rounded-xl p-8">
             <div className="flex items-center gap-3 mb-6">
               <Download className="w-6 h-6 text-green-500" />
               <h2 className="text-2xl font-semibold text-green-400">Translation Complete!</h2>
             </div>
 
             <div className="text-center">
-              <p className="text-zinc-400 mb-6">
+              <p className="text-neutral-400 mb-6">
                 Successfully translated {translatedSubtitles.length} subtitle entries
               </p>
               
@@ -570,9 +570,9 @@ function SubtitlePage() {
         )}
 
         {/* Instructions */}
-        <div className="mt-12 bg-zinc-900/30 border border-zinc-800 rounded-xl p-6">
+        <div className="mt-12 bg-neutral-900/30 border border-neutral-800 rounded-xl p-6">
           <h3 className="text-lg font-semibold mb-4">How it works:</h3>
-          <ol className="space-y-2 text-zinc-400">
+          <ol className="space-y-2 text-neutral-400">
             <li>1. Upload your .srt subtitle file</li>
             <li>2. Select the target language for translation</li>
             <li>3. Click "Start Translation" and wait for completion</li>

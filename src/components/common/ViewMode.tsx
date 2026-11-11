@@ -12,7 +12,7 @@ function ViewMode({ viewMode, onViewChange }: ViewModeProps) {
         onClick={() => onViewChange("grid")}
         className={`p-2 rounded-md transition-all duration-300 ${
           viewMode === "grid" 
-            ? "bg-red-600 text-white shadow-lg shadow-red-600/20" 
+            ? "bg-brand-600 text-white shadow-lg shadow-brand-600/20" 
             : "bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-white"
         }`}
       >
@@ -22,7 +22,7 @@ function ViewMode({ viewMode, onViewChange }: ViewModeProps) {
         onClick={() => onViewChange("list")}
         className={`p-2 rounded-md transition-all duration-300 ${
           viewMode === "list" 
-            ? "bg-red-600 text-white shadow-lg shadow-red-600/20" 
+            ? "bg-brand-600 text-white shadow-lg shadow-brand-600/20" 
             : "bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 hover:text-white"
         }`}
       >

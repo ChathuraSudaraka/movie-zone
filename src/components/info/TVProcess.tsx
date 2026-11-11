@@ -1,10 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  FaChevronDown,
-  FaSpinner,
-  FaChevronLeft,
-  FaChevronRight,
-} from "react-icons/fa";
+import { motion } from "framer-motion";
+import { ChevronDown, ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { LIQUID_LENS_CLASS } from "../common/LiquidGlassControls";
 import { Movie, TMDBEpisode, TMDBSeason } from "../../types/movie";
 import ErrorMessage from "./ErrorMessage";
 import EpisodeList from "./EpisodeList";
@@ -23,12 +20,9 @@ interface TVProcessProps {
   itemsPerPage: number;
 }
 
-// EZTV API is proxied via /api/eztv in vite.config.ts
 const EZTV_BASE_URL = "/api/eztv";
-
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-/** Normalise quality string from EZTV title */
 function parseQuality(title: string): string {
   if (/2160p|4k/i.test(title)) return "2160p";
   if (/1080p/i.test(title)) return "1080p";
@@ -49,32 +43,32 @@ export const TVProcess = ({
 }: TVProcessProps) => {
   const [seasons, setSeasons] = useState<TMDBSeason[]>([]);
   const [episodes, setEpisodes] = useState<TMDBEpisode[]>([]);
-  const [torrents, setTorrents] = useState<{ [key: string]: TorrentInfo[] }>(
-    {}
-  );
+  const [torrentsBySeason, setTorrentsBySeason] = useState<{
+    [season: number]: { [ep: string]: TorrentInfo[] };
+  }>({});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [episodeCache, setEpisodeCache] = useState<{
-    [key: string]: TMDBEpisode[];
+    [season: number]: TMDBEpisode[];
   }>({});
   const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
   const [loadingTorrents, setLoadingTorrents] = useState<number[]>([]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
   const seasonListRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [showNavigation, setShowNavigation] = useState(false);
 
   const scrollSeasons = (direction: "left" | "right") => {
-    if (seasonListRef.current) {
-      const scrollAmount = 300;
-      const currentScroll = seasonListRef.current.scrollLeft;
-      seasonListRef.current.scrollTo({
-        left:
-          direction === "left"
-            ? currentScroll - scrollAmount
-            : currentScroll + scrollAmount,
-        behavior: "smooth",
-      });
-    }
+    if (!seasonListRef.current) return;
+    const scrollAmount = 280;
+    const currentScroll = seasonListRef.current.scrollLeft;
+    seasonListRef.current.scrollTo({
+      left:
+        direction === "left"
+          ? currentScroll - scrollAmount
+          : currentScroll + scrollAmount,
+      behavior: "smooth",
+    });
   };
 
   const checkNavigationNeeded = useCallback(() => {
@@ -90,7 +84,22 @@ export const TVProcess = ({
     return () => window.removeEventListener("resize", checkNavigationNeeded);
   }, [checkNavigationNeeded, seasons]);
 
-  // ── Fetch seasons ──────────────────────────────────────────────────────────
+  useEffect(() => {
+    const handleOutside = (e: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        setIsSeasonDropdownOpen(false);
+      }
+    };
+    if (isSeasonDropdownOpen) {
+      document.addEventListener("mousedown", handleOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [isSeasonDropdownOpen]);
+
+  // Fetch seasons
   useEffect(() => {
     const fetchSeasons = async () => {
       if (!content?.id) return;
@@ -118,7 +127,7 @@ export const TVProcess = ({
     fetchSeasons();
   }, [content?.id]);
 
-  // ── Fetch torrents for one episode via EZTV ────────────────────────────────
+  // Fetch torrents for one episode via EZTV
   const fetchTorrentsForEpisode = useCallback(
     async (
       imdbId: string,
@@ -126,7 +135,6 @@ export const TVProcess = ({
       episodeNumber: number
     ): Promise<TorrentInfo[] | null> => {
       try {
-        // EZTV expects a numeric imdb id (strip leading "tt")
         const numericImdbId = imdbId.replace(/^tt/i, "");
         const response = await axios.get(
           `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`
@@ -148,7 +156,6 @@ export const TVProcess = ({
           date_released_unix: number;
         }
 
-        // Filter to the exact season + episode
         const matched: EztvTorrent[] = response.data.torrents.filter(
           (t: EztvTorrent) =>
             parseInt(t.season) === seasonNumber &&
@@ -184,38 +191,53 @@ export const TVProcess = ({
             (a: TorrentInfo, b: TorrentInfo) => (b.seeds || 0) - (a.seeds || 0)
           );
       } catch (err) {
-        console.error(`Error fetching torrent S${seasonNumber}E${episodeNumber}:`, err);
+        console.error(
+          `Error fetching torrent S${seasonNumber}E${episodeNumber}:`,
+          err
+        );
         return null;
       }
     },
     []
   );
 
-  // ── Fetch episodes + their torrents for a season ───────────────────────────
+  // Fetch episodes + their torrents for a season
   const fetchEpisodesForSeason = useCallback(
     async (seasonNumber: number) => {
-      if (!content?.id || !content?.imdb_id || episodeCache[seasonNumber])
-        return;
+      if (!content?.id || !content?.imdb_id) return;
 
-      setLoadingSeasons((prev) => [...prev, seasonNumber]);
-      try {
-        const episodesResponse = await axios.get(
-          `https://api.themoviedb.org/3/tv/${
-            content.id
-          }/season/${seasonNumber}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-        );
+      let eps = episodeCache[seasonNumber];
+      if (!eps) {
+        setLoadingSeasons((prev) => [...prev, seasonNumber]);
+        try {
+          const episodesResponse = await axios.get(
+            `https://api.themoviedb.org/3/tv/${
+              content.id
+            }/season/${seasonNumber}?api_key=${
+              import.meta.env.VITE_TMDB_API_KEY
+            }`
+          );
+          eps = episodesResponse.data.episodes || [];
+          setEpisodeCache((prev) => ({ ...prev, [seasonNumber]: eps }));
+        } catch (err) {
+          console.error(
+            `Error fetching episodes for season ${seasonNumber}:`,
+            err
+          );
+          setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
+          return;
+        }
+        setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
+      }
 
-        const eps: TMDBEpisode[] = episodesResponse.data.episodes;
-        setEpisodeCache((prev) => ({ ...prev, [seasonNumber]: eps }));
+      if (seasonNumber === selectedSeason) {
+        setEpisodes(eps);
 
-        if (seasonNumber === selectedSeason) {
-          setEpisodes(eps);
-
-          // Fetch EZTV torrents for all episodes in this season
+        if (!torrentsBySeason[seasonNumber]) {
           const newTorrents: { [key: string]: TorrentInfo[] } = {};
           for (const episode of eps) {
             setLoadingTorrents((prev) => [...prev, episode.episode_number]);
-            await delay(200); // gentle rate limiting
+            await delay(180);
             const torrentData = await fetchTorrentsForEpisode(
               content.imdb_id,
               seasonNumber,
@@ -228,161 +250,158 @@ export const TVProcess = ({
               prev.filter((id) => id !== episode.episode_number)
             );
           }
-          setTorrents(newTorrents);
+          setTorrentsBySeason((prev) => ({
+            ...prev,
+            [seasonNumber]: newTorrents,
+          }));
         }
-      } catch (err) {
-        console.error(`Error fetching episodes for season ${seasonNumber}:`, err);
-      } finally {
-        setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
       }
     },
-    [content?.id, content?.imdb_id, selectedSeason, episodeCache, fetchTorrentsForEpisode]
+    [
+      content?.id,
+      content?.imdb_id,
+      selectedSeason,
+      episodeCache,
+      torrentsBySeason,
+      fetchTorrentsForEpisode,
+    ]
   );
 
-  // Handle season change
   useEffect(() => {
     if (selectedSeason) {
-      if (episodeCache[selectedSeason]) {
-        setEpisodes(episodeCache[selectedSeason]);
-      } else {
-        fetchEpisodesForSeason(selectedSeason);
-      }
+      fetchEpisodesForSeason(selectedSeason);
     }
   }, [selectedSeason, fetchEpisodesForSeason]);
-
-  // Pre-fetch next season
-  useEffect(() => {
-    if (selectedSeason && seasons.length > 0) {
-      const nextSeason = selectedSeason + 1;
-      if (seasons.find((s) => s.season_number === nextSeason)) {
-        fetchEpisodesForSeason(nextSeason);
-      }
-    }
-  }, [selectedSeason, seasons, fetchEpisodesForSeason]);
 
   if (error) return <ErrorMessage message={error} />;
   if (isLoading) return <LoadingIndicator />;
 
+  const currentTorrents = torrentsBySeason[selectedSeason] || {};
+
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Season Selector */}
-      <div className="relative">
-        {/* Mobile Dropdown */}
+      <div className="relative z-20" ref={dropdownRef}>
+        {/* Mobile Frosted Dropdown */}
         <div className="md:hidden">
           <button
             onClick={() => setIsSeasonDropdownOpen(!isSeasonDropdownOpen)}
-            className="w-full flex items-center justify-between gap-2 px-4 py-3
-                       bg-[#1a1a1a]/90 hover:bg-[#232323]/90 
-                       border-2 border-red-500/30 rounded-xl"
+            className="glass-chip w-full flex items-center justify-between gap-2 px-4 py-3 rounded-[18px] text-white"
           >
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-red-500">Season</span>
-              <span className="text-sm font-medium text-white">
-                {selectedSeason || "1"}
+              <span className="text-xs uppercase tracking-wider text-neutral-400 font-medium">
+                Season
+              </span>
+              <span className="text-sm font-semibold text-white">
+                Season {selectedSeason || 1}
               </span>
             </div>
-            <FaChevronDown
-              className={`w-4 h-4 text-red-500 transition-transform duration-200
-              ${isSeasonDropdownOpen ? "rotate-180" : ""}`}
+            <ChevronDown
+              className={`w-4 h-4 text-neutral-300 transition-transform duration-200 ${
+                isSeasonDropdownOpen ? "rotate-180" : ""
+              }`}
             />
           </button>
 
           {isSeasonDropdownOpen && (
-            <div
-              className="absolute z-50 w-full mt-2 py-2 
-                           bg-[#1a1a1a]/95 border border-gray-800/50 rounded-xl 
-                           backdrop-blur-sm shadow-xl max-h-[60vh] overflow-y-auto"
-            >
-              {seasons.map((season) => (
-                <button
-                  key={season.season_number}
-                  onClick={() => {
-                    setSelectedSeason(season.season_number);
-                    setIsSeasonDropdownOpen(false);
-                  }}
-                  disabled={loadingSeasons.includes(season.season_number)}
-                  className={`w-full flex items-center justify-between px-4 py-3
-                    ${
-                      selectedSeason === season.season_number
-                        ? "bg-red-500/20 text-red-500"
-                        : "text-gray-300 hover:bg-gray-800/50"
+            <div className="liquid-glass liquid-glass-strong absolute z-40 w-full mt-2 p-2 rounded-[20px] max-h-[60vh] overflow-y-auto space-y-1">
+              {seasons.map((season) => {
+                const active = selectedSeason === season.season_number;
+                const isSeasonLoading = loadingSeasons.includes(
+                  season.season_number
+                );
+                return (
+                  <button
+                    key={season.season_number}
+                    onClick={() => {
+                      setSelectedSeason(season.season_number);
+                      setIsSeasonDropdownOpen(false);
+                    }}
+                    disabled={isSeasonLoading}
+                    className={`w-full flex items-center justify-between px-4 py-2.5 rounded-[14px] text-sm transition-colors ${
+                      active
+                        ? "bg-white text-neutral-950 font-semibold"
+                        : "text-neutral-200 hover:bg-white/10"
                     }`}
-                >
-                  <span className="text-sm font-medium">
-                    Season {season.season_number}
-                  </span>
-                  {loadingSeasons.includes(season.season_number) && (
-                    <FaSpinner className="w-4 h-4 animate-spin text-blue-500" />
-                  )}
-                </button>
-              ))}
+                  >
+                    <span>Season {season.season_number}</span>
+                    {isSeasonLoading && (
+                      <Loader2 className="w-4 h-4 animate-spin text-neutral-400" />
+                    )}
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {/* Desktop Season List */}
+        {/* Desktop Frosted Season Tabs */}
         <div className="hidden md:block">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-transparent rounded-xl" />
-
+          <div className="glass-chip relative flex items-center rounded-[20px] p-1.5">
             {showNavigation && (
               <button
                 onClick={() => scrollSeasons("left")}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-10
-                           w-8 h-8 flex items-center justify-center
-                           bg-black/60 hover:bg-red-500/90 
-                           rounded-full shadow-lg transform transition-all
-                           text-white border border-red-500/30"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white shrink-0 mr-1 transition-colors"
+                aria-label="Scroll seasons left"
               >
-                <FaChevronLeft className="w-4 h-4" />
+                <ChevronLeft className="w-4 h-4" />
               </button>
             )}
 
             <div
               ref={seasonListRef}
-              className={`flex flex-nowrap gap-3 p-4 overflow-x-auto scrollbar-none
-                         scroll-smooth ${showNavigation ? "mx-10" : ""}`}
+              className="flex flex-nowrap gap-1.5 overflow-x-auto scrollbar-none scroll-smooth flex-1"
             >
-              {seasons.map((season) => (
-                <button
-                  key={season.season_number}
-                  onClick={() => setSelectedSeason(season.season_number)}
-                  disabled={loadingSeasons.includes(season.season_number)}
-                  className={`flex-shrink-0 flex items-center gap-2.5 px-8 py-3 rounded-lg
-                             text-sm font-medium transition-all duration-300
-                             backdrop-blur-sm transform hover:scale-105
-                    ${
-                      selectedSeason === season.season_number
-                        ? "bg-red-500 text-white shadow-lg shadow-red-500/30 border-2 border-red-500"
-                        : "bg-black/40 hover:bg-red-500/90 border-2 border-red-500/20 text-red-500 hover:text-white hover:border-red-500/50"
-                    } ${
-                    loadingSeasons.includes(season.season_number)
-                      ? "opacity-50"
-                      : ""
-                  }`}
-                >
-                  {loadingSeasons.includes(season.season_number) ? (
-                    <div className="flex items-center gap-2">
-                      <FaSpinner className="w-4 h-4 animate-spin" />
-                      <span>Loading...</span>
-                    </div>
-                  ) : (
-                    <span>Season {season.season_number}</span>
-                  )}
-                </button>
-              ))}
+              {seasons.map((season) => {
+                const active = selectedSeason === season.season_number;
+                const isSeasonLoading = loadingSeasons.includes(
+                  season.season_number
+                );
+                return (
+                  <button
+                    key={season.season_number}
+                    onClick={() => setSelectedSeason(season.season_number)}
+                    disabled={isSeasonLoading}
+                    className={`relative flex-shrink-0 inline-flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-medium transition-colors duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40 ${
+                      active
+                        ? "text-white font-semibold"
+                        : "text-neutral-400 hover:text-neutral-200"
+                    } ${isSeasonLoading ? "opacity-60" : ""}`}
+                  >
+                    {active && (
+                      <motion.span
+                        layoutId="tv-season-tab-lens"
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 36,
+                          mass: 0.75,
+                        }}
+                        className={LIQUID_LENS_CLASS}
+                      />
+                    )}
+                    <span className="relative z-10 inline-flex items-center gap-2">
+                      {isSeasonLoading ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Loading...</span>
+                        </>
+                      ) : (
+                        <span>Season {season.season_number}</span>
+                      )}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
 
             {showNavigation && (
               <button
                 onClick={() => scrollSeasons("right")}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-10
-                           w-8 h-8 flex items-center justify-center
-                           bg-black/60 hover:bg-red-500/90 
-                           rounded-full shadow-lg transform transition-all
-                           text-white border border-red-500/30"
+                className="flex items-center justify-center w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-white shrink-0 ml-1 transition-colors"
+                aria-label="Scroll seasons right"
               >
-                <FaChevronRight className="w-4 h-4" />
+                <ChevronRight className="w-4 h-4" />
               </button>
             )}
           </div>
@@ -397,7 +416,7 @@ export const TVProcess = ({
           onWatch={(episode) => {
             console.log("Watch episode:", episode);
           }}
-          torrents={torrents}
+          torrents={currentTorrents}
           selectedQuality={selectedQuality}
           setSelectedQuality={setSelectedQuality}
           currentPage={currentPage}
