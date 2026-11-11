@@ -1,50 +1,154 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
 import { Movie } from "../types/movie";
 import ViewMode from "../components/common/ViewMode";
 import Pagination from "../components/common/Pagination";
-import FilterLayout from '../components/layout/FilterLayout';
-import { getUrlParams, updateUrlParams } from "../utils/urlParams";
-import { loadFilterState } from '../utils/filterState';
+import FilterLayout from "../components/layout/FilterLayout";
+import { LiquidSegmentedControl } from "../components/common/LiquidGlassControls";
+import { loadFilterState } from "../utils/filterState";
 import { FilterOptions } from "@/types/filters";
-import NoResults from '../components/common/NoResults';
-import { Skeleton } from "@mui/material";
+import NoResults from "../components/common/NoResults";
+
+const MOVIE_DISCOVERY_TABS = [
+  { value: "", label: "All Movies" },
+  { value: "Trending Now", label: "Trending" },
+  { value: "New Releases", label: "New Releases" },
+  { value: "Popular Movies", label: "Popular" },
+  { value: "Award Winners", label: "Top Rated" },
+];
+
+const getMovieGenreId = (genreName: string): number => {
+  const genreMap: Record<string, number> = {
+    action: 28,
+    adventure: 12,
+    animation: 16,
+    comedy: 35,
+    crime: 80,
+    documentary: 99,
+    drama: 18,
+    family: 10751,
+    fantasy: 14,
+    horror: 27,
+    mystery: 9648,
+    romance: 10749,
+    "sci-fi": 878,
+    thriller: 53,
+  };
+  return genreMap[genreName.toLowerCase()] || 0;
+};
 
 function Movies() {
-  const urlParams = getUrlParams();
-  const savedFilters = loadFilterState(window.location.pathname);
-  const [activeFilters, setActiveFilters] = useState(savedFilters || urlParams.filters);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [movies, setMovies] = useState<Movie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">(urlParams.viewMode);
-  const [currentPage, setCurrentPage] = useState(urlParams.page);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const ITEMS_PER_PAGE = 20;
+
+  const currentPage = Math.max(
+    1,
+    parseInt(searchParams.get("page") || "1", 10) || 1
+  );
+  const viewMode: "grid" | "list" =
+    searchParams.get("view") === "list" ? "list" : "grid";
+
+  const activeFilters: FilterOptions = useMemo(() => {
+    const hasFilterQuery =
+      searchParams.has("genre") ||
+      searchParams.has("year") ||
+      searchParams.has("sort") ||
+      searchParams.has("tag");
+
+    if (hasFilterQuery) {
+      return {
+        genre: searchParams.get("genre") || "",
+        year: searchParams.get("year") || "",
+        sort: searchParams.get("sort") || "popularity.desc",
+        tag: searchParams.get("tag") || "",
+      };
+    }
+
+    const saved = loadFilterState("/movies");
+    return (
+      saved || {
+        genre: "",
+        year: "",
+        sort: "popularity.desc",
+        tag: "",
+      }
+    );
+  }, [searchParams]);
+
+  // Ensure initial URL stores page cleanly
+  useEffect(() => {
+    if (!searchParams.has("page")) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(currentPage));
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [searchParams, currentPage, setSearchParams]);
+
+  const syncParams = useCallback(
+    (
+      updates: {
+        page?: number;
+        view?: "grid" | "list";
+        filters?: FilterOptions;
+      },
+      replace = false
+    ) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (updates.page !== undefined) {
+            next.set("page", String(Math.max(1, updates.page)));
+          }
+          if (updates.view !== undefined) {
+            next.set("view", updates.view);
+          }
+          if (updates.filters) {
+            const { genre, year, sort, tag } = updates.filters;
+            if (genre) next.set("genre", genre.toLowerCase());
+            else next.delete("genre");
+
+            if (year) next.set("year", String(year));
+            else next.delete("year");
+
+            if (sort) next.set("sort", sort);
+            else next.delete("sort");
+
+            if (tag) next.set("tag", tag);
+            else next.delete("tag");
+          }
+          return next;
+        },
+        { replace }
+      );
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     document.title = "Movies - MovieZone";
+    let cancelled = false;
 
     async function fetchMovies() {
+      setLoading(true);
       try {
-        // Change this line - set loading to true when fetching
-        if (!isInitialLoad) setLoading(true);
-        else setLoading(true); // Also set loading on initial load
-
         let endpoint = "/discover/movie";
-
-        // Ensure page number is within valid range (TMDB typically limits to 500 pages)
         const safeCurrentPage = Math.min(currentPage, 500);
-
         const params: Record<string, string | number | boolean> = {
           page: safeCurrentPage,
           include_adult: false,
         };
 
-        // Handle sorting
         switch (activeFilters.sort) {
           case "vote_average.desc":
             params.sort_by = "vote_average.desc";
@@ -54,28 +158,24 @@ function Movies() {
           case "release_date.asc":
             params.sort_by = activeFilters.sort;
             break;
-          case "popularity.desc":
+          default:
             params.sort_by = "popularity.desc";
             break;
         }
 
-        // Handle genre filter
         if (activeFilters.genre) {
-          params.with_genres = getGenreId(activeFilters.genre);
+          const genreId = getMovieGenreId(activeFilters.genre);
+          if (genreId) params.with_genres = genreId;
         }
 
-        // Handle year filter with proper date ranges
         if (activeFilters.year) {
           const year = activeFilters.year;
           params.sort_by = params.sort_by || "popularity.desc";
           params["primary_release_date.gte"] = `${year}-01-01`;
           params["primary_release_date.lte"] = `${year}-12-31`;
-
-          // Ensure we get movies with valid release dates
           params.include_null_release_dates = false;
         }
 
-        // Handle tag filters
         if (activeFilters.tag) {
           switch (activeFilters.tag) {
             case "New Releases": {
@@ -103,11 +203,10 @@ function Movies() {
         }
 
         const response = await axios.get(endpoint, { params });
+        if (cancelled) return;
 
-        // Update total pages with API limit
-        const apiTotalPages = Math.min(response.data.total_pages, 500);
-
-        const processedMovies = response.data.results
+        const apiTotalPages = Math.min(response.data.total_pages || 1, 500);
+        const processedMovies = (response.data.results || [])
           .filter(
             (movie: Movie) =>
               movie.backdrop_path !== null && movie.poster_path !== null
@@ -118,194 +217,164 @@ function Movies() {
           }));
 
         setMovies(processedMovies);
-        setTotalPages(apiTotalPages);
-        setTotalResults(apiTotalPages * ITEMS_PER_PAGE); // Adjust total results based on page limit
+        setTotalResults(apiTotalPages * ITEMS_PER_PAGE);
         setError(null);
-      } catch (error: unknown) {
-        const axiosError = error as { response?: { status: number } };
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const axiosError = err as { response?: { status: number } };
         setError(
           axiosError.response?.status === 400
             ? "Invalid page number. Showing first page instead."
             : "Failed to load movies. Please try again later."
         );
-
-        // If we get a 400 error, reset to page 1
         if (axiosError.response?.status === 400) {
-          setCurrentPage(1);
+          syncParams({ page: 1 }, true);
         }
-        console.error("Error fetching movies:", error);
       } finally {
-        setLoading(false);
-        setIsInitialLoad(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     fetchMovies();
-  }, [currentPage, activeFilters, totalPages]);
-
-  // Update URL when state changes
-  useEffect(() => {
-    updateUrlParams({
-      page: currentPage,
-      viewMode,
-      filters: activeFilters
-    });
-  }, [currentPage, viewMode, activeFilters]);
-
-  const getGenreId = (genreName: string): number => {
-    const genreMap: { [key: string]: number } = {
-      action: 28,
-      adventure: 12,
-      animation: 16,
-      comedy: 35,
-      crime: 80,
-      documentary: 99,
-      drama: 18,
-      family: 10751,
-      fantasy: 14,
-      horror: 27,
-      mystery: 9648,
-      romance: 10749,
-      "sci-fi": 878,
-      thriller: 53,
+    return () => {
+      cancelled = true;
     };
-    return genreMap[genreName.toLowerCase()] || 0;
-  };
+  }, [currentPage, activeFilters, syncParams]);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
-    setViewMode(mode);
+    syncParams({ view: mode }, true);
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
-    // Convert year to number for validation
     const yearValue = parseInt(filters.year);
-
-    // Only update if year is valid or empty
     if (
       !filters.year ||
       (yearValue >= 1900 && yearValue <= new Date().getFullYear())
     ) {
-      setCurrentPage(1);
-      setActiveFilters(filters);
+      syncParams({
+        page: 1,
+        filters: { ...filters, tag: activeFilters.tag || "" },
+      });
     }
   };
 
+  const handleTagChange = (tag: string) => {
+    syncParams({
+      page: 1,
+      filters: { ...activeFilters, tag },
+    });
+  };
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    syncParams({ page });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleReset = () => {
-    const defaultFilters = {
-      genre: "",
-      year: "",
-      sort: "popularity.desc",
-    };
-    setActiveFilters(defaultFilters);
-    setCurrentPage(1);
+    syncParams({
+      page: 1,
+      filters: { genre: "", year: "", sort: "popularity.desc", tag: "" },
+    });
   };
 
-  const MoviesGrid = ({ movies, title }: { movies: Movie[]; title: string }) => (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
-          {title}
-        </h2>
-      </div>
+  return (
+    <div className="mt-[68px] min-h-screen">
+      <FilterLayout
+        initialFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+      >
+        <div className="space-y-6 pb-8">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                Movies
+                {activeFilters.genre ? (
+                  <span className="text-neutral-400 font-medium capitalize">
+                    {" "}
+                    · {activeFilters.genre}
+                  </span>
+                ) : null}
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+                Browse featured films, filter by genre or year, and switch between grid or list view.
+              </p>
+            </div>
+            <ViewMode
+              viewMode={viewMode}
+              onViewChange={handleViewModeChange}
+            />
+          </div>
 
-      <div className="min-h-[400px] relative w-full">
-        <div className={`w-full ${
-          viewMode === "grid"
-            ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
-            : "flex flex-col gap-4"
-        }`}>
-          {isInitialLoad || (loading && !isInitialLoad) ? (
-            // Skeleton Loading Grid
-            [...Array(12)].map((_, index) => (
-              <div key={index} className={viewMode === "grid" 
-                ? "aspect-[2/3] w-full relative rounded-sm overflow-hidden"
-                : "w-full h-[200px] relative rounded-sm overflow-hidden"
-              }>
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{ bgcolor: "#141417" }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <Skeleton
-                    variant="text"
-                    width="60%"
-                    sx={{ bgcolor: "#141417" }}
-                  />
-                </div>
-              </div>
-            ))
-          ) : movies.length > 0 ? (
-            movies.map((movie) => (
-              <div key={movie.id} className="group relative h-full">
-                <Thumbnail movie={movie} viewMode={viewMode} />
-              </div>
-            ))
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <NoResults 
-                filters={activeFilters} 
-                onReset={handleReset} 
-              />
+          {/* Quick Discovery Tabs */}
+          <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+            <LiquidSegmentedControl<string>
+              layoutId="movies-discovery-tag-lens"
+              value={activeFilters.tag || ""}
+              onChange={handleTagChange}
+              options={MOVIE_DISCOVERY_TABS}
+              className="w-max"
+            />
+          </div>
+
+          {error && (
+            <div className="glass-chip border-amber-400/30 text-amber-200 px-4 py-3 rounded-[18px] text-sm">
+              {error}
             </div>
           )}
+
+          {/* Grid / List */}
+          <div className="min-h-[420px]">
+            {loading ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+                    : "flex flex-col gap-4"
+                }
+              >
+                {[...Array(12)].map((_, index) => (
+                  <div
+                    key={index}
+                    className={`glass-chip animate-pulse ${
+                      viewMode === "grid"
+                        ? "aspect-[2/3] w-full rounded-[22px]"
+                        : "w-full h-[200px] rounded-[22px]"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : movies.length > 0 ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+                    : "flex flex-col gap-4"
+                }
+              >
+                {movies.map((movie) => (
+                  <div key={movie.id} className="group relative h-full">
+                    <Thumbnail movie={movie} viewMode={viewMode} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <NoResults filters={activeFilters} onReset={handleReset} />
+            )}
+          </div>
+
+          {/* URL-backed Pagination */}
+          {!loading && movies.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalResults}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="mt-[68px] min-h-screen bg-[#060608]">
-      <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
-        {error && (
-          <div className="bg-brand-500 text-white px-4 py-2 rounded mb-4">
-            {error}
-          </div>
-        )}
-        {isInitialLoad || loading ? (
-          // Header Skeleton
-          <div className="flex items-center justify-between mb-6">
-            <Skeleton
-              variant="rectangular"
-              width={200}
-              height={40}
-              sx={{ bgcolor: "#141417", borderRadius: 1 }}
-            />
-            <Skeleton
-              variant="rectangular"
-              width={100}
-              height={40}
-              sx={{ bgcolor: "#141417", borderRadius: 1 }}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
-              All Movies
-            </h1>
-            <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
-          </div>
-        )}
-
-        <MoviesGrid
-          movies={movies}
-          title={`Movies ${activeFilters.genre ? `- ${activeFilters.genre}` : ""}`}
-        />
-
-        {!isInitialLoad && movies.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalResults}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={handlePageChange}
-          />
-        )}
       </FilterLayout>
     </div>
   );

@@ -20,6 +20,7 @@ function Thumbnail({ movie, viewMode }: Props) {
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [runtime, setRuntime] = useState<number | null>(null);
+  const [seasonsCount, setSeasonsCount] = useState<number | null>(null);
   const navigate = useNavigate();
 
   const formatYear = (date: string | undefined) => {
@@ -36,10 +37,12 @@ function Thumbnail({ movie, viewMode }: Props) {
             `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
           );
           const data = await response.json();
-          setRuntime(data.runtime || null);
+          setRuntime(data.runtime || data.episode_run_time?.[0] || null);
+          setSeasonsCount(data.number_of_seasons || null);
         } catch (error) {
           console.error('Error fetching runtime:', error);
           setRuntime(null);
+          setSeasonsCount(null);
         }
       }
     };
@@ -77,10 +80,18 @@ function Thumbnail({ movie, viewMode }: Props) {
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent" />
             <div className="absolute bottom-2 left-2 flex items-center gap-1 text-white text-xs glass-chip px-2.5 py-1 rounded-full">
               <BiTime className="w-3.5 h-3.5" />
-              {runtime ? (
-                <span>{Math.floor(runtime / 60)}h {runtime % 60}m</span>
+              {seasonsCount ? (
+                <span>
+                  {seasonsCount} {seasonsCount === 1 ? "Season" : "Seasons"}
+                </span>
+              ) : runtime ? (
+                <span>
+                  {runtime >= 60
+                    ? `${Math.floor(runtime / 60)}h ${runtime % 60}m`
+                    : `${runtime}m`}
+                </span>
               ) : (
-                <span>N/A</span>
+                <span>{movie.media_type === "tv" ? "Series" : "Movie"}</span>
               )}
             </div>
           </div>

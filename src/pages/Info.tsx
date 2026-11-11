@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useCallback, useEffect, useState } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Movie } from "../types/movie";
 import { useVideoModal } from "../context/VideoModalContext";
@@ -16,64 +16,74 @@ import { isInList } from "../utils/localList";
 function Info() {
   const { type, id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
   const [content, setContent] = useState<Movie | null>(null);
   const [trailer, setTrailer] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [currentPage, setCurrentPage] = useState<number>(1);
   const [itemsPerPage] = useState<number>(5);
-  const [selectedSeason, setSelectedSeason] = useState<number>(1);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
   const [isInMyList, setIsInMyList] = useState<boolean>(false);
   const [showRatingModal, setShowRatingModal] = useState(false);
-  const [validatedOgImage, setValidatedOgImage] = useState<string>('https://movie-zone.pages.dev/movie-zone.png');
 
-  // Function to test if image URL is accessible
-  const testImageUrl = (url: string): Promise<boolean> => {
-    return new Promise((resolve) => {
-      const img = new Image();
-      img.onload = () => resolve(true);
-      img.onerror = () => resolve(false);
-      img.src = url;
-    });
-  };
+  const currentPage = Math.max(
+    1,
+    parseInt(searchParams.get("page") || "1", 10) || 1
+  );
+  const selectedSeason = Math.max(
+    1,
+    parseInt(searchParams.get("season") || "1", 10) || 1
+  );
 
-  // Validate and set the best OG image when content is loaded
+  const setCurrentPage = useCallback(
+    (page: number) => {
+      const safePage = Math.max(1, page);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(safePage));
+          return next;
+        },
+        { replace: false }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const setSelectedSeason = useCallback(
+    (season: number) => {
+      const safeSeason = Math.max(1, season);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("season", String(safeSeason));
+          next.set("page", "1");
+          return next;
+        },
+        { replace: false }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const [validatedOgImage, setValidatedOgImage] = useState<string>(
+    "https://movie-zone.pages.dev/movie-zone.png"
+  );
+
+  // Immediately compute fast-loading HD banner (<5MB w1280) for social share previews
   useEffect(() => {
-    const validateAndSetOgImage = async () => {
-      if (!content) return;
-      
-      // Priority list of image URLs to try
-      const imageUrls = [
-        content.backdrop_path ? `https://image.tmdb.org/t/p/original${content.backdrop_path}` : null,
-        content.backdrop_path ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}` : null,
-        content.poster_path ? `https://image.tmdb.org/t/p/original${content.poster_path}` : null,
-        content.poster_path ? `https://image.tmdb.org/t/p/w780${content.poster_path}` : null,
-      ].filter(Boolean) as string[];
-      
-      console.log('Testing OG images for:', content.title, imageUrls);
-      
-      // Test each image URL in order
-      for (const url of imageUrls) {
-        try {
-          const isValid = await testImageUrl(url);
-          if (isValid) {
-            console.log('Valid OG image found:', url);
-            setValidatedOgImage(url);
-            return;
-          }
-        } catch (error) {
-          console.warn('Failed to test image:', url, error);
-        }
-      }
-      
-      // If no images work, keep the fallback
-      console.warn('No valid images found, using fallback icon');
-    };
-    
-    validateAndSetOgImage();
+    if (!content) return;
+    const w1280Banner = content.backdrop_path
+      ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}`
+      : null;
+    const posterFallback = content.poster_path
+      ? `https://image.tmdb.org/t/p/w780${content.poster_path}`
+      : null;
+    const preferred =
+      w1280Banner || posterFallback || "https://movie-zone.pages.dev/movie-zone.png";
+    setValidatedOgImage(preferred);
   }, [content]);
 
   // Fetch content details
@@ -279,7 +289,11 @@ function Info() {
   if (!content) return null;
 
   // Generate dynamic meta tags for social sharing
-  const pageUrl = `https://movie-zone.pages.dev/info/${type}/${id}`;
+  const origin =
+    typeof window !== "undefined"
+      ? window.location.origin
+      : "https://movie-zone.pages.dev";
+  const pageUrl = `${origin}/info/${type}/${id}`;
   const shareTitle = `${content.title || content.name} ${type === 'tv' ? '(TV Series)' : '(Movie)'} - MovieZone`;
   const shareDescription = content.overview 
     ? content.overview.length > 160 
@@ -287,13 +301,7 @@ function Info() {
       : content.overview
     : `Watch ${content.title || content.name} on MovieZone - Your ultimate destination for movies and TV shows.`;
   
-  // Use validated image for social sharing
   const shareImage = validatedOgImage;
-
-  // Debug: Log the image URL for troubleshooting
-  console.log('Social share image URL:', shareImage);
-  console.log('Content backdrop_path:', content?.backdrop_path);
-  console.log('Content poster_path:', content?.poster_path);
 
   return (
     <>
@@ -304,13 +312,13 @@ function Info() {
         
         {/* Open Graph Meta Tags */}
         <meta property="og:url" content={pageUrl} />
-        <meta property="og:type" content="video.movie" />
+        <meta property="og:type" content={type === 'tv' ? 'video.tv_show' : 'video.movie'} />
         <meta property="og:title" content={shareTitle} />
         <meta property="og:description" content={shareDescription} />
         <meta property="og:image" content={shareImage} />
         <meta property="og:image:secure_url" content={shareImage} />
-        <meta property="og:image:width" content="1920" />
-        <meta property="og:image:height" content="1080" />
+        <meta property="og:image:width" content="1280" />
+        <meta property="og:image:height" content="720" />
         <meta property="og:image:alt" content={`${content.title || content.name} banner`} />
         <meta property="og:site_name" content="MovieZone" />
         

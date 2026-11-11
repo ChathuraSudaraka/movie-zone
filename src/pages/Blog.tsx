@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { ExternalLink, Newspaper, Star, TrendingUp } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Skeleton } from '@mui/material';
 import Pagination from '../components/common/Pagination';
 
@@ -28,12 +28,30 @@ interface NewsArticle {
 }
 
 function Blog() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [trendingMovies, setTrendingMovies] = useState<Movie[]>([]);
   const [movieNews, setMovieNews] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [newsLoading, setNewsLoading] = useState(true);
-  const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+
+  const currentPage = Math.max(
+    1,
+    parseInt(searchParams.get("page") || "1", 10) || 1
+  );
+  const setCurrentPage = useCallback(
+    (page: number) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(Math.max(1, page)));
+          return next;
+        },
+        { replace: false }
+      );
+    },
+    [setSearchParams]
+  );
 
   // Skeleton Components
   const NewsArticleSkeleton = () => (

@@ -10,6 +10,7 @@ export interface TMDBEpisode {
   name: string;
   overview: string;
   production_code: string;
+  runtime?: number;
   season_number: number;
   still_path: string | null;
   vote_average: number;

@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import axios from "../utils/axios";
 import Thumbnail from "../components/Thumbnail";
 import { Movie } from "../types/movie";
 import ViewMode from "../components/common/ViewMode";
 import Pagination from "../components/common/Pagination";
-import FilterLayout from '../components/layout/FilterLayout';
-import { getUrlParams, updateUrlParams } from "../utils/urlParams";
-import { loadFilterState } from '../utils/filterState';
+import FilterLayout from "../components/layout/FilterLayout";
+import { LiquidSegmentedControl } from "../components/common/LiquidGlassControls";
+import { loadFilterState } from "../utils/filterState";
 import { FilterOptions } from "@/types/filters";
-import NoResults from '../components/common/NoResults';
-import { Skeleton } from "@mui/material";
+import NoResults from "../components/common/NoResults";
 
 interface TVShowDetails extends Movie {
   vote_average: number;
@@ -19,68 +19,180 @@ interface TVShowDetails extends Movie {
   networks?: Array<{ name: string }>;
 }
 
+const TV_DISCOVERY_TABS = [
+  { value: "", label: "All Shows" },
+  { value: "Trending Now", label: "Trending" },
+  { value: "New Releases", label: "New Releases" },
+  { value: "Popular Series", label: "Popular" },
+  { value: "Award Winners", label: "Top Rated" },
+];
+
+const getTVGenreId = (genreName: string): number => {
+  const genreMap: Record<string, number> = {
+    action: 10759,
+    adventure: 10759,
+    animation: 16,
+    comedy: 35,
+    crime: 80,
+    documentary: 99,
+    drama: 18,
+    family: 10751,
+    fantasy: 10765,
+    "sci-fi": 10765,
+    horror: 9648,
+    kids: 10762,
+    mystery: 9648,
+    news: 10763,
+    reality: 10764,
+    romance: 10749,
+    soap: 10766,
+    talk: 10767,
+    thriller: 80,
+    "war-politics": 10768,
+    western: 37,
+  };
+  return genreMap[genreName.toLowerCase()] || 0;
+};
+
 function TVShows() {
-  const urlParams = getUrlParams();
-  const savedFilters = loadFilterState(window.location.pathname);
+  const [searchParams, setSearchParams] = useSearchParams();
   const [shows, setShows] = useState<TVShowDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">(urlParams.viewMode);
-  const [currentPage, setCurrentPage] = useState(urlParams.page);
-  const [activeFilters, setActiveFilters] = useState(savedFilters || urlParams.filters);
-  const [totalPages, setTotalPages] = useState(0);
   const [totalResults, setTotalResults] = useState(0);
-  const [isInitialLoad, setIsInitialLoad] = useState(true);
   const ITEMS_PER_PAGE = 20;
+
+  const currentPage = Math.max(
+    1,
+    parseInt(searchParams.get("page") || "1", 10) || 1
+  );
+  const viewMode: "grid" | "list" =
+    searchParams.get("view") === "list" ? "list" : "grid";
+
+  const activeFilters: FilterOptions = useMemo(() => {
+    const hasFilterQuery =
+      searchParams.has("genre") ||
+      searchParams.has("year") ||
+      searchParams.has("sort") ||
+      searchParams.has("tag");
+
+    if (hasFilterQuery) {
+      return {
+        genre: searchParams.get("genre") || "",
+        year: searchParams.get("year") || "",
+        sort: searchParams.get("sort") || "popularity.desc",
+        tag: searchParams.get("tag") || "",
+      };
+    }
+
+    const saved = loadFilterState("/tv");
+    return (
+      saved || {
+        genre: "",
+        year: "",
+        sort: "popularity.desc",
+        tag: "",
+      }
+    );
+  }, [searchParams]);
+
+  // Ensure initial URL always stores page & view cleanly
+  useEffect(() => {
+    if (!searchParams.has("page")) {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          next.set("page", String(currentPage));
+          return next;
+        },
+        { replace: true }
+      );
+    }
+  }, [searchParams, currentPage, setSearchParams]);
+
+  const syncParams = useCallback(
+    (
+      updates: {
+        page?: number;
+        view?: "grid" | "list";
+        filters?: FilterOptions;
+      },
+      replace = false
+    ) => {
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (updates.page !== undefined) {
+            next.set("page", String(Math.max(1, updates.page)));
+          }
+          if (updates.view !== undefined) {
+            next.set("view", updates.view);
+          }
+          if (updates.filters) {
+            const { genre, year, sort, tag } = updates.filters;
+            if (genre) next.set("genre", genre.toLowerCase());
+            else next.delete("genre");
+
+            if (year) next.set("year", String(year));
+            else next.delete("year");
+
+            if (sort) next.set("sort", sort);
+            else next.delete("sort");
+
+            if (tag) next.set("tag", tag);
+            else next.delete("tag");
+          }
+          return next;
+        },
+        { replace }
+      );
+    },
+    [setSearchParams]
+  );
 
   useEffect(() => {
     document.title = "TV Shows - MovieZone";
+    let cancelled = false;
 
     async function fetchTVShows() {
+      setLoading(true);
       try {
-        if (!isInitialLoad) setLoading(true);
-        else setLoading(true); // Also set loading on initial load
-
-        let endpoint = "/tv/top_rated";
+        const safePage = Math.min(currentPage, 500);
+        let endpoint = "/discover/tv";
         const params: Record<string, string | number | boolean> = {
-          page: currentPage,
+          page: safePage,
           include_adult: false,
         };
 
         switch (activeFilters.sort) {
           case "vote_average.desc":
+            params.sort_by = "vote_average.desc";
             params["vote_count.gte"] = 200;
             break;
           case "release_date.desc":
-          case "release_date.asc":
-            endpoint = "/discover/tv";
-            params.sort_by =
-              activeFilters.sort === "release_date.desc"
-                ? "first_air_date.desc"
-                : "first_air_date.asc";
+            params.sort_by = "first_air_date.desc";
             break;
-          case "popularity.desc":
-            endpoint = "/discover/tv";
+          case "release_date.asc":
+            params.sort_by = "first_air_date.asc";
+            break;
+          default:
             params.sort_by = "popularity.desc";
             break;
         }
 
         if (activeFilters.genre) {
-          endpoint = "/discover/tv";
-          params.with_genres = getGenreId(activeFilters.genre);
+          const genreId = getTVGenreId(activeFilters.genre);
+          if (genreId) params.with_genres = genreId;
         }
 
         if (activeFilters.year) {
-          endpoint = "/discover/tv";
           const year = activeFilters.year;
-          params.sort_by = params.sort_by || "popularity.desc";
           params["first_air_date.gte"] = `${year}-01-01`;
           params["first_air_date.lte"] = `${year}-12-31`;
           params.include_null_first_air_dates = false;
         }
 
         if (activeFilters.tag) {
-          endpoint = "/discover/tv";
           switch (activeFilters.tag) {
             case "New Releases": {
               const threeMonthsAgo = new Date();
@@ -107,8 +219,9 @@ function TVShows() {
         }
 
         const response = await axios.get(endpoint, { params });
+        if (cancelled) return;
 
-        const processedShows = response.data.results
+        const processedShows = (response.data.results || [])
           .filter(
             (show: Movie) =>
               show.backdrop_path !== null && show.poster_path !== null
@@ -116,228 +229,174 @@ function TVShows() {
           .map((show: Movie & { name?: string; first_air_date?: string }) => ({
             ...show,
             media_type: "tv",
-            title: show.name,
-            release_date: show.first_air_date,
+            title: show.name || show.title,
+            release_date: show.first_air_date || show.release_date,
           }));
 
-        const actualResults = response.data.total_results;
-        const maxResults = Math.min(actualResults, 10000);
-        const calculatedPages = Math.ceil(maxResults / ITEMS_PER_PAGE);
-        const actualTotalPages = Math.min(
-          calculatedPages,
-          response.data.total_pages
+        const maxResults = Math.min(
+          response.data.total_results || processedShows.length,
+          10000
         );
 
         setShows(processedShows);
-        setTotalPages(actualTotalPages);
         setTotalResults(maxResults);
         setError(null);
-      } catch (error: unknown) {
-        const axiosError = error as { response?: { status: number } };
+      } catch (err: unknown) {
+        if (cancelled) return;
+        const axiosError = err as { response?: { status: number } };
         setError(
           axiosError.response?.status === 400
             ? "Invalid page number. Showing first page instead."
             : "Failed to load TV shows. Please try again later."
         );
-        
         if (axiosError.response?.status === 400) {
-          setCurrentPage(1);
+          syncParams({ page: 1 }, true);
         }
       } finally {
-        setLoading(false);
-        setIsInitialLoad(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     fetchTVShows();
-  }, [currentPage, activeFilters, totalPages]);
-
-  useEffect(() => {
-    updateUrlParams({
-      page: currentPage,
-      viewMode,
-      filters: activeFilters
-    });
-  }, [currentPage, viewMode, activeFilters]);
-
-  const getGenreId = (genreName: string): number => {
-    const genreMap: { [key: string]: number } = {
-      action: 10759,
-      animation: 16,
-      comedy: 35,
-      crime: 80,
-      documentary: 99,
-      drama: 18,
-      family: 10751,
-      fantasy: 10765,
-      kids: 10762,
-      mystery: 9648,
-      news: 10763,
-      reality: 10764,
-      soap: 10766,
-      talk: 10767,
-      "war-politics": 10768,
-      western: 37,
+    return () => {
+      cancelled = true;
     };
-    return genreMap[genreName.toLowerCase()] || 0;
-  };
-
-  // const sortShows = (shows: TVShowDetails[]) => {
-  //   const { sort } = activeFilters;
-  //   return [...shows].sort((a, b) => {
-  //     switch (sort) {
-  //       case "popularity.desc":
-  //         return (b.popularity || 0) - (a.popularity || 0);
-  //       case "vote_average.desc":
-  //         return (b.vote_average || 0) - (a.vote_average || 0);
-  //       case "release_date.desc":
-  //         return (
-  //           new Date(b.first_air_date).getTime() -
-  //           new Date(a.first_air_date).getTime()
-  //         );
-  //       case "release_date.asc":
-  //         return (
-  //           new Date(a.first_air_date).getTime() -
-  //           new Date(b.first_air_date).getTime()
-  //         );
-  //       default:
-  //         return 0;
-  //     }
-  //   });
-  // };
+  }, [currentPage, activeFilters, syncParams]);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
-    setViewMode(mode);
+    syncParams({ view: mode }, true);
   };
 
   const handleFilterChange = (filters: FilterOptions) => {
     const yearValue = parseInt(filters.year);
-
     if (
       !filters.year ||
       (yearValue >= 1900 && yearValue <= new Date().getFullYear())
     ) {
-      setCurrentPage(1);
-      setActiveFilters(filters);
+      syncParams({
+        page: 1,
+        filters: { ...filters, tag: activeFilters.tag || "" },
+      });
     }
   };
 
+  const handleTagChange = (tag: string) => {
+    syncParams({
+      page: 1,
+      filters: { ...activeFilters, tag },
+    });
+  };
+
   const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+    syncParams({ page });
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
   const handleReset = () => {
-    const defaultFilters = {
-      genre: "",
-      year: "",
-      sort: "popularity.desc",
-    };
-    setActiveFilters(defaultFilters);
-    setCurrentPage(1);
+    syncParams({
+      page: 1,
+      filters: { genre: "", year: "", sort: "popularity.desc", tag: "" },
+    });
   };
 
-  const ShowsGrid = ({ shows, title }: { shows: TVShowDetails[]; title: string }) => (
-    <div className="mb-8">
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-xl font-semibold text-white md:text-2xl lg:text-3xl">
-          {title}
-        </h2>
-      </div>
+  return (
+    <div className="mt-[68px] min-h-screen">
+      <FilterLayout
+        initialFilters={activeFilters}
+        onFilterChange={handleFilterChange}
+      >
+        <div className="space-y-6 pb-8">
+          {/* Header Row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="font-display text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                TV Series
+                {activeFilters.genre ? (
+                  <span className="text-neutral-400 font-medium capitalize">
+                    {" "}
+                    · {activeFilters.genre}
+                  </span>
+                ) : null}
+              </h1>
+              <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+                Explore trending series, complete season guides, and episode downloads.
+              </p>
+            </div>
+            <ViewMode
+              viewMode={viewMode}
+              onViewChange={handleViewModeChange}
+            />
+          </div>
 
-      <div className="min-h-[400px] relative w-full">
-        <div className={`w-full ${
-          viewMode === "grid"
-          ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
-            : "flex flex-col gap-4"
-        }`}>
-          {isInitialLoad || (loading && !isInitialLoad) ? (
-            // Skeleton Loading Grid
-            [...Array(12)].map((_, index) => (
-              <div key={index} className={viewMode === "grid" 
-                ? "aspect-[2/3] w-full relative rounded-sm overflow-hidden"
-                : "w-full h-[200px] relative rounded-sm overflow-hidden"
-              }>
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{ bgcolor: "#141417" }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-4">
-                  <Skeleton
-                    variant="text"
-                    width="60%"
-                    sx={{ bgcolor: "#141417" }}
-                  />
-                </div>
-              </div>
-            ))
-          ) : shows.length > 0 ? (
-            shows.map((show) => (
-              <div key={show.id} className="group relative h-full">
-                <Thumbnail movie={show} viewMode={viewMode} />
-              </div>
-            ))
-          ) : (
-            <div className="absolute inset-0 flex items-center justify-center">
-              <NoResults 
-                filters={activeFilters} 
-                onReset={handleReset} 
-              />
+          {/* Quick Discovery Tabs */}
+          <div className="overflow-x-auto scrollbar-none -mx-1 px-1">
+            <LiquidSegmentedControl<string>
+              layoutId="tv-discovery-tag-lens"
+              value={activeFilters.tag || ""}
+              onChange={handleTagChange}
+              options={TV_DISCOVERY_TABS}
+              className="w-max"
+            />
+          </div>
+
+          {error && (
+            <div className="glass-chip border-amber-400/30 text-amber-200 px-4 py-3 rounded-[18px] text-sm">
+              {error}
             </div>
           )}
+
+          {/* Grid / List */}
+          <div className="min-h-[420px]">
+            {loading ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+                    : "flex flex-col gap-4"
+                }
+              >
+                {[...Array(12)].map((_, index) => (
+                  <div
+                    key={index}
+                    className={`glass-chip animate-pulse ${
+                      viewMode === "grid"
+                        ? "aspect-[2/3] w-full rounded-[22px]"
+                        : "w-full h-[200px] rounded-[22px]"
+                    }`}
+                  />
+                ))}
+              </div>
+            ) : shows.length > 0 ? (
+              <div
+                className={
+                  viewMode === "grid"
+                    ? "grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4"
+                    : "flex flex-col gap-4"
+                }
+              >
+                {shows.map((show) => (
+                  <div key={show.id} className="group relative h-full">
+                    <Thumbnail movie={show} viewMode={viewMode} />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <NoResults filters={activeFilters} onReset={handleReset} />
+            )}
+          </div>
+
+          {/* URL-backed Pagination */}
+          {!loading && shows.length > 0 && (
+            <Pagination
+              currentPage={currentPage}
+              totalItems={totalResults}
+              itemsPerPage={ITEMS_PER_PAGE}
+              onPageChange={handlePageChange}
+            />
+          )}
         </div>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="mt-[68px] min-h-screen bg-[#060608]">
-      <FilterLayout initialFilters={activeFilters} onFilterChange={handleFilterChange}>
-        {error && (
-          <div className="bg-brand-500 text-white px-4 py-2 rounded mb-4">
-            {error}
-          </div>
-        )}
-        {isInitialLoad || loading ? (
-          // Header Skeleton
-          <div className="flex items-center justify-between mb-6">
-            <Skeleton
-              variant="rectangular"
-              width={200}
-              height={40}
-              sx={{ bgcolor: "#141417", borderRadius: 1 }}
-            />
-            <Skeleton
-              variant="rectangular"
-              width={100}
-              height={40}
-              sx={{ bgcolor: "#141417", borderRadius: 1 }}
-            />
-          </div>
-        ) : (
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-xl font-bold text-white md:text-2xl lg:text-3xl">
-              All TV Shows
-            </h1>
-            <ViewMode viewMode={viewMode} onViewChange={handleViewModeChange} />
-          </div>
-        )}
-
-        <ShowsGrid
-          shows={shows}
-          title={`TV Shows ${activeFilters.genre ? `- ${activeFilters.genre}` : ""}`}
-        />
-
-        {!isInitialLoad && shows.length > 0 && (
-          <Pagination
-            currentPage={currentPage}
-            totalItems={totalResults}
-            itemsPerPage={ITEMS_PER_PAGE}
-            onPageChange={handlePageChange}
-          />
-        )}
       </FilterLayout>
     </div>
   );

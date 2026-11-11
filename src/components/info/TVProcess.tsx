@@ -277,6 +277,9 @@ export const TVProcess = ({
   if (isLoading) return <LoadingIndicator />;
 
   const currentTorrents = torrentsBySeason[selectedSeason] || {};
+  const activeSeasonMeta = seasons.find(
+    (s) => s.season_number === selectedSeason
+  );
 
   return (
     <div className="space-y-6">
@@ -407,6 +410,32 @@ export const TVProcess = ({
           </div>
         </div>
       </div>
+
+      {/* Season Overview Strip */}
+      {activeSeasonMeta && (activeSeasonMeta.overview || activeSeasonMeta.air_date) && (
+        <div className="glass-chip flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-4 py-3 rounded-[18px]">
+          <div className="space-y-0.5 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 text-xs sm:text-sm font-semibold text-white">
+              <span>{activeSeasonMeta.name || `Season ${selectedSeason}`}</span>
+              {activeSeasonMeta.air_date && (
+                <span className="text-xs font-normal text-neutral-400">
+                  ({new Date(activeSeasonMeta.air_date).getFullYear()})
+                </span>
+              )}
+              {activeSeasonMeta.episode_count > 0 && (
+                <span className="px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-[11px] font-medium text-neutral-300">
+                  {activeSeasonMeta.episode_count} Episodes
+                </span>
+              )}
+            </div>
+            {activeSeasonMeta.overview && (
+              <p className="text-xs text-neutral-400 line-clamp-2 leading-relaxed">
+                {activeSeasonMeta.overview}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Episodes List */}
       {selectedSeason && episodes.length > 0 && (

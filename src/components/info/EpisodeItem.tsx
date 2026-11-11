@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   Play,
   Calendar,
+  Clock,
   Star,
   ChevronDown,
   Magnet,
@@ -133,14 +134,39 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
       {/* Episode Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-start sm:items-center gap-3.5 min-w-0">
-          <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-[16px] bg-white/[0.06] border border-white/15">
-            <span className="text-[10px] uppercase tracking-wider text-neutral-400 leading-none">
-              EP
-            </span>
-            <span className="text-base font-bold text-white leading-tight mt-0.5">
-              {epNum}
-            </span>
-          </div>
+          {episode.still_path ? (
+            <button
+              type="button"
+              onClick={() => handlePlayClick("primary")}
+              className="group/thumb relative shrink-0 w-28 sm:w-32 aspect-video rounded-[14px] overflow-hidden bg-white/[0.06] border border-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+              title={`Watch Episode ${episode.episode_number}`}
+            >
+              <img
+                src={`https://image.tmdb.org/t/p/w300${episode.still_path}`}
+                alt={episode.name}
+                loading="lazy"
+                className="w-full h-full object-cover transition-transform duration-300 group-hover/thumb:scale-105"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-transparent" />
+              <span className="absolute left-1.5 top-1.5 px-1.5 py-0.5 rounded-md bg-black/65 backdrop-blur-sm border border-white/15 text-[10px] font-semibold text-white">
+                EP {epNum}
+              </span>
+              <span className="absolute inset-0 flex items-center justify-center opacity-85 group-hover/thumb:opacity-100 transition-opacity">
+                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-white/25 backdrop-blur-md border border-white/40 text-white shadow-lg group-hover/thumb:scale-110 transition-transform">
+                  <Play className="w-3.5 h-3.5 fill-white ml-0.5" />
+                </span>
+              </span>
+            </button>
+          ) : (
+            <div className="shrink-0 flex flex-col items-center justify-center w-12 h-12 rounded-[16px] bg-white/[0.06] border border-white/15">
+              <span className="text-[10px] uppercase tracking-wider text-neutral-400 leading-none">
+                EP
+              </span>
+              <span className="text-base font-bold text-white leading-tight mt-0.5">
+                {epNum}
+              </span>
+            </div>
+          )}
 
           <div className="min-w-0 flex-1">
             <h3 className="text-sm sm:text-base font-semibold text-white line-clamp-1">
@@ -152,6 +178,13 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
                 <span className="inline-flex items-center gap-1 text-neutral-200 font-medium">
                   <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
                   {episode.vote_average.toFixed(1)}
+                </span>
+              )}
+
+              {episode.runtime && episode.runtime > 0 && (
+                <span className="inline-flex items-center gap-1 text-neutral-300">
+                  <Clock className="w-3.5 h-3.5 text-neutral-400" />
+                  {episode.runtime}m
                 </span>
               )}
 

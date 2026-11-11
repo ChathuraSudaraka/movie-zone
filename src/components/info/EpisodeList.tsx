@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { SlidersHorizontal, Info } from "lucide-react";
 import EpisodeItem from "./EpisodeItem";
 import Pagination from "../common/Pagination";
@@ -43,8 +43,12 @@ const EpisodeList = ({
   tmdbId,
   loadingTorrents = [],
 }: EpisodeListProps) => {
+  const prevSeasonRef = useRef(selectedSeason);
   useEffect(() => {
-    setCurrentPage(1);
+    if (prevSeasonRef.current !== selectedSeason) {
+      prevSeasonRef.current = selectedSeason;
+      setCurrentPage(1);
+    }
   }, [selectedSeason, setCurrentPage]);
 
   const startIndex = (currentPage - 1) * itemsPerPage;

@@ -178,11 +178,19 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
               <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                 {content.media_type === "movie" ? "Movie" : "TV Series"}
               </span>
-              {content.runtime && content.runtime > 0 && (
+              {content.runtime && content.runtime > 0 ? (
                 <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                   {Math.floor(content.runtime / 60)}h {content.runtime % 60}m
                 </span>
-              )}
+              ) : content.media_type === "tv" && content.number_of_seasons ? (
+                <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
+                  {content.number_of_seasons}{" "}
+                  {content.number_of_seasons === 1 ? "Season" : "Seasons"}
+                  {content.number_of_episodes
+                    ? ` · ${content.number_of_episodes} Eps`
+                    : ""}
+                </span>
+              ) : null}
             </div>
 
             {/* Overview */}
