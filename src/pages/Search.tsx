@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Movie } from "../types/movie";
-import { baseUrl } from "@/utils/requests";
+import { tmdbImage } from "@/utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { Skeleton } from "@mui/material";
 
@@ -29,7 +29,7 @@ function Search() {
   const getImageUrl = (result: SearchResult) => {
     if (imgError) return FALLBACK_IMAGE;
     if (result.poster_path || result.backdrop_path) {
-      return `${baseUrl}${result.poster_path || result.backdrop_path}`;
+      return tmdbImage(result.poster_path || result.backdrop_path, "w500");
     }
     return FALLBACK_IMAGE;
   };

@@ -1,16 +1,13 @@
-import React, { useState } from "react";
+import React from "react";
 import { Movie } from "../../types/movie";
 
 interface InfoDetailsProps {
   content: Movie;
 }
 
-export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
-  // Track loading state for each company logo by id
-  const [logoLoaded, setLogoLoaded] = useState<{ [id: number]: boolean }>({});
-
+export const InfoDetails: React.FC<InfoDetailsProps> = React.memo(({ content }) => {
   return (
-    <section className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <section className="row-perf grid grid-cols-1 md:grid-cols-2 gap-6">
       {/* Details Card */}
       <div className="liquid-glass rounded-[28px] p-6 sm:p-7 text-white space-y-5">
         <h3 className="font-display text-lg font-semibold text-white">About</h3>
@@ -80,32 +77,19 @@ export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
                       <img
                         src={`https://image.tmdb.org/t/p/w200${company.logo_path}`}
                         alt={company.name}
+                        loading="lazy"
+                        decoding="async"
                         className="h-7 object-contain brightness-0 invert opacity-85"
-                        style={{
-                          opacity: logoLoaded[company.id] ? 0.85 : 0,
-                          transition: "opacity 0.3s",
-                        }}
-                        onLoad={() =>
-                          setLogoLoaded((prev) => ({
-                            ...prev,
-                            [company.id]: true,
-                          }))
-                        }
                         onError={(e) => {
                           const target = e.target as HTMLImageElement;
                           target.style.display = "none";
-                          setLogoLoaded((prev) => ({
-                            ...prev,
-                            [company.id]: true,
-                          }));
                         }}
                       />
-                      {!logoLoaded[company.id] && (
-                        <div className="h-7 w-20 bg-white/[0.06] animate-pulse rounded" />
-                      )}
                     </div>
                   ) : (
-                    <span className="text-sm text-neutral-200 font-medium">{company.name}</span>
+                    <span className="text-sm text-neutral-200 font-medium">
+                      {company.name}
+                    </span>
                   )}
                 </div>
               ))}
@@ -114,4 +98,4 @@ export const InfoDetails: React.FC<InfoDetailsProps> = ({ content }) => {
         )}
     </section>
   );
-};
+});

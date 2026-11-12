@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { baseUrl } from "../utils/requests";
+import { posterSrcSet, tmdbImage } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
 import { Movie } from "../types/movie";
 import { BsPlayFill, BsStarFill } from "react-icons/bs";
@@ -56,11 +56,13 @@ function Thumbnail({ movie, viewMode }: Props) {
     window.scrollTo(0, 0);
   };
 
+  const imagePath = movie.poster_path || movie.backdrop_path;
   const imageUrl = imgError
     ? FALLBACK_IMAGE
-    : movie.poster_path || movie.backdrop_path
-      ? `${baseUrl}${movie.poster_path || movie.backdrop_path}`
+    : imagePath
+      ? tmdbImage(imagePath, "w500")
       : FALLBACK_IMAGE;
+  const imageSrcSet = !imgError && imagePath ? posterSrcSet(imagePath) : undefined;
 
   if (viewMode === "list") {
     return (
@@ -155,13 +157,15 @@ function Thumbnail({ movie, viewMode }: Props) {
       className="group relative cursor-pointer transition-transform duration-300 ease-ios
                  aspect-[2/3] w-full overflow-hidden rounded-[20px] bg-neutral-900
                  ring-1 ring-white/15 hover:z-20 hover:-translate-y-1.5 hover:scale-[1.03]
-                 hover:ring-white/40 hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)] will-change-transform"
+                 hover:ring-white/40 hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)]"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
       <img
         src={imageUrl}
+        srcSet={imageSrcSet}
+        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
         alt={movie.title || movie.name}
         loading="lazy"
         decoding="async"
@@ -187,17 +191,16 @@ function Thumbnail({ movie, viewMode }: Props) {
         </div>
       )}
 
-      {/* Hover overlay */}
+      {/* Hover overlay (mounted only while hovered so idle cards carry zero backdrop-filter cost) */}
+      {isHovered && (
       <div
-        className={`absolute inset-0 flex flex-col justify-end gap-3 p-3.5 sm:p-4
+        className="absolute inset-0 flex flex-col justify-end gap-3 p-3.5 sm:p-4
                    bg-gradient-to-t from-black/95 via-black/55 to-transparent
-                   transition-opacity duration-300 
-                   ${isHovered ? "opacity-100" : "opacity-0"}`}
+                   animate-[fadeIn_0.25s_ease-out]"
       >
         <button
-          className={`liquid-glass liquid-refract-orb absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full
-                   transition-transform duration-300 ease-spring
-                   ${isHovered ? "scale-100" : "scale-75"} hover:scale-110 active:scale-90`}
+          className="liquid-glass liquid-refract-orb absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full
+                   transition-transform duration-300 ease-spring hover:scale-110 active:scale-90"
           onClick={(e) => {
             e.stopPropagation();
             handleClick();
@@ -236,6 +239,7 @@ function Thumbnail({ movie, viewMode }: Props) {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

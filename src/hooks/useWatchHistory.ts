@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 const HISTORY_KEY = 'moviezone_watch_history';
 
@@ -10,48 +10,80 @@ interface WatchItem {
   watchedAt: string;
 }
 
+let cachedHistory: WatchItem[] | null = null;
+const historyListeners = new Set<() => void>();
+
 function getHistory(): WatchItem[] {
+  if (cachedHistory !== null) return cachedHistory;
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
-    return raw ? (JSON.parse(raw) as WatchItem[]) : [];
+    cachedHistory = raw ? (JSON.parse(raw) as WatchItem[]) : [];
   } catch {
-    return [];
+    cachedHistory = [];
   }
+  return cachedHistory;
+}
+
+function notifyHistoryListeners() {
+  historyListeners.forEach((fn) => fn());
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === HISTORY_KEY || e.key === null) {
+      cachedHistory = null;
+      notifyHistoryListeners();
+    }
+  });
 }
 
 export function useWatchHistory() {
   const [watchHistory, setWatchHistory] = useState<WatchItem[]>(() => getHistory());
 
-  const addToWatchHistory = async (item: {
-    id: number;
-    title: string;
-    poster_path: string;
-    media_type: 'movie' | 'tv';
-  }) => {
-    const entry: WatchItem = {
-      id: String(item.id),
-      title: item.title,
-      posterPath: item.poster_path,
-      mediaType: item.media_type,
-      watchedAt: new Date().toISOString(),
-    };
-    const history = getHistory().filter((h) => h.id !== entry.id);
-    history.unshift(entry);
-    // Keep last 100 items
-    const trimmed = history.slice(0, 100);
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
-    setWatchHistory(trimmed);
-  };
-
-  const clearHistory = () => {
-    localStorage.removeItem(HISTORY_KEY);
-    setWatchHistory([]);
-  };
-
   useEffect(() => {
-    const onStorage = () => setWatchHistory(getHistory());
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    const listener = () => setWatchHistory(getHistory());
+    historyListeners.add(listener);
+    return () => {
+      historyListeners.delete(listener);
+    };
+  }, []);
+
+  const addToWatchHistory = useCallback(
+    async (item: {
+      id: number;
+      title: string;
+      poster_path: string;
+      media_type: 'movie' | 'tv';
+    }) => {
+      const entry: WatchItem = {
+        id: String(item.id),
+        title: item.title,
+        posterPath: item.poster_path,
+        mediaType: item.media_type,
+        watchedAt: new Date().toISOString(),
+      };
+      const history = getHistory().filter((h) => h.id !== entry.id);
+      history.unshift(entry);
+      const trimmed = history.slice(0, 100);
+      cachedHistory = trimmed;
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+      } catch {
+        // Ignore storage errors
+      }
+      notifyHistoryListeners();
+    },
+    []
+  );
+
+  const clearHistory = useCallback(() => {
+    cachedHistory = [];
+    try {
+      localStorage.removeItem(HISTORY_KEY);
+    } catch {
+      // Ignore storage errors
+    }
+    notifyHistoryListeners();
   }, []);
 
   return { watchHistory, loading: false, addToWatchHistory, clearHistory };

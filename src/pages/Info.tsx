@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { Movie } from "../types/movie";
@@ -10,8 +10,12 @@ import { LoadingSkeleton } from "../components/info/skeleton";
 import { RatingModal } from "../components/RatingModal";
 import { CastSection } from "../components/info/CastSection";
 import { DownloadSection } from "../components/info/DownloadSection";
-import toast from "react-hot-toast";
 import { isInList } from "../utils/localList";
+
+const infoContentCache = new Map<
+  string,
+  { content: Movie; trailer: string | null }
+>();
 
 function Info() {
   const { type, id } = useParams();
@@ -19,13 +23,22 @@ function Info() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { openModal } = useVideoModal();
   const { addToWatchHistory } = useWatchHistory();
-  const [content, setContent] = useState<Movie | null>(null);
-  const [trailer, setTrailer] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = type && id ? `${type}:${id}` : "";
+  const cachedEntry = cacheKey ? infoContentCache.get(cacheKey) : undefined;
+
+  const [content, setContent] = useState<Movie | null>(
+    cachedEntry?.content ?? null
+  );
+  const [trailer, setTrailer] = useState<string | null>(
+    cachedEntry?.trailer ?? null
+  );
+  const [loading, setLoading] = useState(!cachedEntry);
   const [error, setError] = useState<string | null>(null);
   const [itemsPerPage] = useState<number>(5);
   const [selectedQuality, setSelectedQuality] = useState<string>("All");
-  const [isInMyList, setIsInMyList] = useState<boolean>(false);
+  const [isInMyList, setIsInMyList] = useState<boolean>(() =>
+    cachedEntry ? isInList(cachedEntry.content.id) : false
+  );
   const [showRatingModal, setShowRatingModal] = useState(false);
 
   const currentPage = Math.max(
@@ -68,22 +81,15 @@ function Info() {
     [setSearchParams]
   );
 
-  const [validatedOgImage, setValidatedOgImage] = useState<string>(
-    "https://movie-zone.pages.dev/movie-zone.png"
-  );
-
-  // Immediately compute fast-loading HD banner (<5MB w1280) for social share previews
-  useEffect(() => {
-    if (!content) return;
-    const w1280Banner = content.backdrop_path
-      ? `https://image.tmdb.org/t/p/w1280${content.backdrop_path}`
-      : null;
-    const posterFallback = content.poster_path
-      ? `https://image.tmdb.org/t/p/w780${content.poster_path}`
-      : null;
-    const preferred =
-      w1280Banner || posterFallback || "https://movie-zone.pages.dev/movie-zone.png";
-    setValidatedOgImage(preferred);
+  const validatedOgImage = useMemo(() => {
+    if (!content) return "https://movie-zone.pages.dev/movie-zone.png";
+    if (content.backdrop_path) {
+      return `https://image.tmdb.org/t/p/w1280${content.backdrop_path}`;
+    }
+    if (content.poster_path) {
+      return `https://image.tmdb.org/t/p/w780${content.poster_path}`;
+    }
+    return "https://movie-zone.pages.dev/movie-zone.png";
   }, [content]);
 
   // Fetch content details
@@ -91,6 +97,16 @@ function Info() {
     const fetchContent = async () => {
       if (!id || !type) {
         navigate("/");
+        return;
+      }
+
+      const key = `${type}:${id}`;
+      const existing = infoContentCache.get(key);
+      if (existing) {
+        setContent(existing.content);
+        setTrailer(existing.trailer);
+        setLoading(false);
+        setError(null);
         return;
       }
 
@@ -109,39 +125,42 @@ function Info() {
         }
 
         const data = await response.json();
-        
+
         // Find the best available backdrop image
         let bestBackdrop = data.backdrop_path;
-        
+
         // If no main backdrop, try to get from additional images
         if (!bestBackdrop && data.images?.backdrops?.length > 0) {
-          // Sort by vote average and pick the best one
           const sortedBackdrops = data.images.backdrops.sort(
-            (a: { vote_average?: number }, b: { vote_average?: number }) => 
-            (b.vote_average || 0) - (a.vote_average || 0)
+            (a: { vote_average?: number }, b: { vote_average?: number }) =>
+              (b.vote_average || 0) - (a.vote_average || 0)
           );
           bestBackdrop = sortedBackdrops[0].file_path;
         }
-        
-        console.log('Selected backdrop:', bestBackdrop);
 
-        // Transform the data to match the Movie type
-        setContent({
+        const transformedContent: Movie = {
           ...data,
           title: type === "tv" ? data.name : data.title,
           media_type: type,
           release_date: type === "tv" ? data.first_air_date : data.release_date,
           imdb_id: data.external_ids?.imdb_id || null,
-          backdrop_path: bestBackdrop, // Use the best available backdrop
-        });
+          backdrop_path: bestBackdrop,
+        };
 
-        // Set trailer
-        const trailer = data.videos?.results?.find(
+        const foundTrailer = data.videos?.results?.find(
           (video: { type: string; site: string; key: string }) =>
             video.type === "Trailer" &&
             (video.site === "YouTube" || video.site === "Vimeo")
         );
-        setTrailer(trailer ? trailer.key : null);
+        const trailerKey = foundTrailer ? foundTrailer.key : null;
+
+        infoContentCache.set(key, {
+          content: transformedContent,
+          trailer: trailerKey,
+        });
+
+        setContent(transformedContent);
+        setTrailer(trailerKey);
       } catch (error) {
         console.error("Error fetching content:", error);
         setError("Failed to load content");
@@ -161,99 +180,82 @@ function Info() {
     }
   }, [content]);
 
-  // ...existing code...  // Helper Methods
-  const getVideoEmbedUrl = (source = "primary") => {
-    if (!content?.id) return "";
+  const videoSourceOptions = useMemo(() => {
+    if (!content?.id) return [];
+    const isMovie = content.media_type === "movie";
+    const s = selectedSeason || 1;
 
-    const sources = {
-      // Primary: vidsrc.to (requires IMDB ID)
-      primary: content.imdb_id
-        ? content.media_type === "movie"
-          ? `https://vidsrc.to/embed/movie/${content.imdb_id}`
-          : `https://vidsrc.to/embed/tv/${content.imdb_id}`
-        : content.media_type === "movie"
-        ? `https://vidsrc.cc/v2/embed/movie/${content.id}`
-        : `https://vidsrc.cc/v2/embed/tv/${content.id}`,
-
-      // Secondary: vidsrc.cc (uses TMDB ID)
-      secondary:
-        content.media_type === "movie"
+    return [
+      {
+        key: "primary",
+        name: "VidSrc.to",
+        url: content.imdb_id
+          ? isMovie
+            ? `https://vidsrc.to/embed/movie/${content.imdb_id}`
+            : `https://vidsrc.to/embed/tv/${content.imdb_id}/${s}/1`
+          : isMovie
           ? `https://vidsrc.cc/v2/embed/movie/${content.id}`
-          : `https://vidsrc.cc/v2/embed/tv/${content.id}`,
-
-      // Tertiary: embedsu.org
-      tertiary:
-        content.media_type === "movie"
-          ? `https://embedsu.org/embed/movie/${content.id}`
-          : `https://embedsu.org/embed/tv/${content.id}`, // Quaternary: movielair.cc
-      quaternary:
-        content.media_type === "movie"
-          ? `https://movielair.cc/watch-movie/${content.id}`
-          : `https://movielair.cc/watch-tv/${content.id}?season=1&episode=1`, // Fifth: vidlink.pro
-      fifth:
-        content.media_type === "movie"
+          : `https://vidsrc.cc/v2/embed/tv/${content.id}/${s}/1`,
+      },
+      {
+        key: "secondary",
+        name: "VidSrc.cc",
+        url: isMovie
+          ? `https://vidsrc.cc/v2/embed/movie/${content.id}`
+          : `https://vidsrc.cc/v2/embed/tv/${content.id}/${s}/1`,
+      },
+      {
+        key: "fifth",
+        name: "VidLink.pro",
+        url: isMovie
           ? `https://vidlink.pro/movie/${content.id}`
-          : `https://vidlink.pro/tv/${content.id}/1/1`, // Default to season 1, episode 1 for TV series
-
-      // Fallback: smashystream
-      fallback:
-        content.media_type === "movie"
+          : `https://vidlink.pro/tv/${content.id}/${s}/1`,
+      },
+      {
+        key: "tertiary",
+        name: "EmbedSu",
+        url: isMovie
+          ? `https://embedsu.org/embed/movie/${content.id}`
+          : `https://embedsu.org/embed/tv/${content.id}/${s}/1`,
+      },
+      {
+        key: "quaternary",
+        name: "MovieLair",
+        url: isMovie
+          ? `https://movielair.cc/watch-movie/${content.id}`
+          : `https://movielair.cc/watch-tv/${content.id}?season=${s}&episode=1`,
+      },
+      {
+        key: "fallback",
+        name: "SmashyStream",
+        url: isMovie
           ? `https://player.smashy.stream/movie/${content.id}`
-          : `https://player.smashy.stream/tv/${content.id}`,
-    };
-
-    return sources[source as keyof typeof sources] || sources.primary;
-  }; // Updated handlePlayClick to try multiple sources automatically
-  const handlePlayClick = async (sourceType = "primary") => {
-    if (!content) return;
-
-    const sourceOrder = [
-      "primary",
-      "secondary",
-      "tertiary",
-      "quaternary",
-      "fifth",
-      "fallback",
+          : `https://player.smashy.stream/tv/${content.id}?s=${s}&e=1`,
+      },
     ];
-    const startIndex = sourceOrder.indexOf(sourceType);
-    const orderedSources = [
-      ...sourceOrder.slice(startIndex),
-      ...sourceOrder.slice(0, startIndex),
-    ];
+  }, [content?.id, content?.imdb_id, content?.media_type, selectedSeason]);
 
-    // Show loading toast
-    const loadingToast = toast.loading(
-      `Finding best source for ${content.title}...`
-    );
+  const handlePlayClick = useCallback(
+    async (sourceType = "primary") => {
+      if (!content || !videoSourceOptions.length) return;
 
-    // Try to find a working source
-    for (const source of orderedSources) {
-      const embedUrl = getVideoEmbedUrl(source);
-      if (embedUrl) {
-        try {
-          // Test if the URL is accessible (basic check)
-          openModal(embedUrl);
-          toast.success(`Playing ${content.title}`, { id: loadingToast });
-          console.log(`Using ${source} source: ${embedUrl}`);
-          return;
-        } catch {
-          console.warn(`${source} source failed, trying next...`);
-          continue;
-        }
-      }
-    }
+      const chosen =
+        videoSourceOptions.find((s) => s.key === sourceType) ||
+        videoSourceOptions[0];
 
-    // If all sources fail, show user-friendly message
-    toast.error(
-      `${content.title} is currently unavailable from all streaming sources. Please try again later.`,
-      { id: loadingToast }
-    );
-  };
+      openModal(chosen.url, {
+        title: content.title || content.name || "Now Playing",
+        sources: videoSourceOptions,
+        activeSourceKey: chosen.key,
+      });
+    },
+    [content, videoSourceOptions, openModal]
+  );
 
-  const handleWatch = async () => {
+  const handleWatch = useCallback(async () => {
     if (!content || !type) return;
 
-    handlePlayClick();
+    handlePlayClick("primary");
 
     const mediaData = {
       id: content.id,
@@ -268,7 +270,7 @@ function Info() {
     addToWatchHistory(mediaData).catch((error) => {
       console.error("Failed to update watch history:", error);
     });
-  };
+  }, [content, type, handlePlayClick, addToWatchHistory]);
 
   // UI Render Logic
   if (loading) {

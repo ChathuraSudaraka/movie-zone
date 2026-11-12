@@ -40,8 +40,8 @@ export const MobileDock: React.FC = () => {
         }}
       />
 
-      {/* Outer Frosted Floating Shell */}
-      <div className="liquid-glass liquid-glass-strong relative rounded-[36px] px-2 pt-2.5 pb-2 shadow-[0_24px_56px_-12px_rgba(0,0,0,0.92),0_10px_32px_-10px_rgba(168,85,247,0.42)]">
+      {/* Outer Frosted Floating Shell (True Liquid Glass Dock Preset) */}
+      <div className="liquid-glass liquid-dock relative rounded-[36px] px-2 pt-2.5 pb-2">
         {/* Luminous pink-purple under-rim accent */}
         <span
           aria-hidden="true"
@@ -56,8 +56,8 @@ export const MobileDock: React.FC = () => {
             onClick={() => navigate("/donate")}
             className={`liquid-refract relative inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-xs font-medium transition-all duration-200 border focus:outline-none ${
               isDonateActive
-                ? "bg-gradient-to-r from-fuchsia-500/35 to-purple-500/35 text-white border-fuchsia-300/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.55),0_6px_18px_-4px_rgba(236,72,153,0.6)]"
-                : "bg-white/[0.08] text-white/90 border-white/20 hover:bg-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.32),0_6px_16px_rgba(0,0,0,0.45)]"
+                ? "bg-white/[0.16] text-white border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_6px_18px_-4px_rgba(0,0,0,0.65)]"
+                : "bg-black/35 text-white/90 border-white/15 hover:bg-white/[0.12] shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_6px_16px_rgba(0,0,0,0.55)]"
             }`}
           >
             <Heart
@@ -71,10 +71,10 @@ export const MobileDock: React.FC = () => {
           </motion.button>
         </div>
 
-        {/* Bottom 4-Tab Frosted Glass Pill Track */}
+        {/* Bottom 4-Tab Dark Frosted Glass Pill Track */}
         <nav
           aria-label="Mobile Navigation"
-          className="grid grid-cols-4 items-center p-1 rounded-[28px] bg-white/[0.05] border border-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.2)]"
+          className="grid grid-cols-4 items-center p-1 rounded-[28px] bg-black/40 border border-white/[0.14] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_6px_16px_rgba(0,0,0,0.45)]"
         >
           {DOCK_TABS.map((tab) => {
             const Icon = tab.icon;
@@ -100,7 +100,7 @@ export const MobileDock: React.FC = () => {
                       damping: 34,
                       mass: 0.75,
                     }}
-                    className="liquid-refract absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/[0.25] via-fuchsia-400/[0.14] to-purple-500/[0.12] border border-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.6),0_8px_20px_-6px_rgba(217,70,239,0.55)] pointer-events-none"
+                    className="liquid-refract absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/[0.22] via-white/[0.10] to-white/[0.06] border border-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.48),0_6px_18px_-4px_rgba(0,0,0,0.65)] pointer-events-none"
                   />
                 )}
                 <Icon

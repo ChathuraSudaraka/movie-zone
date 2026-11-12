@@ -21,7 +21,25 @@ interface TVProcessProps {
 }
 
 const EZTV_BASE_URL = "/api/eztv";
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+interface EztvTorrent {
+  id: number;
+  title: string;
+  season: string;
+  episode: string;
+  hash: string;
+  magnet_url: string;
+  torrent_url: string;
+  size_bytes: string;
+  seeds: number;
+  peers: number;
+  date_released_unix: number;
+}
+
+const eztvShowCache = new Map<
+  string,
+  { [season: number]: { [ep: number]: TorrentInfo[] } }
+>();
 
 function parseQuality(title: string): string {
   if (/2160p|4k/i.test(title)) return "2160p";
@@ -99,10 +117,23 @@ export const TVProcess = ({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [isSeasonDropdownOpen]);
 
-  // Fetch seasons
+  // Fetch seasons (reuse content.seasons when already present from Info.tsx)
   useEffect(() => {
     const fetchSeasons = async () => {
       if (!content?.id) return;
+
+      const embeddedSeasons = (
+        content as Movie & { seasons?: TMDBSeason[] }
+      ).seasons;
+      if (Array.isArray(embeddedSeasons) && embeddedSeasons.length > 0) {
+        const filtered = embeddedSeasons.filter((s) => s.season_number > 0);
+        setSeasons(filtered);
+        if (!selectedSeason && filtered.length > 0) {
+          setSelectedSeason(filtered[0].season_number);
+        }
+        return;
+      }
+
       setIsLoading(true);
       try {
         const response = await axios.get(
@@ -127,84 +158,71 @@ export const TVProcess = ({
     fetchSeasons();
   }, [content?.id]);
 
-  // Fetch torrents for one episode via EZTV
-  const fetchTorrentsForEpisode = useCallback(
-    async (
-      imdbId: string,
-      seasonNumber: number,
-      episodeNumber: number
-    ): Promise<TorrentInfo[] | null> => {
-      try {
-        const numericImdbId = imdbId.replace(/^tt/i, "");
-        const response = await axios.get(
-          `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`
-        );
+  // Fetch all EZTV torrents for the show once and group by season + episode
+  const fetchShowTorrents = useCallback(async (imdbId: string) => {
+    const numericImdbId = imdbId.replace(/^tt/i, "");
+    if (!numericImdbId) return {};
+    if (eztvShowCache.has(numericImdbId)) {
+      return eztvShowCache.get(numericImdbId)!;
+    }
 
-        if (!response.data?.torrents?.length) return null;
+    try {
+      const response = await axios.get(
+        `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`
+      );
+      const rawTorrents: EztvTorrent[] = response.data?.torrents || [];
+      const grouped: { [season: number]: { [ep: number]: TorrentInfo[] } } = {};
 
-        interface EztvTorrent {
-          id: number;
-          title: string;
-          season: string;
-          episode: string;
-          hash: string;
-          magnet_url: string;
-          torrent_url: string;
-          size_bytes: string;
-          seeds: number;
-          peers: number;
-          date_released_unix: number;
-        }
+      for (const t of rawTorrents) {
+        const sNum = parseInt(t.season, 10);
+        const eNum = parseInt(t.episode, 10);
+        if (!sNum || !eNum) continue;
+        if (!grouped[sNum]) grouped[sNum] = {};
+        if (!grouped[sNum][eNum]) grouped[sNum][eNum] = [];
 
-        const matched: EztvTorrent[] = response.data.torrents.filter(
-          (t: EztvTorrent) =>
-            parseInt(t.season) === seasonNumber &&
-            parseInt(t.episode) === episodeNumber
-        );
-
-        if (!matched.length) return null;
-
-        return matched
-          .map((t: EztvTorrent) => ({
-            url: t.torrent_url,
-            hash: t.hash,
-            quality: parseQuality(t.title),
-            type: "web",
-            seeds: t.seeds || 0,
-            peers: t.peers || 0,
-            size: t.size_bytes
-              ? `${(parseInt(t.size_bytes) / 1073741824).toFixed(2)} GB`
-              : "Unknown",
-            infoHash: t.hash,
-            provider: "EZTV",
-            resolution: parseQuality(t.title),
-            is_main_movie: false,
-            download_url: t.torrent_url,
-            magnetLink: t.magnet_url,
-            trustScore: t.seeds > 50 ? 90 : t.seeds > 10 ? 70 : 50,
-            size_bytes: parseInt(t.size_bytes) || 0,
-            date_uploaded: new Date(
-              t.date_released_unix * 1000
-            ).toISOString(),
-          }))
-          .sort(
-            (a: TorrentInfo, b: TorrentInfo) => (b.seeds || 0) - (a.seeds || 0)
-          );
-      } catch (err) {
-        console.error(
-          `Error fetching torrent S${seasonNumber}E${episodeNumber}:`,
-          err
-        );
-        return null;
+        grouped[sNum][eNum].push({
+          url: t.torrent_url,
+          hash: t.hash,
+          quality: parseQuality(t.title),
+          type: "web",
+          seeds: t.seeds || 0,
+          peers: t.peers || 0,
+          size: t.size_bytes
+            ? `${(parseInt(t.size_bytes, 10) / 1073741824).toFixed(2)} GB`
+            : "Unknown",
+          infoHash: t.hash,
+          provider: "EZTV",
+          resolution: parseQuality(t.title),
+          is_main_movie: false,
+          download_url: t.torrent_url,
+          magnetLink: t.magnet_url,
+          trustScore: t.seeds > 50 ? 90 : t.seeds > 10 ? 70 : 50,
+          size_bytes: parseInt(t.size_bytes, 10) || 0,
+          date_uploaded: new Date(
+            t.date_released_unix * 1000
+          ).toISOString(),
+        });
       }
-    },
-    []
-  );
 
-  // Fetch episodes + their torrents for a season
+      for (const sKey of Object.keys(grouped)) {
+        const sMap = grouped[Number(sKey)];
+        for (const eKey of Object.keys(sMap)) {
+          sMap[Number(eKey)].sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
+        }
+      }
+
+      eztvShowCache.set(numericImdbId, grouped);
+      return grouped;
+    } catch (err) {
+      console.error("Error fetching EZTV show torrents:", err);
+      return {};
+    }
+  }, []);
+
+  // Fetch episodes + their torrents for a season in parallel
   const fetchEpisodesForSeason = useCallback(
     async (seasonNumber: number) => {
-      if (!content?.id || !content?.imdb_id) return;
+      if (!content?.id) return;
 
       let eps = episodeCache[seasonNumber];
       if (!eps) {
@@ -233,27 +251,14 @@ export const TVProcess = ({
       if (seasonNumber === selectedSeason) {
         setEpisodes(eps);
 
-        if (!torrentsBySeason[seasonNumber]) {
-          const newTorrents: { [key: string]: TorrentInfo[] } = {};
-          for (const episode of eps) {
-            setLoadingTorrents((prev) => [...prev, episode.episode_number]);
-            await delay(180);
-            const torrentData = await fetchTorrentsForEpisode(
-              content.imdb_id,
-              seasonNumber,
-              episode.episode_number
-            );
-            if (torrentData?.length) {
-              newTorrents[episode.episode_number] = torrentData;
-            }
-            setLoadingTorrents((prev) =>
-              prev.filter((id) => id !== episode.episode_number)
-            );
-          }
+        if (content.imdb_id && !torrentsBySeason[seasonNumber]) {
+          const allGrouped = await fetchShowTorrents(content.imdb_id);
           setTorrentsBySeason((prev) => ({
             ...prev,
-            [seasonNumber]: newTorrents,
+            ...allGrouped,
+            [seasonNumber]: allGrouped[seasonNumber] || {},
           }));
+          setLoadingTorrents([]);
         }
       }
     },
@@ -263,7 +268,7 @@ export const TVProcess = ({
       selectedSeason,
       episodeCache,
       torrentsBySeason,
-      fetchTorrentsForEpisode,
+      fetchShowTorrents,
     ]
   );
 

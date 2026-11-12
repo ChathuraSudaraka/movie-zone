@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { NavigateFunction } from "react-router-dom";
 import { addToList, removeFromList } from "../../utils/localList";
 import InfoActions from "./InfoActions";
+import { backdropSrcSet, tmdbImage } from "../../utils/requests";
 
 interface InfoHeroProps {
   content: Movie;
@@ -109,9 +110,13 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
       {/* Background Image */}
       <div className="absolute inset-0 overflow-hidden">
         <img
-          src={`https://image.tmdb.org/t/p/original${content.backdrop_path}`}
+          src={tmdbImage(content.backdrop_path, "w1280")}
+          srcSet={backdropSrcSet(content.backdrop_path)}
+          sizes="100vw"
+          fetchPriority="high"
+          decoding="async"
           alt={content.title}
-          className={`h-full w-full object-cover will-change-transform ${
+          className={`h-full w-full object-cover ${
             imgLoaded ? "animate-ken-burns" : ""
           }`}
           style={{ opacity: imgLoaded ? 1 : 0, transition: "opacity 0.6s ease" }}
@@ -159,7 +164,7 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
             {/* Metadata Row */}
             <div className="flex flex-wrap items-center gap-2 md:gap-2.5 text-white/95 mb-5 text-xs xs:text-sm md:text-[14px]">
               {content.vote_average > 0 && (
-                <span className="liquid-glass inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold text-white">
+                <span className="glass-chip inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-semibold text-white">
                   <FaStar className="text-[11px] text-amber-400" />
                   {content.vote_average.toFixed(1)}
                   <span className="text-white/50 font-normal">
@@ -168,22 +173,22 @@ export const InfoHero: React.FC<InfoHeroProps> = ({
                 </span>
               )}
               {content.release_date && (
-                <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200">
+                <span className="glass-chip rounded-full px-3 py-1 font-medium text-neutral-200">
                   {new Date(content.release_date).getFullYear()}
                 </span>
               )}
-              <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
+              <span className="glass-chip rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                 4K HDR
               </span>
-              <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
+              <span className="glass-chip rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                 {content.media_type === "movie" ? "Movie" : "TV Series"}
               </span>
               {content.runtime && content.runtime > 0 ? (
-                <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
+                <span className="glass-chip rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                   {Math.floor(content.runtime / 60)}h {content.runtime % 60}m
                 </span>
               ) : content.media_type === "tv" && content.number_of_seasons ? (
-                <span className="liquid-glass rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
+                <span className="glass-chip rounded-full px-3 py-1 font-medium text-neutral-200 whitespace-nowrap">
                   {content.number_of_seasons}{" "}
                   {content.number_of_seasons === 1 ? "Season" : "Seasons"}
                   {content.number_of_episodes

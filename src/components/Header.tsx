@@ -6,7 +6,7 @@ import {
   SearchIcon,
   XIcon,
 } from "lucide-react";
-import { baseUrl } from "@/utils/requests";
+import { tmdbImage } from "@/utils/requests";
 import { Movie } from "../types/movie";
 import { MobileDock } from "./MobileDock";
 
@@ -206,7 +206,7 @@ function Header() {
       />
       <div
         aria-hidden
-        className={`pointer-events-none fixed inset-x-0 top-0 -z-10 h-24 bg-[#0a0a0d]/80 backdrop-blur-xl transition-opacity duration-300 ${
+        className={`pointer-events-none fixed inset-x-0 top-0 -z-10 h-24 bg-[#0a0a0d]/80 backdrop-blur-md lg:backdrop-blur-xl transition-opacity duration-300 ${
           isScrolled ? "opacity-100" : "opacity-0"
         }`}
         style={{
@@ -249,7 +249,7 @@ function Header() {
                     <motion.span
                       layoutId="nav-liquid-pill"
                       transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                      className="liquid-glass absolute inset-0 -z-0 rounded-full !bg-white/[0.08]"
+                      className="liquid-glass liquid-refract absolute inset-0 -z-0 rounded-full !bg-white/[0.06]"
                     />
                   )}
                   <span className="relative z-10">{item.name}</span>
@@ -363,10 +363,13 @@ function Header() {
                               <div className="relative h-12 w-20">
                                 <div className="animate-pulse absolute inset-0 bg-white/10 rounded-xl" />
                                 <img
-                                  src={`${baseUrl}${
+                                  src={tmdbImage(
                                     suggestion.backdrop_path ||
-                                    suggestion.poster_path
-                                  }`}
+                                      suggestion.poster_path,
+                                    "w300"
+                                  )}
+                                  loading="lazy"
+                                  decoding="async"
                                   alt={suggestion.title || suggestion.name}
                                   className="h-12 w-20 object-cover rounded-xl absolute inset-0 transition-opacity duration-300"
                                   onLoad={(e) => {

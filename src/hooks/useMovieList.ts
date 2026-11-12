@@ -1,45 +1,46 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Movie } from '../types/movie';
 import {
   getList,
   isInList as localIsInList,
   addToList as localAdd,
   removeFromList as localRemove,
+  subscribeToList,
 } from '../utils/localList';
 
 export function useMovieList() {
   const [movieList, setMovieList] = useState<Movie[]>(() => getList());
 
-  // Keep state in sync if another tab changes localStorage
   useEffect(() => {
-    const onStorage = () => setMovieList(getList());
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
+    return subscribeToList(() => {
+      setMovieList(getList());
+    });
   }, []);
 
-  const isInList = (movieId: number) => localIsInList(movieId);
+  const isInList = useCallback((movieId: number) => localIsInList(movieId), []);
 
-  const addToList = async (movie: Movie) => {
+  const addToList = useCallback(async (movie: Movie) => {
     localAdd(movie);
-    setMovieList(getList());
     return true;
-  };
+  }, []);
 
-  const removeFromList = async (movieId: number) => {
+  const removeFromList = useCallback(async (movieId: number) => {
     localRemove(movieId);
-    setMovieList(getList());
     return true;
-  };
+  }, []);
 
-  const toggleListItem = async (movie: Movie): Promise<boolean> => {
+  const toggleListItem = useCallback(async (movie: Movie): Promise<boolean> => {
     if (localIsInList(movie.id)) {
       localRemove(movie.id);
     } else {
       localAdd(movie);
     }
-    setMovieList(getList());
     return true;
-  };
+  }, []);
+
+  const refreshList = useCallback(() => {
+    setMovieList(getList());
+  }, []);
 
   return {
     movieList,
@@ -48,6 +49,6 @@ export function useMovieList() {
     addToList,
     removeFromList,
     toggleListItem,
-    refreshList: () => setMovieList(getList()),
+    refreshList,
   };
 }
