@@ -4,12 +4,20 @@
 
 @layer base {
   :root {
-    --frost: 0.72;
+    --frost: 0.76;
     --saturation: 1.35;
-    --glass-tint: rgba(12, 12, 16, 0.72);
-    --glass-tint-strong: rgba(14, 14, 19, 0.82);
+    --glass-tint: rgba(12, 12, 16, 0.76);
+    --glass-tint-strong: rgba(14, 14, 19, 0.84);
     --glass-border: rgba(255, 255, 255, 0.14);
     --glass-blur: 18px;
+    --glass-inner-highlight: inset 0 1px 0.5px rgba(255, 255, 255, 0.38),
+      inset 0 0 10px rgba(255, 255, 255, 0.08);
+    --glass-low-ram-surface: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(34, 34, 42, 0.88) 42%,
+      rgba(16, 16, 22, 0.94) 100%
+    );
     --mx: 50%;
     --my: 0%;
   }
@@ -45,39 +53,54 @@
     @apply flex h-11 w-11 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-xl transition hover:border-white/35 hover:bg-white/20;
   }
 
-  /* ───────────────── Dark Liquid Glass (.effect dark theme spec) ───────────────── */
+  /* ───────────────── iOS 26 Dark Liquid Glass Spec ───────────────── */
+  .liquid-glass,
+  .glass,
+  .btn-glass,
+  .effect,
+  .liquid-dock,
+  .liquid-refract,
+  .liquid-refract-orb {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .liquid-glass,
+  .glass,
+  .btn-glass,
+  .effect,
+  .liquid-dock,
+  .liquid-refract:where(:not([class*="bg-gradient-"]):not([class*="bg-white/"])),
+  .liquid-refract-orb:where(:not([class*="bg-gradient-"]):not([class*="bg-white/"])) {
+    background:
+      linear-gradient(
+        180deg,
+        rgba(255, 255, 255, 0.11) 0%,
+        rgba(255, 255, 255, 0.025) 44%,
+        rgba(0, 0, 0, 0.32) 100%
+      ),
+      hsl(240 10% 10% / var(--frost, 0.76));
+  }
+
   .liquid-glass,
   .glass,
   .btn-glass,
   .effect {
-    position: relative;
-    isolation: isolate;
-    background:
-      linear-gradient(
-        180deg,
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.02) 42%,
-        rgba(0, 0, 0, 0.28) 100%
-      ),
-      hsl(240 8% 12% / var(--frost, 0.74));
     -webkit-backdrop-filter: blur(var(--glass-blur)) brightness(0.92) saturate(var(--saturation, 1.35));
     backdrop-filter: blur(var(--glass-blur)) brightness(0.92) saturate(var(--saturation, 1.35));
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow:
-      0 0 2px 1px color-mix(in oklch, #ffffff, #0000 72%) inset,
-      0 0 10px 4px color-mix(in oklch, #ffffff, #0000 88%) inset,
-      0px 4px 16px rgba(0, 0, 0, 0.35),
-      0px 8px 24px rgba(0, 0, 0, 0.42),
-      0px 16px 56px rgba(0, 0, 0, 0.55),
-      0px 4px 16px rgba(0, 0, 0, 0.22) inset,
-      0px 8px 24px rgba(0, 0, 0, 0.18) inset,
-      0px 16px 56px rgba(0, 0, 0, 0.18) inset;
+      var(--glass-inner-highlight),
+      inset 0 -1px 2px rgba(0, 0, 0, 0.35),
+      0 8px 28px -6px rgba(0, 0, 0, 0.55),
+      0 2px 10px rgba(0, 0, 0, 0.32);
   }
 
   /* Soft glossy highlight + subtle pointer sheen */
   .liquid-glass::before,
   .glass::before,
-  .btn-glass::before {
+  .btn-glass::before,
+  .effect::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -91,20 +114,24 @@
         transparent 72%
       ),
       linear-gradient(
-        130deg,
-        rgba(255, 255, 255, 0.10) 0%,
-        rgba(255, 255, 255, 0.01) 36%,
+        135deg,
+        rgba(255, 255, 255, 0.11) 0%,
+        rgba(255, 255, 255, 0.015) 36%,
         rgba(0, 0, 0, 0) 66%,
         rgba(255, 255, 255, 0.04) 100%
       );
-    opacity: 0.9;
+    opacity: 0.92;
     transition: opacity 0.35s ease;
   }
 
-  /* Specular rim highlight */
+  /* Specular curved top-left-to-bottom-right refractive rim */
   .liquid-glass::after,
   .glass::after,
-  .btn-glass::after {
+  .btn-glass::after,
+  .effect::after,
+  .liquid-dock::after,
+  .liquid-refract::after,
+  .liquid-refract-orb::after {
     content: "";
     position: absolute;
     inset: 0;
@@ -112,15 +139,16 @@
     padding: 1px;
     pointer-events: none;
     background: linear-gradient(
-      155deg,
-      rgba(255, 255, 255, 0.36) 0%,
-      rgba(255, 255, 255, 0.10) 28%,
-      rgba(255, 255, 255, 0.02) 56%,
-      rgba(255, 255, 255, 0.10) 86%,
-      rgba(255, 255, 255, 0.24) 100%
+      142deg,
+      rgba(255, 255, 255, 0.54) 0%,
+      rgba(255, 255, 255, 0.20) 18%,
+      rgba(255, 255, 255, 0.035) 46%,
+      rgba(255, 255, 255, 0.08) 74%,
+      rgba(255, 255, 255, 0.32) 100%
     );
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     mask-composite: exclude;
   }
 
@@ -129,41 +157,29 @@
     --glass-blur: 22px;
   }
 
-  /* Dark Liquid Glass Dock preset (matches reference dark charcoal dock) */
+  /* Dark Liquid Glass Dock preset */
   .liquid-dock {
     --frost: 0.78;
-    --glass-blur: 24px;
-    background:
-      linear-gradient(
-        180deg,
-        rgba(54, 54, 62, 0.74) 0%,
-        rgba(30, 30, 36, 0.82) 100%
-      );
-    -webkit-backdrop-filter: blur(24px) brightness(0.92) saturate(1.4);
-    backdrop-filter: blur(24px) brightness(0.92) saturate(1.4);
+    --glass-blur: 16px;
+    -webkit-backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+    backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+    box-shadow:
+      var(--glass-inner-highlight),
+      inset 0 -1px 4px rgba(0, 0, 0, 0.4),
+      0 16px 40px -8px rgba(0, 0, 0, 0.72),
+      0 4px 14px rgba(0, 0, 0, 0.4);
   }
 
   /*
    * Hardware-accelerated curved-bezel optical lens (Pill & Orb presets).
    */
-  .liquid-refract {
-    -webkit-backdrop-filter: blur(16px) brightness(0.96) saturate(1.35);
-    backdrop-filter: blur(16px) brightness(0.96) saturate(1.35);
-    box-shadow:
-      0 0 2px 1px color-mix(in oklch, #ffffff, #0000 68%) inset,
-      0 0 10px 4px color-mix(in oklch, #ffffff, #0000 86%) inset,
-      0px 4px 16px rgba(0, 0, 0, 0.30),
-      0px 4px 16px rgba(0, 0, 0, 0.18) inset;
-  }
-
+  .liquid-refract,
   .liquid-refract-orb {
-    -webkit-backdrop-filter: blur(16px) brightness(0.96) saturate(1.35);
-    backdrop-filter: blur(16px) brightness(0.96) saturate(1.35);
+    -webkit-backdrop-filter: blur(16px) brightness(0.96) saturate(var(--saturation, 1.35));
+    backdrop-filter: blur(16px) brightness(0.96) saturate(var(--saturation, 1.35));
     box-shadow:
-      0 0 2px 1px color-mix(in oklch, #ffffff, #0000 68%) inset,
-      0 0 10px 4px color-mix(in oklch, #ffffff, #0000 86%) inset,
-      0px 4px 16px rgba(0, 0, 0, 0.30),
-      0px 4px 16px rgba(0, 0, 0, 0.18) inset;
+      var(--glass-inner-highlight),
+      0 6px 20px -4px rgba(0, 0, 0, 0.48);
   }
 
   /* Lightweight dark frosted chip for resting cards (zero backdrop-filter lag in grids) */
@@ -177,6 +193,93 @@
   .row-perf {
     content-visibility: auto;
     contain-intrinsic-size: 0 380px;
+    contain: content;
+  }
+
+  /*
+   * ───────── 2GB RAM / Touch Mobile Optimization Tier ─────────
+   * Keep real hardware backdrop-filter ONLY on .liquid-dock (and top header).
+   * In-page glass uses a smoked multi-stop gradient + identical specular ::after rim
+   * and inner highlight, capping active backdrop-filter passes to <= 2 surfaces.
+   */
+  @media (hover: none), (max-width: 1023px) {
+    :root {
+      --glass-blur: 16px;
+    }
+
+    .liquid-glass-strong {
+      --glass-blur: 16px;
+    }
+
+    .liquid-dock,
+    header > div[aria-hidden].backdrop-blur-md {
+      -webkit-backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+      backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+    }
+
+    .liquid-glass:not(.liquid-dock),
+    .glass:not(.liquid-dock),
+    .btn-glass:not(.liquid-dock),
+    .effect:not(.liquid-dock),
+    .liquid-refract:not(.liquid-dock),
+    .liquid-refract-orb:not(.liquid-dock) {
+      -webkit-backdrop-filter: none;
+      backdrop-filter: none;
+    }
+
+    .liquid-glass:not(.liquid-dock)::before,
+    .glass:not(.liquid-dock)::before,
+    .btn-glass:not(.liquid-dock)::before,
+    .effect:not(.liquid-dock)::before {
+      content: none;
+    }
+
+    .liquid-glass:not(.liquid-dock),
+    .glass:not(.liquid-dock),
+    .btn-glass:not(.liquid-dock),
+    .effect:not(.liquid-dock),
+    .liquid-refract:not(.liquid-dock):not([class*="bg-gradient-"]):not([class*="bg-white/"]),
+    .liquid-refract-orb:not(.liquid-dock):not([class*="bg-gradient-"]):not([class*="bg-white/"]) {
+      background: var(--glass-low-ram-surface);
+      box-shadow:
+        var(--glass-inner-highlight),
+        0 10px 26px -10px rgba(0, 0, 0, 0.78);
+    }
+  }
+
+  html[data-low-ram="true"] .liquid-dock,
+  html[data-low-ram="true"] header > div[aria-hidden].backdrop-blur-md {
+    -webkit-backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+    backdrop-filter: blur(16px) brightness(0.94) saturate(1.35);
+  }
+
+  html[data-low-ram="true"] .liquid-glass:not(.liquid-dock),
+  html[data-low-ram="true"] .glass:not(.liquid-dock),
+  html[data-low-ram="true"] .btn-glass:not(.liquid-dock),
+  html[data-low-ram="true"] .effect:not(.liquid-dock),
+  html[data-low-ram="true"] .liquid-refract:not(.liquid-dock),
+  html[data-low-ram="true"] .liquid-refract-orb:not(.liquid-dock) {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  html[data-low-ram="true"] .liquid-glass:not(.liquid-dock)::before,
+  html[data-low-ram="true"] .glass:not(.liquid-dock)::before,
+  html[data-low-ram="true"] .btn-glass:not(.liquid-dock)::before,
+  html[data-low-ram="true"] .effect:not(.liquid-dock)::before {
+    content: none;
+  }
+
+  html[data-low-ram="true"] .liquid-glass:not(.liquid-dock),
+  html[data-low-ram="true"] .glass:not(.liquid-dock),
+  html[data-low-ram="true"] .btn-glass:not(.liquid-dock),
+  html[data-low-ram="true"] .effect:not(.liquid-dock),
+  html[data-low-ram="true"] .liquid-refract:not(.liquid-dock):not([class*="bg-gradient-"]):not([class*="bg-white/"]),
+  html[data-low-ram="true"] .liquid-refract-orb:not(.liquid-dock):not([class*="bg-gradient-"]):not([class*="bg-white/"]) {
+    background: var(--glass-low-ram-surface);
+    box-shadow:
+      var(--glass-inner-highlight),
+      0 10px 26px -10px rgba(0, 0, 0, 0.78);
   }
 
   .text-gradient {
@@ -274,55 +377,8 @@
   to { opacity: 1; }
 }
 
-/*
- * ───────── Mobile / touch performance tier (same look, far less GPU work) ─────────
- * 1. Smaller blur radius: blur cost grows with radius²; 16px vs 22-28px looks the same on small screens.
- * 2. Drop SVG displacement refraction (url(#...)) – the most expensive filter on mobile GPUs.
- * 3. No nested backdrop-filters: inner lens pills keep their gradient + rim, skip re-blurring.
- * 4. Freeze ambient blob drift & Ken Burns – animated content behind glass forces every
- *    backdrop-filter to re-render on every frame.
- */
+/* Freeze heavy ambient animations on mobile / touch & low-RAM devices */
 @media (hover: none), (max-width: 1023px) {
-  :root {
-    --glass-blur: 16px;
-  }
-
-  .liquid-glass-strong {
-    --glass-blur: 20px;
-  }
-
-  .liquid-glass,
-  .glass,
-  .btn-glass,
-  .liquid-refract,
-  .liquid-refract-orb {
-    -webkit-backdrop-filter: blur(var(--glass-blur)) brightness(0.92) saturate(1.35);
-    backdrop-filter: blur(var(--glass-blur)) brightness(0.92) saturate(1.35);
-  }
-
-  /* Dark Liquid Glass dock on mobile */
-  .liquid-dock {
-    -webkit-backdrop-filter: blur(22px) brightness(0.92) saturate(1.4);
-    backdrop-filter: blur(22px) brightness(0.92) saturate(1.4);
-  }
-
-  .liquid-refract:not(.liquid-glass):not(.btn-glass):not(.glass),
-  .liquid-refract-orb:not(.liquid-glass):not(.btn-glass):not(.glass) {
-    -webkit-backdrop-filter: none;
-    backdrop-filter: none;
-  }
-
-  /* Preserve the double inset glass rim while keeping outer scroll shadows light */
-  .liquid-glass,
-  .glass,
-  .btn-glass {
-    box-shadow:
-      0 0 2px 1px color-mix(in oklch, #ffffff, #0000 72%) inset,
-      0 0 10px 4px color-mix(in oklch, #ffffff, #0000 88%) inset,
-      0 14px 32px -12px rgba(0, 0, 0, 0.85),
-      0 4px 16px rgba(0, 0, 0, 0.24) inset;
-  }
-
   .animate-blob-drift {
     animation: none !important;
   }
@@ -331,4 +387,13 @@
     animation: none !important;
     transform: scale(1.06);
   }
+}
+
+html[data-low-ram="true"] .animate-blob-drift {
+  animation: none !important;
+}
+
+html[data-low-ram="true"] .animate-ken-burns {
+  animation: none !important;
+  transform: scale(1.06);
 }

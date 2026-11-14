@@ -19,21 +19,35 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
   const [movies, setMovies] = useState<Movie[]>(cached ?? []);
   const [isLoading, setIsLoading] = useState(!cached);
   const [isVisible, setIsVisible] = useState(Boolean(cached));
+  const [visibleCount, setVisibleCount] = useState<number>(() =>
+    typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 20
+  );
 
-  const handleNavigation = useCallback((direction: "left" | "right") => {
-    if (!rowRef.current) return;
+  const expandVisibleCards = useCallback(() => {
+    setVisibleCount((prev) => (prev < movies.length ? movies.length : prev));
+  }, [movies.length]);
 
-    const scrollAmount = rowRef.current.offsetWidth;
-    const newScrollPosition =
-      direction === "left"
-        ? rowRef.current.scrollLeft - scrollAmount
-        : rowRef.current.scrollLeft + scrollAmount;
+  const handleNavigation = useCallback(
+    (direction: "left" | "right") => {
+      if (!rowRef.current) return;
 
-    rowRef.current.scrollTo({
-      left: newScrollPosition,
-      behavior: "smooth",
-    });
-  }, []);
+      if (direction === "right") {
+        expandVisibleCards();
+      }
+
+      const scrollAmount = rowRef.current.offsetWidth;
+      const newScrollPosition =
+        direction === "left"
+          ? rowRef.current.scrollLeft - scrollAmount
+          : rowRef.current.scrollLeft + scrollAmount;
+
+      rowRef.current.scrollTo({
+        left: newScrollPosition,
+        behavior: "smooth",
+      });
+    },
+    [expandVisibleCards]
+  );
 
   // Defer below-the-fold row network/DOM work until within 600px of viewport
   useEffect(() => {
@@ -140,6 +154,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
         </h2>
         <div className="hidden md:flex gap-2">
           <button
+            type="button"
             onClick={() => handleNavigation("left")}
             aria-label={`Scroll ${title} left`}
             className="liquid-glass liquid-refract-orb flex h-10 w-10 items-center justify-center rounded-full text-white/90 transition-transform duration-300 ease-spring hover:scale-105 hover:text-white active:scale-90"
@@ -147,6 +162,7 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
             <ChevronLeftIcon className="h-5 w-5" />
           </button>
           <button
+            type="button"
             onClick={() => handleNavigation("right")}
             aria-label={`Scroll ${title} right`}
             className="liquid-glass liquid-refract-orb flex h-10 w-10 items-center justify-center rounded-full text-white/90 transition-transform duration-300 ease-spring hover:scale-105 hover:text-white active:scale-90"
@@ -159,9 +175,10 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
       <div className="relative overflow-hidden">
         <div
           ref={rowRef}
-          className="flex gap-4 overflow-x-auto scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
+          onScroll={expandVisibleCards}
+          className="flex gap-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
-          {movies.map((movie) => (
+          {movies.slice(0, visibleCount).map((movie) => (
             <div
               key={movie.id}
               className="flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px]"

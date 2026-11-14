@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { Movie } from "../types/movie";
 import { FaPlus } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "@mui/material";
 import { MovieCard } from "../components/MovieCard";
 import { getList, removeFromList } from "../utils/localList";
 
@@ -24,31 +23,15 @@ function MyList() {
 
   if (isLoading) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#060608]">
-        <div className="px-4 py-6 md:px-6 lg:px-8">
-          <div className="mb-6">
-            <Skeleton
-              variant="rectangular"
-              width={160}
-              height={32}
-              sx={{ bgcolor: "#141417", borderRadius: 1 }}
+      <div className="mt-[68px] min-h-screen px-4 py-6 md:px-6 lg:px-8">
+        <div className="mb-6 h-10 w-40 rounded-full bg-white/[0.05] animate-pulse" />
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {[...Array(10)].map((_, index) => (
+            <div
+              key={index}
+              className="aspect-[2/3] w-full bg-white/[0.05] animate-pulse rounded-[20px]"
             />
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {[...Array(10)].map((_, index) => (
-              <div
-                key={index}
-                className="aspect-[2/3] w-full relative rounded-sm overflow-hidden"
-              >
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{ bgcolor: "#141417" }}
-                />
-              </div>
-            ))}
-          </div>
+          ))}
         </div>
       </div>
     );
@@ -56,20 +39,26 @@ function MyList() {
 
   if (myList.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-[#060608] text-white px-4">
-        <div className="max-w-md w-full text-center space-y-6 py-16">
-          <div className="mx-auto w-24 h-24 rounded-full bg-[#242427] flex items-center justify-center mb-8">
-            <FaPlus className="w-12 h-12 text-[#686868]" />
+      <div className="mt-[68px] flex flex-col items-center justify-center min-h-[calc(100vh-68px)] text-white px-4 py-12">
+        <div className="liquid-glass rounded-[28px] max-w-md w-full text-center space-y-6 p-8 sm:p-10">
+          <div className="mx-auto w-20 h-20 rounded-full glass-chip flex items-center justify-center">
+            <FaPlus className="w-8 h-8 text-white/75" />
           </div>
-          <h1 className="text-3xl md:text-4xl font-bold">Your list is empty</h1>
-          <p className="text-lg text-[#686868]">
-            Add shows and movies that you want to watch later by clicking the +
-            button.
-          </p>
+          <div className="space-y-2">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold tracking-tight text-white">
+              Your list is empty
+            </h1>
+            <p className="text-sm sm:text-base text-neutral-300 leading-relaxed">
+              Add shows and movies that you want to watch later by clicking the +
+              button.
+            </p>
+          </div>
           <button
+            type="button"
             onClick={() => navigate("/")}
-            className="bg-white text-black px-8 py-3 rounded-md font-medium hover:bg-[#e6e6e6] transition duration-300"
+            className="btn-primary shine px-8 py-3 text-sm sm:text-base"
           >
+            <span className="shine-bar" />
             Browse Content
           </button>
         </div>
@@ -78,24 +67,27 @@ function MyList() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#060608]">
-      <div className="px-3 py-4 sm:px-4 sm:py-6 md:px-6 lg:px-8">
-        <h1
-          className="mb-4 sm:mb-6 text-lg sm:text-xl md:text-2xl lg:text-3xl 
-                    font-semibold text-white"
-        >
-          My List
-        </h1>
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {myList.map((item) => (
-            <MovieCard
-              key={item.id}
-              movie={item}
-              showRemoveButton={true}
-              onListUpdate={() => handleRemove(item.id)}
-            />
-          ))}
+    <div className="mt-[68px] min-h-screen px-4 py-6 md:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="liquid-glass inline-flex items-center gap-3 rounded-full px-5 py-2.5">
+          <h1 className="font-display text-lg sm:text-xl md:text-2xl font-bold text-white tracking-tight">
+            My List
+          </h1>
+          <span className="glass-chip rounded-full px-2.5 py-0.5 text-xs font-semibold text-neutral-200">
+            {myList.length}
+          </span>
         </div>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+        {myList.map((item) => (
+          <MovieCard
+            key={item.id}
+            movie={item}
+            showRemoveButton={true}
+            onListUpdate={() => handleRemove(item.id)}
+          />
+        ))}
       </div>
     </div>
   );

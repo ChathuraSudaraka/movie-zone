@@ -54,12 +54,94 @@ const getTVGenreId = (genreName: string): number => {
   return genreMap[genreName.toLowerCase()] || 0;
 };
 
+const MAX_CACHE_ENTRIES = 30;
+const tvQueryCache = new Map<
+  string,
+  { results: TVShowDetails[]; totalResults: number }
+>();
+
+function setTVQueryCache(
+  key: string,
+  value: { results: TVShowDetails[]; totalResults: number }
+) {
+  if (tvQueryCache.has(key)) {
+    tvQueryCache.delete(key);
+  } else if (tvQueryCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = tvQueryCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      tvQueryCache.delete(oldestKey);
+    }
+  }
+  tvQueryCache.set(key, value);
+}
+
+function buildTVQuery(currentPage: number, activeFilters: FilterOptions) {
+  const safePage = Math.min(currentPage, 500);
+  let endpoint = "/discover/tv";
+  const params: Record<string, string | number | boolean> = {
+    page: safePage,
+    include_adult: false,
+  };
+
+  switch (activeFilters.sort) {
+    case "vote_average.desc":
+      params.sort_by = "vote_average.desc";
+      params["vote_count.gte"] = 200;
+      break;
+    case "release_date.desc":
+      params.sort_by = "first_air_date.desc";
+      break;
+    case "release_date.asc":
+      params.sort_by = "first_air_date.asc";
+      break;
+    default:
+      params.sort_by = "popularity.desc";
+      break;
+  }
+
+  if (activeFilters.genre) {
+    const genreId = getTVGenreId(activeFilters.genre);
+    if (genreId) params.with_genres = genreId;
+  }
+
+  if (activeFilters.year) {
+    const year = activeFilters.year;
+    params["first_air_date.gte"] = `${year}-01-01`;
+    params["first_air_date.lte"] = `${year}-12-31`;
+    params.include_null_first_air_dates = false;
+  }
+
+  if (activeFilters.tag) {
+    switch (activeFilters.tag) {
+      case "New Releases": {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        params.sort_by = "first_air_date.desc";
+        params["first_air_date.gte"] = threeMonthsAgo
+          .toISOString()
+          .split("T")[0];
+        break;
+      }
+      case "Trending Now":
+        endpoint = "/trending/tv/day";
+        break;
+      case "Popular Series":
+        params.sort_by = "popularity.desc";
+        params["vote_count.gte"] = 100;
+        break;
+      case "Award Winners":
+        params.sort_by = "vote_average.desc";
+        params["vote_count.gte"] = 200;
+        params["vote_average.gte"] = 8;
+        break;
+    }
+  }
+
+  return { endpoint, params, cacheKey: endpoint + JSON.stringify(params) };
+}
+
 function TVShows() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [shows, setShows] = useState<TVShowDetails[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalResults, setTotalResults] = useState(0);
   const ITEMS_PER_PAGE = 20;
 
   const currentPage = Math.max(
@@ -95,6 +177,18 @@ function TVShows() {
       }
     );
   }, [searchParams]);
+
+  const initialQuery = buildTVQuery(currentPage, activeFilters);
+  const initialCached = tvQueryCache.get(initialQuery.cacheKey);
+
+  const [shows, setShows] = useState<TVShowDetails[]>(
+    () => initialCached?.results ?? []
+  );
+  const [loading, setLoading] = useState<boolean>(() => !initialCached);
+  const [error, setError] = useState<string | null>(null);
+  const [totalResults, setTotalResults] = useState<number>(
+    () => initialCached?.totalResults ?? 0
+  );
 
   // Ensure initial URL always stores page & view cleanly
   useEffect(() => {
@@ -155,69 +249,23 @@ function TVShows() {
     let cancelled = false;
 
     async function fetchTVShows() {
+      const { endpoint, params, cacheKey } = buildTVQuery(
+        currentPage,
+        activeFilters
+      );
+
+      const cached = tvQueryCache.get(cacheKey);
+      if (cached) {
+        setTVQueryCache(cacheKey, cached);
+        setShows(cached.results);
+        setTotalResults(cached.totalResults);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const safePage = Math.min(currentPage, 500);
-        let endpoint = "/discover/tv";
-        const params: Record<string, string | number | boolean> = {
-          page: safePage,
-          include_adult: false,
-        };
-
-        switch (activeFilters.sort) {
-          case "vote_average.desc":
-            params.sort_by = "vote_average.desc";
-            params["vote_count.gte"] = 200;
-            break;
-          case "release_date.desc":
-            params.sort_by = "first_air_date.desc";
-            break;
-          case "release_date.asc":
-            params.sort_by = "first_air_date.asc";
-            break;
-          default:
-            params.sort_by = "popularity.desc";
-            break;
-        }
-
-        if (activeFilters.genre) {
-          const genreId = getTVGenreId(activeFilters.genre);
-          if (genreId) params.with_genres = genreId;
-        }
-
-        if (activeFilters.year) {
-          const year = activeFilters.year;
-          params["first_air_date.gte"] = `${year}-01-01`;
-          params["first_air_date.lte"] = `${year}-12-31`;
-          params.include_null_first_air_dates = false;
-        }
-
-        if (activeFilters.tag) {
-          switch (activeFilters.tag) {
-            case "New Releases": {
-              const threeMonthsAgo = new Date();
-              threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-              params.sort_by = "first_air_date.desc";
-              params["first_air_date.gte"] = threeMonthsAgo
-                .toISOString()
-                .split("T")[0];
-              break;
-            }
-            case "Trending Now":
-              endpoint = "/trending/tv/day";
-              break;
-            case "Popular Series":
-              params.sort_by = "popularity.desc";
-              params["vote_count.gte"] = 100;
-              break;
-            case "Award Winners":
-              params.sort_by = "vote_average.desc";
-              params["vote_count.gte"] = 200;
-              params["vote_average.gte"] = 8;
-              break;
-          }
-        }
-
         const response = await axios.get(endpoint, { params });
         if (cancelled) return;
 
@@ -237,6 +285,11 @@ function TVShows() {
           response.data.total_results || processedShows.length,
           10000
         );
+
+        setTVQueryCache(cacheKey, {
+          results: processedShows,
+          totalResults: maxResults,
+        });
 
         setShows(processedShows);
         setTotalResults(maxResults);

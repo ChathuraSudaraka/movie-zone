@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { posterSrcSet, tmdbImage } from "../utils/requests";
 import { FaPlay } from "react-icons/fa";
@@ -10,37 +10,74 @@ import { getGenreName } from "../utils/genreMap";
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
 
+const runtimeCache = new Map<
+  string,
+  { runtime: number | null; seasonsCount: number | null }
+>();
+
 interface Props {
   movie: Movie & { runtime?: number };
   viewMode: "grid" | "list";
 }
 
 function Thumbnail({ movie, viewMode }: Props) {
+  const mediaType =
+    movie.media_type || (movie.first_air_date ? "tv" : "movie");
+  const cacheKey = `${mediaType}:${movie.id}`;
+  const cachedMeta = viewMode === "list" ? runtimeCache.get(cacheKey) : undefined;
+
   const [isHovered, setIsHovered] = useState(false);
   const [imgError, setImgError] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
-  const [runtime, setRuntime] = useState<number | null>(null);
-  const [seasonsCount, setSeasonsCount] = useState<number | null>(null);
+  const [runtime, setRuntime] = useState<number | null>(
+    cachedMeta?.runtime ?? null
+  );
+  const [seasonsCount, setSeasonsCount] = useState<number | null>(
+    cachedMeta?.seasonsCount ?? null
+  );
   const navigate = useNavigate();
 
   const formatYear = (date: string | undefined) => {
-    if (!date) return '';
+    if (!date) return "";
     return new Date(date).getFullYear().toString();
   };
 
   useEffect(() => {
+    if (viewMode !== "list" || !movie.id) return;
+
+    const cached = runtimeCache.get(cacheKey);
+    if (cached) {
+      setRuntime(cached.runtime);
+      setSeasonsCount(cached.seasonsCount);
+      return;
+    }
+
+    let cancelled = false;
     const fetchRuntime = async () => {
-      if (viewMode === 'list' && movie.id) {
-        try {
-          const mediaType = movie.media_type || 'movie';
-          const response = await fetch(
-            `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-          );
-          const data = await response.json();
-          setRuntime(data.runtime || data.episode_run_time?.[0] || null);
-          setSeasonsCount(data.number_of_seasons || null);
-        } catch (error) {
-          console.error('Error fetching runtime:', error);
+      try {
+        const response = await fetch(
+          `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
+        );
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+        const data = await response.json();
+        const entry = {
+          runtime: data.runtime || data.episode_run_time?.[0] || null,
+          seasonsCount: data.number_of_seasons || null,
+        };
+        if (runtimeCache.size >= 300) {
+          const oldestKey = runtimeCache.keys().next().value;
+          if (oldestKey !== undefined) runtimeCache.delete(oldestKey);
+        }
+        runtimeCache.set(cacheKey, entry);
+        if (!cancelled) {
+          setRuntime(entry.runtime);
+          setSeasonsCount(entry.seasonsCount);
+        }
+      } catch (error) {
+        console.error("Error fetching runtime:", error);
+        if (!cancelled) {
           setRuntime(null);
           setSeasonsCount(null);
         }
@@ -48,33 +85,50 @@ function Thumbnail({ movie, viewMode }: Props) {
     };
 
     fetchRuntime();
-  }, [movie.id, movie.media_type, viewMode]);
+    return () => {
+      cancelled = true;
+    };
+  }, [cacheKey, mediaType, movie.id, viewMode]);
 
   const handleClick = () => {
-    const mediaType = movie.media_type || "movie";
     navigate(`/info/${mediaType}/${movie.id}`);
     window.scrollTo(0, 0);
   };
 
+  const title = movie.title || movie.name || "Untitled";
+  const releaseDate = movie.release_date || movie.first_air_date;
   const imagePath = movie.poster_path || movie.backdrop_path;
   const imageUrl = imgError
     ? FALLBACK_IMAGE
     : imagePath
-      ? tmdbImage(imagePath, "w500")
+      ? tmdbImage(imagePath, "w342")
       : FALLBACK_IMAGE;
-  const imageSrcSet = !imgError && imagePath ? posterSrcSet(imagePath) : undefined;
+  const imageSrcSet =
+    !imgError && imagePath ? posterSrcSet(imagePath) : undefined;
 
   if (viewMode === "list") {
     return (
-      <div className="group relative rounded-[24px] overflow-hidden transition-transform duration-300 ease-ios
-                     glass-chip hover:border-white/30 hover:-translate-y-0.5">
+      <div
+        onClick={handleClick}
+        className="group relative cursor-pointer rounded-[24px] overflow-hidden transition-transform duration-300 ease-ios
+                   glass-chip shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_12px_32px_-12px_rgba(0,0,0,0.75)]
+                   hover:border-white/30 hover:-translate-y-0.5"
+      >
         <div className="flex flex-col sm:flex-row gap-4 sm:gap-6 p-4">
           {/* Movie Poster */}
-          <div className="relative h-[300px] sm:h-[200px] w-full sm:w-[140px] 
-                         rounded-[18px] overflow-hidden sm:flex-shrink-0 ring-1 ring-white/10">
+          <div
+            className="relative h-[300px] sm:h-[200px] w-full sm:w-[140px]
+                       rounded-[18px] overflow-hidden sm:flex-shrink-0 ring-1 ring-white/15
+                       after:content-[''] after:pointer-events-none after:absolute after:inset-0 after:rounded-[inherit]
+                       after:shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]"
+          >
             <img
               src={imageUrl}
-              alt={movie.title}
+              srcSet={imageSrcSet}
+              sizes="(max-width: 640px) 150px, 140px"
+              alt={title}
+              loading="lazy"
+              decoding="async"
               className="h-full w-full object-cover transition-transform duration-500 ease-ios
                          group-hover:scale-105"
               onError={() => setImgError(true)}
@@ -93,7 +147,7 @@ function Thumbnail({ movie, viewMode }: Props) {
                     : `${runtime}m`}
                 </span>
               ) : (
-                <span>{movie.media_type === "tv" ? "Series" : "Movie"}</span>
+                <span>{mediaType === "tv" ? "Series" : "Movie"}</span>
               )}
             </div>
           </div>
@@ -102,16 +156,22 @@ function Thumbnail({ movie, viewMode }: Props) {
           <div className="flex-1">
             <div className="flex items-start justify-between">
               <div className="flex-1">
-                <h2 className="font-display text-lg sm:text-xl font-bold text-white/95 group-hover:text-white 
-                             transition-colors line-clamp-1">
-                  {movie.title}
+                <h2
+                  className="font-display text-lg sm:text-xl font-bold text-white/95 group-hover:text-white
+                             transition-colors line-clamp-1"
+                >
+                  {title}
                 </h2>
                 <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-1 text-sm text-neutral-400">
-                  {movie.release_date && <span>{formatYear(movie.release_date)}</span>}
-                  <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
+                  {releaseDate && <span>{formatYear(releaseDate)}</span>}
+                  {releaseDate && (
+                    <span className="w-1 h-1 rounded-full bg-white/30 hidden sm:block" />
+                  )}
                   <div className="flex items-center gap-1">
                     <BsStarFill className="w-3.5 h-3.5 text-amber-400" />
-                    <span className="font-medium text-white/90">{movie.vote_average?.toFixed(1)}</span>
+                    <span className="font-medium text-white/90">
+                      {(movie.vote_average ?? 0).toFixed(1)}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -122,7 +182,8 @@ function Thumbnail({ movie, viewMode }: Props) {
             </p>
 
             <div className="flex flex-wrap items-center gap-2 sm:gap-3 mt-4 sm:mt-6">
-              <button 
+              <button
+                type="button"
                 className="btn-primary shine px-5 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base"
                 onClick={(e) => {
                   e.stopPropagation();
@@ -138,7 +199,7 @@ function Thumbnail({ movie, viewMode }: Props) {
             {/* Genre Tags */}
             <div className="flex flex-wrap items-center gap-2 mt-3 sm:mt-4">
               {movie.genre_ids?.slice(0, 3).map((genreId) => (
-                <span 
+                <span
                   key={genreId}
                   className="px-2.5 py-1 text-xs rounded-full glass-chip text-white/80"
                 >
@@ -155,24 +216,37 @@ function Thumbnail({ movie, viewMode }: Props) {
   return (
     <div
       className="group relative cursor-pointer transition-transform duration-300 ease-ios
-                 aspect-[2/3] w-full overflow-hidden rounded-[20px] bg-neutral-900
-                 ring-1 ring-white/15 hover:z-20 hover:-translate-y-1.5 hover:scale-[1.03]
-                 hover:ring-white/40 hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)]"
-      onMouseEnter={() => setIsHovered(true)}
+                 aspect-[2/3] w-full overflow-hidden rounded-[20px] bg-ink-900
+                 ring-1 ring-white/[0.16] shadow-[0_10px_24px_-12px_rgba(0,0,0,0.75)]
+                 after:content-[''] after:pointer-events-none after:absolute after:inset-0 after:z-10 after:rounded-[inherit]
+                 after:shadow-[inset_0_1px_0_rgba(255,255,255,0.34),inset_0_0_0_1px_rgba(255,255,255,0.12)]
+                 [@media(hover:hover)]:hover:z-20 [@media(hover:hover)]:hover:-translate-y-1.5 [@media(hover:hover)]:hover:scale-[1.03]
+                 [@media(hover:hover)]:hover:ring-white/40 [@media(hover:hover)]:hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)]"
+      onMouseEnter={() => {
+        if (window.matchMedia("(hover: hover)").matches) {
+          setIsHovered(true);
+        }
+      }}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleClick}
     >
       <img
         src={imageUrl}
         srcSet={imageSrcSet}
-        sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 280px"
-        alt={movie.title || movie.name}
+        sizes="(max-width: 640px) 150px, (max-width: 1024px) 200px, 260px"
+        alt={title}
         loading="lazy"
         decoding="async"
-        onError={() => setImgError(true)}
+        onError={() => {
+          if (!imgError) {
+            setImgError(true);
+          } else {
+            setIsLoaded(true);
+          }
+        }}
         onLoad={() => setIsLoaded(true)}
         className={`w-full h-full object-cover transition-transform duration-500 ease-ios
-                   ${isHovered ? "scale-108" : "scale-100"}
+                   ${isHovered ? "scale-105" : "scale-100"}
                    ${isLoaded ? "opacity-100" : "opacity-0"}`}
       />
 
@@ -180,68 +254,66 @@ function Thumbnail({ movie, viewMode }: Props) {
         <div className="absolute inset-0 bg-white/[0.06] animate-pulse rounded-[20px]" />
       )}
 
-      {/* Subtle top-edge glass reflection */}
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
-
       {/* Rating badge (lightweight glass chip — zero backdrop-filter lag in grids) */}
       {movie.vote_average > 0 && (
-        <div className="glass-chip absolute right-2.5 top-2.5 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold text-white">
+        <div className="glass-chip absolute right-2.5 top-2.5 z-20 flex items-center gap-1 rounded-full px-2.5 py-0.5 text-[11px] font-semibold tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_4px_12px_rgba(0,0,0,0.5)]">
           <BsStarFill className="h-2.5 w-2.5 text-amber-400" />
           {movie.vote_average.toFixed(1)}
         </div>
       )}
 
-      {/* Hover overlay (mounted only while hovered so idle cards carry zero backdrop-filter cost) */}
+      {/* Hover overlay (mounted only while hovered on pointer-capable devices) */}
       {isHovered && (
-      <div
-        className="absolute inset-0 flex flex-col justify-end gap-3 p-3.5 sm:p-4
-                   bg-gradient-to-t from-black/95 via-black/55 to-transparent
-                   animate-[fadeIn_0.25s_ease-out]"
-      >
-        <button
-          className="liquid-glass liquid-refract-orb absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full
-                   transition-transform duration-300 ease-spring hover:scale-110 active:scale-90"
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClick();
-          }}
-          aria-label={`Open ${movie.title || movie.name}`}
+        <div
+          className="absolute inset-0 z-30 flex flex-col justify-end gap-3 p-3.5 sm:p-4
+                     bg-gradient-to-t from-black/95 via-black/55 to-transparent
+                     animate-[fadeIn_0.25s_ease-out]"
         >
-          <FaPlay className="h-4 w-4 sm:h-5 sm:w-5 text-white pl-0.5" />
-        </button>
+          <button
+            type="button"
+            className="liquid-glass liquid-refract-orb absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-full
+                       transition-transform duration-300 ease-spring hover:scale-110 active:scale-90"
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick();
+            }}
+            aria-label={`Open ${title}`}
+          >
+            <FaPlay className="h-4 w-4 sm:h-5 sm:w-5 text-white pl-0.5" />
+          </button>
 
-        <div className="space-y-1.5">
-          <h3 className="font-display text-sm sm:text-base font-semibold leading-tight text-white line-clamp-2">
-            {movie.title || movie.name}
-          </h3>
-          <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-300">
-            {(movie.release_date || movie.first_air_date) && (
-              <span>{formatYear(movie.release_date || movie.first_air_date)}</span>
-            )}
-            {movie.media_type && (
-              <>
-                <span className="h-1 w-1 rounded-full bg-white/50" />
-                <span className="uppercase tracking-wider text-[10px] text-white/80">
-                  {movie.media_type === "tv" ? "Series" : "Movie"}
+          <div className="space-y-1.5">
+            <h3 className="font-display text-sm sm:text-base font-semibold leading-tight text-white line-clamp-2">
+              {title}
+            </h3>
+            <div className="flex flex-wrap items-center gap-2 text-xs text-neutral-300">
+              {releaseDate && <span>{formatYear(releaseDate)}</span>}
+              {mediaType && (
+                <>
+                  {releaseDate && (
+                    <span className="h-1 w-1 rounded-full bg-white/50" />
+                  )}
+                  <span className="uppercase tracking-wider text-[10px] text-white/80">
+                    {mediaType === "tv" ? "Series" : "Movie"}
+                  </span>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {movie.genre_ids?.slice(0, 2).map((genreId) => (
+                <span
+                  key={genreId}
+                  className="glass-chip rounded-full px-2 py-0.5 text-[10px] font-medium text-white/85"
+                >
+                  {getGenreName(genreId)}
                 </span>
-              </>
-            )}
-          </div>
-          <div className="flex flex-wrap gap-1.5">
-            {movie.genre_ids?.slice(0, 2).map((genreId) => (
-              <span
-                key={genreId}
-                className="glass-chip rounded-full px-2 py-0.5 text-[10px] font-medium text-white/85"
-              >
-                {getGenreName(genreId)}
-              </span>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
-      </div>
       )}
     </div>
   );
 }
 
-export default Thumbnail;
+export default React.memo(Thumbnail);

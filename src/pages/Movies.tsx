@@ -39,12 +39,93 @@ const getMovieGenreId = (genreName: string): number => {
   return genreMap[genreName.toLowerCase()] || 0;
 };
 
+const MAX_CACHE_ENTRIES = 30;
+const moviesQueryCache = new Map<
+  string,
+  { results: Movie[]; totalResults: number }
+>();
+
+function setMoviesCache(
+  key: string,
+  value: { results: Movie[]; totalResults: number }
+) {
+  if (moviesQueryCache.has(key)) {
+    moviesQueryCache.delete(key);
+  } else if (moviesQueryCache.size >= MAX_CACHE_ENTRIES) {
+    const oldestKey = moviesQueryCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      moviesQueryCache.delete(oldestKey);
+    }
+  }
+  moviesQueryCache.set(key, value);
+}
+
+function buildMoviesQuery(currentPage: number, activeFilters: FilterOptions) {
+  let endpoint = "/discover/movie";
+  const safeCurrentPage = Math.min(currentPage, 500);
+  const params: Record<string, string | number | boolean> = {
+    page: safeCurrentPage,
+    include_adult: false,
+  };
+
+  switch (activeFilters.sort) {
+    case "vote_average.desc":
+      params.sort_by = "vote_average.desc";
+      params["vote_count.gte"] = 200;
+      break;
+    case "release_date.desc":
+    case "release_date.asc":
+      params.sort_by = activeFilters.sort;
+      break;
+    default:
+      params.sort_by = "popularity.desc";
+      break;
+  }
+
+  if (activeFilters.genre) {
+    const genreId = getMovieGenreId(activeFilters.genre);
+    if (genreId) params.with_genres = genreId;
+  }
+
+  if (activeFilters.year) {
+    const year = activeFilters.year;
+    params.sort_by = params.sort_by || "popularity.desc";
+    params["primary_release_date.gte"] = `${year}-01-01`;
+    params["primary_release_date.lte"] = `${year}-12-31`;
+    params.include_null_release_dates = false;
+  }
+
+  if (activeFilters.tag) {
+    switch (activeFilters.tag) {
+      case "New Releases": {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+        params.sort_by = "release_date.desc";
+        params["release_date.gte"] = threeMonthsAgo
+          .toISOString()
+          .split("T")[0];
+        break;
+      }
+      case "Trending Now":
+        endpoint = "/trending/movie/day";
+        break;
+      case "Popular Movies":
+        params.sort_by = "popularity.desc";
+        params["vote_count.gte"] = 100;
+        break;
+      case "Award Winners":
+        params.sort_by = "vote_average.desc";
+        params["vote_count.gte"] = 200;
+        params["vote_average.gte"] = 8;
+        break;
+    }
+  }
+
+  return { endpoint, params, cacheKey: endpoint + JSON.stringify(params) };
+}
+
 function Movies() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const [movies, setMovies] = useState<Movie[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [totalResults, setTotalResults] = useState(0);
   const ITEMS_PER_PAGE = 20;
 
   const currentPage = Math.max(
@@ -80,6 +161,18 @@ function Movies() {
       }
     );
   }, [searchParams]);
+
+  const initialQuery = buildMoviesQuery(currentPage, activeFilters);
+  const initialCached = moviesQueryCache.get(initialQuery.cacheKey);
+
+  const [movies, setMovies] = useState<Movie[]>(
+    () => initialCached?.results ?? []
+  );
+  const [loading, setLoading] = useState<boolean>(() => !initialCached);
+  const [error, setError] = useState<string | null>(null);
+  const [totalResults, setTotalResults] = useState<number>(
+    () => initialCached?.totalResults ?? 0
+  );
 
   // Ensure initial URL stores page cleanly
   useEffect(() => {
@@ -140,68 +233,23 @@ function Movies() {
     let cancelled = false;
 
     async function fetchMovies() {
+      const { endpoint, params, cacheKey } = buildMoviesQuery(
+        currentPage,
+        activeFilters
+      );
+
+      const cached = moviesQueryCache.get(cacheKey);
+      if (cached) {
+        setMoviesCache(cacheKey, cached);
+        setMovies(cached.results);
+        setTotalResults(cached.totalResults);
+        setError(null);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        let endpoint = "/discover/movie";
-        const safeCurrentPage = Math.min(currentPage, 500);
-        const params: Record<string, string | number | boolean> = {
-          page: safeCurrentPage,
-          include_adult: false,
-        };
-
-        switch (activeFilters.sort) {
-          case "vote_average.desc":
-            params.sort_by = "vote_average.desc";
-            params["vote_count.gte"] = 200;
-            break;
-          case "release_date.desc":
-          case "release_date.asc":
-            params.sort_by = activeFilters.sort;
-            break;
-          default:
-            params.sort_by = "popularity.desc";
-            break;
-        }
-
-        if (activeFilters.genre) {
-          const genreId = getMovieGenreId(activeFilters.genre);
-          if (genreId) params.with_genres = genreId;
-        }
-
-        if (activeFilters.year) {
-          const year = activeFilters.year;
-          params.sort_by = params.sort_by || "popularity.desc";
-          params["primary_release_date.gte"] = `${year}-01-01`;
-          params["primary_release_date.lte"] = `${year}-12-31`;
-          params.include_null_release_dates = false;
-        }
-
-        if (activeFilters.tag) {
-          switch (activeFilters.tag) {
-            case "New Releases": {
-              const threeMonthsAgo = new Date();
-              threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-              params.sort_by = "release_date.desc";
-              params["release_date.gte"] = threeMonthsAgo
-                .toISOString()
-                .split("T")[0];
-              break;
-            }
-            case "Trending Now":
-              endpoint = "/trending/movie/day";
-              break;
-            case "Popular Movies":
-              params.sort_by = "popularity.desc";
-              params["vote_count.gte"] = 100;
-              break;
-            case "Award Winners":
-              params.sort_by = "vote_average.desc";
-              params["vote_count.gte"] = 200;
-              params["vote_average.gte"] = 8;
-              break;
-          }
-        }
-
         const response = await axios.get(endpoint, { params });
         if (cancelled) return;
 
@@ -216,8 +264,14 @@ function Movies() {
             media_type: "movie",
           }));
 
+        const computedTotalResults = apiTotalPages * ITEMS_PER_PAGE;
+        setMoviesCache(cacheKey, {
+          results: processedMovies,
+          totalResults: computedTotalResults,
+        });
+
         setMovies(processedMovies);
-        setTotalResults(apiTotalPages * ITEMS_PER_PAGE);
+        setTotalResults(computedTotalResults);
         setError(null);
       } catch (err: unknown) {
         if (cancelled) return;

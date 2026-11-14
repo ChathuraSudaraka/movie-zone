@@ -1,8 +1,31 @@
 import { useEffect } from "react";
 
+const BACKGROUND_GRADIENTS = [
+  "radial-gradient(32.5vmax 32.5vmax at 12% 10%, rgba(168, 134, 96, 0.085), rgba(168, 134, 96, 0.025) 48%, transparent 72%)",
+  "radial-gradient(27.5vmax 27.5vmax at 88% 42%, rgba(205, 210, 220, 0.045), rgba(205, 210, 220, 0.012) 50%, transparent 74%)",
+  "radial-gradient(29vmax 29vmax at 46% 96%, rgba(124, 98, 72, 0.06), rgba(124, 98, 72, 0.015) 48%, transparent 72%)",
+  "radial-gradient(34vw 34vw at 86% 12%, rgba(236, 72, 153, 0.10), rgba(168, 85, 247, 0.045) 50%, transparent 78%)",
+  "radial-gradient(39vw 39vw at 16% 88%, rgba(168, 85, 247, 0.11), rgba(236, 72, 153, 0.05) 50%, transparent 78%)",
+  "#050507",
+].join(", ");
+
 export default function LiquidBackground() {
   useEffect(() => {
     if (typeof window === "undefined") return;
+
+    const deviceMemory = (navigator as { deviceMemory?: number }).deviceMemory;
+    const isLowRam =
+      (typeof deviceMemory === "number" && deviceMemory <= 4) ||
+      (typeof navigator.hardwareConcurrency === "number" &&
+        navigator.hardwareConcurrency <= 4) ||
+      window.matchMedia("(hover: none), (max-width: 1023px)").matches;
+
+    if (isLowRam) {
+      document.documentElement.dataset.lowRam = "true";
+    } else {
+      delete document.documentElement.dataset.lowRam;
+    }
+
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
       return;
     }
@@ -58,48 +81,8 @@ export default function LiquidBackground() {
   return (
     <div
       aria-hidden
-      className="pointer-events-none fixed inset-0 -z-10 overflow-hidden bg-ink-950"
-    >
-      <div
-        className="absolute -left-[12%] -top-[18%] h-[65vmax] w-[65vmax] animate-blob-drift"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(168, 134, 96, 0.085), rgba(168, 134, 96, 0.025) 48%, transparent 72%)",
-        }}
-      />
-      <div
-        className="absolute -right-[15%] top-[18%] h-[55vmax] w-[55vmax] animate-blob-drift"
-        style={{
-          animationDelay: "-9s",
-          animationDuration: "30s",
-          background:
-            "radial-gradient(closest-side, rgba(205, 210, 220, 0.045), rgba(205, 210, 220, 0.012) 50%, transparent 74%)",
-        }}
-      />
-      <div
-        className="absolute bottom-[-24%] left-[18%] h-[58vmax] w-[58vmax] animate-blob-drift"
-        style={{
-          animationDelay: "-16s",
-          animationDuration: "36s",
-          background:
-            "radial-gradient(closest-side, rgba(124, 98, 72, 0.06), rgba(124, 98, 72, 0.015) 48%, transparent 72%)",
-        }}
-      />
-      {/* Mobile soft ambient light glow */}
-      <div
-        className="lg:hidden absolute -top-[10%] -right-[20%] h-[68vw] w-[68vw]"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(236, 72, 153, 0.16), rgba(168, 85, 247, 0.07) 50%, transparent 78%)",
-        }}
-      />
-      <div
-        className="lg:hidden absolute -bottom-[14%] -left-[18%] h-[78vw] w-[78vw]"
-        style={{
-          background:
-            "radial-gradient(closest-side, rgba(168, 85, 247, 0.18), rgba(236, 72, 153, 0.08) 50%, transparent 78%)",
-        }}
-      />
-    </div>
+      className="fixed inset-0 -z-10 pointer-events-none bg-ink-950"
+      style={{ background: BACKGROUND_GRADIENTS }}
+    />
   );
 }

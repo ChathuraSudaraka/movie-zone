@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { ExternalLink, Newspaper, Star, TrendingUp } from 'lucide-react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Skeleton } from '@mui/material';
 import Pagination from '../components/common/Pagination';
 
 interface Movie {
@@ -55,100 +54,35 @@ function Blog() {
 
   // Skeleton Components
   const NewsArticleSkeleton = () => (
-    <article className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-6 animate-pulse">
+    <article className="bg-white/[0.05] ring-1 ring-white/10 rounded-[20px] p-6 animate-pulse">
       <div className="flex items-start gap-4">
-        <Skeleton
-          variant="rectangular"
-          width={96}
-          height={96}
-          sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
-        />
+        <div className="w-24 h-24 shrink-0 bg-white/[0.05] rounded-[20px]" />
         <div className="flex-1 space-y-3">
           <div className="flex items-center gap-2">
-            <Skeleton
-              variant="text"
-              width={100}
-              height={16}
-              sx={{ bgcolor: '#1C1C1F' }}
-            />
-            <Skeleton
-              variant="text"
-              width={4}
-              height={16}
-              sx={{ bgcolor: '#1C1C1F' }}
-            />
-            <Skeleton
-              variant="text"
-              width={80}
-              height={16}
-              sx={{ bgcolor: '#1C1C1F' }}
-            />
+            <div className="h-4 w-24 bg-white/[0.05] rounded-[20px]" />
+            <div className="h-4 w-1 bg-white/[0.05] rounded-[20px]" />
+            <div className="h-4 w-20 bg-white/[0.05] rounded-[20px]" />
           </div>
-          <Skeleton
-            variant="text"
-            width="85%"
-            height={24}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
-          <Skeleton
-            variant="text"
-            width="100%"
-            height={20}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
-          <Skeleton
-            variant="text"
-            width="75%"
-            height={20}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
-          <Skeleton
-            variant="text"
-            width={120}
-            height={16}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
+          <div className="h-6 w-[85%] bg-white/[0.05] rounded-[20px]" />
+          <div className="h-5 w-full bg-white/[0.05] rounded-[20px]" />
+          <div className="h-5 w-3/4 bg-white/[0.05] rounded-[20px]" />
+          <div className="h-4 w-28 bg-white/[0.05] rounded-[20px]" />
         </div>
       </div>
     </article>
   );
 
   const TrendingMovieSkeleton = () => (
-    <div className="bg-neutral-900/50 border border-neutral-800 rounded-lg p-4 animate-pulse">
+    <div className="bg-white/[0.05] ring-1 ring-white/10 rounded-[20px] p-4 animate-pulse">
       <div className="flex items-start gap-3">
-        <Skeleton
-          variant="rectangular"
-          width={60}
-          height={90}
-          sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
-        />
+        <div className="w-[60px] h-[90px] shrink-0 bg-white/[0.05] rounded-[20px]" />
         <div className="flex-1 space-y-2">
-          <Skeleton
-            variant="text"
-            width="90%"
-            height={18}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
+          <div className="h-[18px] w-[90%] bg-white/[0.05] rounded-[20px]" />
           <div className="flex items-center gap-1">
-            <Skeleton
-              variant="rectangular"
-              width={16}
-              height={16}
-              sx={{ bgcolor: '#1C1C1F' }}
-            />
-            <Skeleton
-              variant="text"
-              width={30}
-              height={14}
-              sx={{ bgcolor: '#1C1C1F' }}
-            />
+            <div className="w-4 h-4 bg-white/[0.05] rounded-[20px]" />
+            <div className="h-3.5 w-8 bg-white/[0.05] rounded-[20px]" />
           </div>
-          <Skeleton
-            variant="text"
-            width="70%"
-            height={14}
-            sx={{ bgcolor: '#1C1C1F' }}
-          />
+          <div className="h-3.5 w-[70%] bg-white/[0.05] rounded-[20px]" />
         </div>
       </div>
     </div>
@@ -163,24 +97,9 @@ function Blog() {
             
             {/* Header Skeleton */}
             <div className="text-center mb-16 space-y-6">
-              <Skeleton
-                variant="circular"
-                width={64}
-                height={64}
-                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
-              />
-              <Skeleton
-                variant="text"
-                width={400}
-                height={72}
-                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
-              />
-              <Skeleton
-                variant="text"
-                width={600}
-                height={24}
-                sx={{ bgcolor: '#1C1C1F', mx: 'auto' }}
-              />
+              <div className="w-16 h-16 mx-auto bg-white/[0.05] animate-pulse rounded-[20px]" />
+              <div className="h-16 w-full max-w-[400px] mx-auto bg-white/[0.05] animate-pulse rounded-[20px]" />
+              <div className="h-6 w-full max-w-[600px] mx-auto bg-white/[0.05] animate-pulse rounded-[20px]" />
             </div>
 
             {/* Main Content Grid Skeleton */}
@@ -189,24 +108,9 @@ function Blog() {
               {/* Movie News Section Skeleton */}
               <div className="lg:col-span-2">
                 <div className="flex items-center gap-3 mb-6">
-                  <Skeleton
-                    variant="rectangular"
-                    width={24}
-                    height={24}
-                    sx={{ bgcolor: '#1C1C1F' }}
-                  />
-                  <Skeleton
-                    variant="text"
-                    width={200}
-                    height={32}
-                    sx={{ bgcolor: '#1C1C1F' }}
-                  />
-                  <Skeleton
-                    variant="circular"
-                    width={20}
-                    height={20}
-                    sx={{ bgcolor: '#1C1C1F' }}
-                  />
+                  <div className="w-6 h-6 bg-white/[0.05] animate-pulse rounded-[20px]" />
+                  <div className="h-8 w-48 bg-white/[0.05] animate-pulse rounded-[20px]" />
+                  <div className="w-5 h-5 bg-white/[0.05] animate-pulse rounded-[20px]" />
                 </div>
                 
                 <div className="space-y-6">
@@ -219,12 +123,9 @@ function Blog() {
                 <div className="mt-8 flex justify-center">
                   <div className="flex items-center gap-2">
                     {[...Array(5)].map((_, i) => (
-                      <Skeleton
+                      <div
                         key={i}
-                        variant="rectangular"
-                        width={40}
-                        height={40}
-                        sx={{ bgcolor: '#1C1C1F', borderRadius: 1 }}
+                        className="w-10 h-10 bg-white/[0.05] animate-pulse rounded-[20px]"
                       />
                     ))}
                   </div>
@@ -236,18 +137,8 @@ function Blog() {
                 {/* Trending Movies Skeleton */}
                 <div>
                   <div className="flex items-center gap-3 mb-6">
-                    <Skeleton
-                      variant="rectangular"
-                      width={24}
-                      height={24}
-                      sx={{ bgcolor: '#1C1C1F' }}
-                    />
-                    <Skeleton
-                      variant="text"
-                      width={150}
-                      height={32}
-                      sx={{ bgcolor: '#1C1C1F' }}
-                    />
+                    <div className="w-6 h-6 bg-white/[0.05] animate-pulse rounded-[20px]" />
+                    <div className="h-8 w-36 bg-white/[0.05] animate-pulse rounded-[20px]" />
                   </div>
                   
                   <div className="space-y-4">
@@ -258,21 +149,13 @@ function Blog() {
                 </div>
 
                 {/* Additional Sidebar Content Skeleton */}
-                <div className="bg-neutral-900/30 border border-neutral-800 rounded-lg p-6">
-                  <Skeleton
-                    variant="text"
-                    width={120}
-                    height={24}
-                    sx={{ bgcolor: '#1C1C1F', mb: 3 }}
-                  />
+                <div className="bg-white/[0.05] ring-1 ring-white/10 rounded-[20px] p-6 animate-pulse">
+                  <div className="h-6 w-32 bg-white/[0.05] rounded-[20px] mb-3" />
                   <div className="space-y-2">
-                    {[...Array(4)].map((_, i) => (
-                      <Skeleton
+                    {['w-[90%]', 'w-[80%]', 'w-[70%]', 'w-[60%]'].map((widthClass, i) => (
+                      <div
                         key={i}
-                        variant="text"
-                        width={`${90 - i * 10}%`}
-                        height={16}
-                        sx={{ bgcolor: '#1C1C1F' }}
+                        className={`h-4 ${widthClass} bg-white/[0.05] rounded-[20px]`}
                       />
                     ))}
                   </div>

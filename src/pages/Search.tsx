@@ -1,12 +1,8 @@
 import { useEffect, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
+import { Search as SearchIcon } from "lucide-react";
+import Thumbnail from "../components/Thumbnail";
 import { Movie } from "../types/movie";
-import { tmdbImage } from "@/utils/requests";
-import { FaPlay } from "react-icons/fa";
-import { Skeleton } from "@mui/material";
-
-const FALLBACK_IMAGE =
-  "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
 
 interface SearchResult extends Movie {
   media_type: "movie" | "tv" | string;
@@ -14,25 +10,13 @@ interface SearchResult extends Movie {
 
 function Search() {
   const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
   const query = searchParams.get("q") || "";
   const companyId = searchParams.get("company");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hoveredId, setHoveredId] = useState<number | null>(null);
-  const [imgError, setImgError] = useState(false);
-  const [isLoaded, setIsLoaded] = useState(false);
   const [page, setPage] = useState(1);
   const [totalResults, setTotalResults] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-
-  const getImageUrl = (result: SearchResult) => {
-    if (imgError) return FALLBACK_IMAGE;
-    if (result.poster_path || result.backdrop_path) {
-      return tmdbImage(result.poster_path || result.backdrop_path, "w500");
-    }
-    return FALLBACK_IMAGE;
-  };
 
   useEffect(() => {
     document.title = `Search - ${query || companyId || "Company"} - MovieZone`;
@@ -40,6 +24,8 @@ function Search() {
     setTotalResults(null);
     setResults([]);
     setLoading(true);
+
+    let cancelled = false;
 
     async function searchContent() {
       if (!query && !companyId) {
@@ -50,29 +36,37 @@ function Search() {
 
       try {
         const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-        let url = "";
-        if (companyId) {
-          url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=1`;
-        } else {
-          url = `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(query)}&page=1&include_adult=false`;
-        }
+        const url = companyId
+          ? `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=1`
+          : `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(query)}&page=1&include_adult=false`;
         const response = await fetch(url);
         const data = await response.json();
+        if (cancelled) return;
+
         const filteredResults = (data.results || []).filter(
           (item: SearchResult) =>
-            (item.media_type === "movie" || item.media_type === "tv" || companyId) &&
+            (item.media_type === "movie" ||
+              item.media_type === "tv" ||
+              companyId) &&
             (item.backdrop_path || item.poster_path)
         );
         setResults(filteredResults);
         setTotalResults(data.total_results || null);
       } catch (error) {
-        console.error("Error searching content:", error);
+        if (!cancelled) {
+          console.error("Error searching content:", error);
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
 
     searchContent();
+    return () => {
+      cancelled = true;
+    };
   }, [query, companyId]);
 
   // Load more for company search
@@ -85,10 +79,16 @@ function Search() {
       const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=${nextPage}`;
       const response = await fetch(url);
       const data = await response.json();
-      const filteredResults = (data.results || []).filter(
-        (item: SearchResult) => (item.backdrop_path || item.poster_path)
+      const filteredResults: SearchResult[] = (data.results || []).filter(
+        (item: SearchResult) => item.backdrop_path || item.poster_path
       );
-      setResults((prev) => [...prev, ...filteredResults]);
+      setResults((prev) => {
+        const seen = new Set(prev.map((item) => item.id));
+        const uniqueNext = filteredResults.filter(
+          (item) => !seen.has(item.id)
+        );
+        return [...prev, ...uniqueNext];
+      });
       setPage(nextPage);
     } catch (error) {
       console.error("Error loading more results:", error);
@@ -97,44 +97,25 @@ function Search() {
     }
   };
 
-  const handleNavigateToInfo = (result: SearchResult) => {
-    const type = result.media_type || (result.first_air_date ? "tv" : "movie");
-    window.scrollTo(0, 0);
-    navigate(`/info/${type}/${result.id}`);
-  };
-
   if (loading) {
     return (
-      <div className="mt-[68px] min-h-screen bg-[#060608] px-2 py-6 md:px-3 lg:px-4">
-        <h1 className="text-3xl font-bold mb-4 text-white">
-          {results.length > 0
-            ? `Search results for "${query}"`
-            : `No results found for "${query}"`}
-        </h1>
+      <div className="mt-[68px] min-h-screen px-4 py-6 md:px-6 lg:px-8">
+        <div className="mb-6 inline-flex items-center gap-3 liquid-glass rounded-full px-5 py-2.5">
+          <SearchIcon className="h-4 w-4 text-white/75 shrink-0" />
+          <h1 className="font-display text-lg sm:text-xl font-semibold text-white tracking-tight">
+            {companyId
+              ? "Loading productions..."
+              : query
+                ? `Searching for "${query}"...`
+                : "Searching..."}
+          </h1>
+        </div>
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
           {Array.from({ length: 10 }).map((_, index) => (
             <div
               key={index}
-              className="relative group flex flex-col overflow-hidden rounded-md bg-neutral-900 shadow-md min-h-[220px] h-full"
-              style={{ willChange: "transform" }}
-            >
-              <div className="relative w-full aspect-[2/3] bg-neutral-800">
-                <Skeleton
-                  variant="rectangular"
-                  width="100%"
-                  height="100%"
-                  sx={{ bgcolor: "#141417", borderRadius: 1 }}
-                  style={{ aspectRatio: "2 / 3" }}
-                />
-                <div className="absolute bottom-0 left-0 right-0 p-2 md:p-4">
-                  <Skeleton
-                    variant="text"
-                    width="60%"
-                    sx={{ bgcolor: "#141417" }}
-                  />
-                </div>
-              </div>
-            </div>
+              className="aspect-[2/3] w-full rounded-[20px] bg-white/[0.04] ring-1 ring-white/10 animate-pulse"
+            />
           ))}
         </div>
       </div>
@@ -142,86 +123,72 @@ function Search() {
   }
 
   return (
-    <div className="mt-[68px] min-h-screen bg-[#060608] px-2 py-6 md:px-3 lg:px-4">
-      <h1 className="text-3xl font-bold mb-4 text-white">
-        {results.length > 0
-          ? companyId && totalResults
-            ? `Productions: ${totalResults}`
-            : `Search results for "${query}"`
-          : companyId
-            ? `No productions found for this company.`
-            : `No results found for "${query}"`}
-      </h1>
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {results.map((result) => (
-          <div
-            key={result.id}
-            className="relative group flex flex-col overflow-hidden rounded-md bg-neutral-900 shadow-md transition-all duration-300 cursor-pointer min-h-[220px] h-full"
-            onMouseEnter={() => setHoveredId(result.id)}
-            onMouseLeave={() => setHoveredId(null)}
-            onClick={() => handleNavigateToInfo(result)}
-            style={{ willChange: "transform" }}
-          >
-            <div className="relative w-full aspect-[2/3] bg-neutral-800">
-              <img
-                src={getImageUrl(result)}
-                alt={result.title || result.name}
-                loading="lazy"
-                decoding="async"
-                onError={(e) => {
-                  setImgError(true);
-                  (e.target as HTMLImageElement).src = FALLBACK_IMAGE;
-                }}
-                onLoad={() => setIsLoaded(true)}
-                className={`object-cover w-full h-full transition-all duration-300 ${
-                  hoveredId === result.id ? "scale-105 brightness-75" : ""
-                } ${isLoaded ? "opacity-100" : "opacity-0"}`}
-                style={{
-                  willChange: "transform",
-                  backfaceVisibility: "hidden",
-                }}
-              />
-              {!isLoaded && (
-                <div className="absolute inset-0 bg-neutral-900 animate-pulse rounded-md" />
-              )}
-              <div
-                className={`absolute inset-0 flex flex-col justify-end p-2 md:p-4 transition-opacity duration-300 ${
-                  hoveredId === result.id ? "opacity-100" : "opacity-0"
-                }`}
-              >
-                <div className="flex flex-col gap-2">
-                  <div className="flex items-center gap-2">
-                    <button
-                      className="flex items-center justify-center w-8 h-8 md:w-10 md:h-10 rounded-full bg-white/90 hover:bg-white transition group-hover:scale-110"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleNavigateToInfo(result);
-                      }}
-                    >
-                      <FaPlay className="h-4 w-4 md:h-5 md:w-5 text-black pl-0.5" />
-                    </button>
-                  </div>
-                  <div>
-                    <h3 className="text-xs md:text-sm font-semibold text-white line-clamp-1">
-                      {result.title || result.name}
-                    </h3>
-                    {result.vote_average > 0 && (
-                      <p className="text-[10px] md:text-xs text-green-400 font-medium">
-                        {Math.round(result.vote_average * 10)}% Match
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+    <div className="mt-[68px] min-h-screen px-4 py-6 md:px-6 lg:px-8">
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <div className="liquid-glass inline-flex items-center gap-3 rounded-full px-5 py-2.5">
+          <SearchIcon className="h-4 w-4 text-white/75 shrink-0" />
+          <h1 className="font-display text-lg sm:text-xl font-semibold text-white tracking-tight">
+            {results.length > 0
+              ? companyId && totalResults
+                ? `Productions: ${totalResults}`
+                : `Search results for "${query}"`
+              : companyId
+                ? "No productions found for this company."
+                : query
+                  ? `No results found for "${query}"`
+                  : "Search movies & TV shows"}
+          </h1>
+        </div>
+
+        {results.length > 0 && (
+          <span className="liquid-glass rounded-full px-4 py-1.5 text-xs font-medium text-neutral-300">
+            {results.length} {results.length === 1 ? "title" : "titles"}
+          </span>
+        )}
       </div>
+
+      {results.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+          {results.map((result) => {
+            const resolvedType =
+              result.media_type || (result.first_air_date ? "tv" : "movie");
+            return (
+              <Thumbnail
+                key={`${resolvedType}-${result.id}`}
+                movie={{
+                  ...result,
+                  title: result.title || result.name || "Untitled",
+                  media_type: resolvedType,
+                }}
+                viewMode="grid"
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="liquid-glass rounded-[28px] max-w-md mx-auto my-12 p-8 sm:p-10 text-center space-y-3">
+          <div className="mx-auto w-14 h-14 rounded-full glass-chip flex items-center justify-center">
+            <SearchIcon className="w-6 h-6 text-white/70" />
+          </div>
+          <h2 className="font-display text-lg sm:text-xl font-semibold text-white">
+            {companyId
+              ? "No productions available"
+              : query
+                ? `Nothing matched "${query}"`
+                : "Start a search"}
+          </h2>
+          <p className="text-sm text-neutral-400">
+            Try searching for another movie, series, or title keyword.
+          </p>
+        </div>
+      )}
+
       {/* Load More button for company search */}
       {companyId && totalResults && results.length < totalResults && (
-        <div className="flex justify-center mt-6">
+        <div className="flex justify-center mt-8">
           <button
-            className="px-6 py-2 rounded bg-brand-600 text-white font-semibold hover:bg-brand-700 transition disabled:opacity-60"
+            type="button"
+            className="btn-glass px-7 py-3 text-sm disabled:opacity-50 disabled:pointer-events-none"
             onClick={handleLoadMore}
             disabled={loadingMore}
           >
