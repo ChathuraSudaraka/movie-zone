@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Search as SearchIcon } from "lucide-react";
 import Thumbnail from "../components/Thumbnail";
@@ -6,6 +6,34 @@ import { Movie } from "../types/movie";
 
 interface SearchResult extends Movie {
   media_type: "movie" | "tv" | string;
+}
+
+const SEARCH_CACHE_LIMIT = 30;
+const searchResultsCache = new Map<
+  string,
+  { results: SearchResult[]; totalResults: number | null }
+>();
+
+function setSearchCacheEntry(
+  key: string,
+  value: { results: SearchResult[]; totalResults: number | null }
+) {
+  if (searchResultsCache.has(key)) {
+    searchResultsCache.delete(key);
+  } else if (searchResultsCache.size >= SEARCH_CACHE_LIMIT) {
+    const oldestKey = searchResultsCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      searchResultsCache.delete(oldestKey);
+    }
+  }
+  searchResultsCache.set(key, value);
+}
+
+function isAbortError(error: unknown, signal?: AbortSignal): boolean {
+  return (
+    signal?.aborted === true ||
+    (error instanceof DOMException && error.name === "AbortError")
+  );
 }
 
 function Search() {
@@ -17,31 +45,59 @@ function Search() {
   const [page, setPage] = useState(1);
   const [totalResults, setTotalResults] = useState<number | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+  const isMountedRef = useRef(true);
+  const loadMoreAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      loadMoreAbortRef.current?.abort();
+      loadMoreAbortRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     document.title = `Search - ${query || companyId || "Company"} - MovieZone`;
     setPage(1);
+    setLoadingMore(false);
+
+    if (!query && !companyId) {
+      setTotalResults(null);
+      setResults([]);
+      setLoading(false);
+      return;
+    }
+
+    const cacheKey = companyId ? "company:" + companyId : "q:" + query;
+    const cached = searchResultsCache.get(cacheKey);
+    if (cached) {
+      // Touch entry to preserve LRU recency
+      setSearchCacheEntry(cacheKey, cached);
+      setResults(cached.results);
+      setTotalResults(cached.totalResults);
+      setLoading(false);
+      return;
+    }
+
     setTotalResults(null);
     setResults([]);
     setLoading(true);
 
-    let cancelled = false;
+    const controller = new AbortController();
 
     async function searchContent() {
-      if (!query && !companyId) {
-        setResults([]);
-        setLoading(false);
-        return;
-      }
-
       try {
         const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
         const url = companyId
           ? `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=1`
           : `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(query)}&page=1&include_adult=false`;
-        const response = await fetch(url);
+        const response = await fetch(url, { signal: controller.signal });
+        if (!response.ok) {
+          throw new Error(`Search request failed with status ${response.status}`);
+        }
         const data = await response.json();
-        if (cancelled) return;
+        if (controller.signal.aborted) return;
 
         const filteredResults = (data.results || []).filter(
           (item: SearchResult) =>
@@ -50,14 +106,18 @@ function Search() {
               companyId) &&
             (item.backdrop_path || item.poster_path)
         );
+        const nextTotalResults = data.total_results || null;
+        setSearchCacheEntry(cacheKey, {
+          results: filteredResults,
+          totalResults: nextTotalResults,
+        });
         setResults(filteredResults);
-        setTotalResults(data.total_results || null);
+        setTotalResults(nextTotalResults);
       } catch (error) {
-        if (!cancelled) {
-          console.error("Error searching content:", error);
-        }
+        if (isAbortError(error, controller.signal)) return;
+        console.error("Error searching content:", error);
       } finally {
-        if (!cancelled) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -65,20 +125,32 @@ function Search() {
 
     searchContent();
     return () => {
-      cancelled = true;
+      controller.abort();
+      loadMoreAbortRef.current?.abort();
+      loadMoreAbortRef.current = null;
     };
   }, [query, companyId]);
 
   // Load more for company search
   const handleLoadMore = async () => {
-    if (!companyId) return;
+    if (!companyId || loadingMore) return;
+
+    loadMoreAbortRef.current?.abort();
+    const controller = new AbortController();
+    loadMoreAbortRef.current = controller;
+
     setLoadingMore(true);
     try {
       const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
       const nextPage = page + 1;
       const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${companyId}&language=en-US&sort_by=popularity.desc&page=${nextPage}`;
-      const response = await fetch(url);
+      const response = await fetch(url, { signal: controller.signal });
+      if (!response.ok) {
+        throw new Error(`Load more failed with status ${response.status}`);
+      }
       const data = await response.json();
+      if (!isMountedRef.current || controller.signal.aborted) return;
+
       const filteredResults: SearchResult[] = (data.results || []).filter(
         (item: SearchResult) => item.backdrop_path || item.poster_path
       );
@@ -91,9 +163,13 @@ function Search() {
       });
       setPage(nextPage);
     } catch (error) {
+      if (isAbortError(error, controller.signal)) return;
       console.error("Error loading more results:", error);
     } finally {
-      setLoadingMore(false);
+      if (isMountedRef.current && loadMoreAbortRef.current === controller) {
+        loadMoreAbortRef.current = null;
+        setLoadingMore(false);
+      }
     }
   };
 

@@ -51,7 +51,35 @@ interface CachedYtsEntry {
   torrents: TorrentInfo[];
 }
 
+const YTS_CACHE_MAX = 50;
+
 const ytsMovieCache = new Map<string, CachedYtsEntry>();
+
+function setYtsMovieCache(key: string, value: CachedYtsEntry) {
+  if (ytsMovieCache.has(key)) {
+    ytsMovieCache.delete(key);
+  } else if (ytsMovieCache.size >= YTS_CACHE_MAX) {
+    const oldestKey = ytsMovieCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      ytsMovieCache.delete(oldestKey);
+    }
+  }
+  ytsMovieCache.set(key, value);
+}
+
+const MAGNET_TRACKERS = [
+  "udp://open.demonii.com:1337/announce",
+  "udp://tracker.openbittorrent.com:80",
+  "udp://tracker.coppersurfer.tk:6969",
+  "udp://tracker.opentrackr.org:1337/announce",
+  "udp://glotorrents.pw:6969/announce",
+  "udp://p4p.arenabg.com:1337",
+  "udp://tracker.leechers-paradise.org:6969",
+];
+
+const ENCODED_TRACKERS = MAGNET_TRACKERS.map(
+  (t) => `&tr=${encodeURIComponent(t)}`
+).join("");
 
 async function proxyFetch(
   proxyBase: string,
@@ -190,18 +218,9 @@ export const MovieProcess = React.memo(
     const handleMagnetDownload = useCallback(
       (torrent: TorrentInfo) => {
         if (!torrent.hash) return;
-        const trackers = [
-          "udp://open.demonii.com:1337/announce",
-          "udp://tracker.openbittorrent.com:80",
-          "udp://tracker.coppersurfer.tk:6969",
-          "udp://tracker.opentrackr.org:1337/announce",
-          "udp://glotorrents.pw:6969/announce",
-          "udp://p4p.arenabg.com:1337",
-          "udp://tracker.leechers-paradise.org:6969",
-        ];
         const magnet = `magnet:?xt=urn:btih:${torrent.hash}&dn=${encodeURIComponent(
           ytsMovie?.title_long || ""
-        )}&${trackers.map((t) => `tr=${encodeURIComponent(t)}`).join("&")}`;
+        )}${ENCODED_TRACKERS}`;
         window.open(magnet, "_blank");
       },
       [ytsMovie?.title_long]
@@ -253,7 +272,7 @@ export const MovieProcess = React.memo(
 
         if (!movies?.length) {
           if (cacheKey) {
-            ytsMovieCache.set(cacheKey, {
+            setYtsMovieCache(cacheKey, {
               status: "not_found",
               ytsMovie: null,
               torrents: [],
@@ -294,7 +313,7 @@ export const MovieProcess = React.memo(
 
         if (resolvedTorrents.length) {
           if (cacheKey) {
-            ytsMovieCache.set(cacheKey, {
+            setYtsMovieCache(cacheKey, {
               status: "ok",
               ytsMovie: movieDetails,
               torrents: resolvedTorrents,
@@ -303,7 +322,7 @@ export const MovieProcess = React.memo(
           setTorrents(resolvedTorrents);
         } else {
           if (cacheKey) {
-            ytsMovieCache.set(cacheKey, {
+            setYtsMovieCache(cacheKey, {
               status: "not_found",
               ytsMovie: movieDetails,
               torrents: [],

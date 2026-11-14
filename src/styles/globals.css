@@ -377,6 +377,11 @@
   to { opacity: 1; }
 }
 
+/* Run Ken Burns once on hero load so idle glass surfaces do not re-blur at 60fps */
+.animate-ken-burns {
+  animation: ken-burns 18s ease-out 1 forwards;
+}
+
 /* Freeze heavy ambient animations on mobile / touch & low-RAM devices */
 @media (hover: none), (max-width: 1023px) {
   .animate-blob-drift {

@@ -8,6 +8,21 @@ import {
   subscribeToList,
 } from '../utils/localList';
 
+export function useIsInMovieList(movieId: number): boolean {
+  const [inList, setInList] = useState<boolean>(() => localIsInList(movieId));
+
+  useEffect(() => {
+    const sync = () => {
+      const next = localIsInList(movieId);
+      setInList((prev) => (prev === next ? prev : next));
+    };
+    sync();
+    return subscribeToList(sync);
+  }, [movieId]);
+
+  return inList;
+}
+
 export function useMovieList() {
   const [movieList, setMovieList] = useState<Movie[]>(() => getList());
 

@@ -1,4 +1,4 @@
-import { useState, FormEvent } from "react";
+import { useState, useRef, useEffect, FormEvent } from "react";
 import { Send, Mail, User, Loader2, MessageSquare } from "lucide-react";
 import toast from "react-hot-toast";
 import emailjs from "@emailjs/browser";
@@ -14,9 +14,26 @@ export function Contact() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [errorMessage, setErrorMessage] = useState("");
+  const isMountedRef = useRef(true);
+  const resetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      if (resetTimerRef.current !== null) {
+        clearTimeout(resetTimerRef.current);
+        resetTimerRef.current = null;
+      }
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
+    if (resetTimerRef.current !== null) {
+      clearTimeout(resetTimerRef.current);
+      resetTimerRef.current = null;
+    }
     setStatus("loading");
 
     try {
@@ -50,10 +67,12 @@ export function Contact() {
         EMAILJS_PUBLIC_KEY
       );
 
+      if (!isMountedRef.current) return;
       setStatus("success");
       toast.success("Message sent successfully!");
       setFormData((prev) => ({ ...prev, subject: "", message: "" }));
     } catch (error) {
+      if (!isMountedRef.current) return;
       console.error("Contact form error:", error);
       setStatus("error");
       setErrorMessage(
@@ -63,7 +82,15 @@ export function Contact() {
       );
       toast.error("Failed to send message");
     } finally {
-      setTimeout(() => setStatus("idle"), 5000);
+      if (isMountedRef.current) {
+        if (resetTimerRef.current !== null) {
+          clearTimeout(resetTimerRef.current);
+        }
+        resetTimerRef.current = setTimeout(() => {
+          resetTimerRef.current = null;
+          setStatus("idle");
+        }, 5000);
+      }
     }
   };
 

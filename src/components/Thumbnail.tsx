@@ -9,10 +9,16 @@ import { getGenreName } from "../utils/genreMap";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
+const CAN_HOVER =
+  typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
-const runtimeCache = new Map<
+type RuntimeMeta = { runtime: number | null; seasonsCount: number | null };
+
+const runtimeCache = new Map<string, RuntimeMeta>();
+const inFlightRuntime = new Map<string, Promise<RuntimeMeta>>();
+const inFlightControllers = new Map<
   string,
-  { runtime: number | null; seasonsCount: number | null }
+  { controller: AbortController; refs: number }
 >();
 
 interface Props {
@@ -53,40 +59,83 @@ function Thumbnail({ movie, viewMode }: Props) {
     }
 
     let cancelled = false;
-    const fetchRuntime = async () => {
-      try {
-        const response = await fetch(
-          `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`
-        );
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
+    let requestPromise = inFlightRuntime.get(cacheKey);
+    let controllerEntry = inFlightControllers.get(cacheKey);
+
+    if (!requestPromise || !controllerEntry) {
+      const controller = new AbortController();
+      const { signal } = controller;
+      controllerEntry = { controller, refs: 0 };
+      inFlightControllers.set(cacheKey, controllerEntry);
+
+      requestPromise = (async () => {
+        try {
+          const response = await fetch(
+            `https://api.themoviedb.org/3/${mediaType}/${movie.id}?api_key=${import.meta.env.VITE_TMDB_API_KEY}`,
+            { signal }
+          );
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          const data = await response.json();
+          const entry: RuntimeMeta = {
+            runtime: data.runtime || data.episode_run_time?.[0] || null,
+            seasonsCount: data.number_of_seasons || null,
+          };
+          if (runtimeCache.size >= 300) {
+            const oldestKey = runtimeCache.keys().next().value;
+            if (oldestKey !== undefined) runtimeCache.delete(oldestKey);
+          }
+          runtimeCache.set(cacheKey, entry);
+          return entry;
+        } finally {
+          if (inFlightControllers.get(cacheKey) === controllerEntry) {
+            inFlightRuntime.delete(cacheKey);
+            inFlightControllers.delete(cacheKey);
+          }
         }
-        const data = await response.json();
-        const entry = {
-          runtime: data.runtime || data.episode_run_time?.[0] || null,
-          seasonsCount: data.number_of_seasons || null,
-        };
-        if (runtimeCache.size >= 300) {
-          const oldestKey = runtimeCache.keys().next().value;
-          if (oldestKey !== undefined) runtimeCache.delete(oldestKey);
-        }
-        runtimeCache.set(cacheKey, entry);
+      })();
+
+      inFlightRuntime.set(cacheKey, requestPromise);
+    }
+
+    controllerEntry.refs += 1;
+    const activeEntry = controllerEntry;
+
+    requestPromise
+      .then((entry) => {
         if (!cancelled) {
           setRuntime(entry.runtime);
           setSeasonsCount(entry.seasonsCount);
         }
-      } catch (error) {
+      })
+      .catch((error) => {
+        if (
+          typeof error === "object" &&
+          error !== null &&
+          "name" in error &&
+          error.name === "AbortError"
+        ) {
+          return;
+        }
         console.error("Error fetching runtime:", error);
         if (!cancelled) {
           setRuntime(null);
           setSeasonsCount(null);
         }
-      }
-    };
+      });
 
-    fetchRuntime();
     return () => {
       cancelled = true;
+      activeEntry.refs -= 1;
+      if (
+        activeEntry.refs <= 0 &&
+        inFlightControllers.get(cacheKey) === activeEntry
+      ) {
+        inFlightRuntime.delete(cacheKey);
+        inFlightControllers.delete(cacheKey);
+        activeEntry.controller.abort();
+      }
     };
   }, [cacheKey, mediaType, movie.id, viewMode]);
 
@@ -223,7 +272,7 @@ function Thumbnail({ movie, viewMode }: Props) {
                  [@media(hover:hover)]:hover:z-20 [@media(hover:hover)]:hover:-translate-y-1.5 [@media(hover:hover)]:hover:scale-[1.03]
                  [@media(hover:hover)]:hover:ring-white/40 [@media(hover:hover)]:hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)]"
       onMouseEnter={() => {
-        if (window.matchMedia("(hover: hover)").matches) {
+        if (CAN_HOVER) {
           setIsHovered(true);
         }
       }}

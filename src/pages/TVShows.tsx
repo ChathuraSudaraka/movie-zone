@@ -178,8 +178,11 @@ function TVShows() {
     );
   }, [searchParams]);
 
-  const initialQuery = buildTVQuery(currentPage, activeFilters);
-  const initialCached = tvQueryCache.get(initialQuery.cacheKey);
+  const query = useMemo(
+    () => buildTVQuery(currentPage, activeFilters),
+    [currentPage, activeFilters]
+  );
+  const initialCached = tvQueryCache.get(query.cacheKey);
 
   const [shows, setShows] = useState<TVShowDetails[]>(
     () => initialCached?.results ?? []
@@ -247,12 +250,10 @@ function TVShows() {
   useEffect(() => {
     document.title = "TV Shows - MovieZone";
     let cancelled = false;
+    const controller = new AbortController();
 
     async function fetchTVShows() {
-      const { endpoint, params, cacheKey } = buildTVQuery(
-        currentPage,
-        activeFilters
-      );
+      const { endpoint, params, cacheKey } = query;
 
       const cached = tvQueryCache.get(cacheKey);
       if (cached) {
@@ -266,8 +267,11 @@ function TVShows() {
 
       setLoading(true);
       try {
-        const response = await axios.get(endpoint, { params });
-        if (cancelled) return;
+        const response = await axios.get(endpoint, {
+          params,
+          signal: controller.signal,
+        });
+        if (cancelled || controller.signal.aborted) return;
 
         const processedShows = (response.data.results || [])
           .filter(
@@ -295,7 +299,14 @@ function TVShows() {
         setTotalResults(maxResults);
         setError(null);
       } catch (err: unknown) {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          (err as { code?: string; name?: string })?.code === "ERR_CANCELED" ||
+          (err as { name?: string })?.name === "CanceledError"
+        ) {
+          return;
+        }
         const axiosError = err as { response?: { status: number } };
         setError(
           axiosError.response?.status === 400
@@ -306,7 +317,7 @@ function TVShows() {
           syncParams({ page: 1 }, true);
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -315,8 +326,9 @@ function TVShows() {
     fetchTVShows();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [currentPage, activeFilters, syncParams]);
+  }, [query, syncParams]);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
     syncParams({ view: mode }, true);

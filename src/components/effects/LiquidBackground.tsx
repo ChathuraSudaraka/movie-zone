@@ -33,9 +33,11 @@ export default function LiquidBackground() {
     let frame = 0;
     let activeEl: HTMLElement | null = null;
     let cachedRect: DOMRect | null = null;
+    let lastX = -Infinity;
+    let lastY = -Infinity;
 
     const onMove = (e: PointerEvent) => {
-      if (e.pointerType !== "mouse") return;
+      if (e.pointerType !== "mouse" || document.hidden) return;
       const target = (e.target as HTMLElement | null)?.closest?.(
         ".liquid-glass, .glass, .btn-glass"
       ) as HTMLElement | null;
@@ -43,28 +45,48 @@ export default function LiquidBackground() {
       if (!target) {
         activeEl = null;
         cachedRect = null;
+        lastX = -Infinity;
+        lastY = -Infinity;
         return;
       }
 
-      if (target !== activeEl) {
+      const isSameEl = target === activeEl;
+      if (target !== activeEl || !cachedRect) {
         activeEl = target;
         cachedRect = target.getBoundingClientRect();
+        lastX = -Infinity;
+        lastY = -Infinity;
+      }
+
+      if (!isSameEl && frame) {
+        cancelAnimationFrame(frame);
+        frame = 0;
       }
 
       if (frame || !cachedRect) return;
-      const rect = cachedRect;
-      const el = target;
       const x = e.clientX;
       const y = e.clientY;
+      if (isSameEl && Math.abs(x - lastX) < 3 && Math.abs(y - lastY) < 3) {
+        return;
+      }
+
+      lastX = x;
+      lastY = y;
+      const rect = cachedRect;
+      const el = target;
       frame = requestAnimationFrame(() => {
         frame = 0;
+        if (document.hidden) return;
         el.style.setProperty("--mx", `${x - rect.left}px`);
         el.style.setProperty("--my", `${y - rect.top}px`);
       });
     };
 
     const invalidateRect = () => {
+      activeEl = null;
       cachedRect = null;
+      lastX = -Infinity;
+      lastY = -Infinity;
     };
 
     window.addEventListener("pointermove", onMove, { passive: true });
@@ -75,6 +97,8 @@ export default function LiquidBackground() {
       window.removeEventListener("scroll", invalidateRect);
       window.removeEventListener("resize", invalidateRect);
       if (frame) cancelAnimationFrame(frame);
+      activeEl = null;
+      cachedRect = null;
     };
   }, []);
 

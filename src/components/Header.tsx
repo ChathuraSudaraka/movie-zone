@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -20,6 +20,28 @@ interface CompanySuggestion {
   movie_count?: number;
 }
 
+const COMPANY_COUNT_CACHE_LIMIT = 200;
+const companyCountCache = new Map<number, number>();
+
+function setCachedCompanyCount(companyId: number, count: number) {
+  if (companyCountCache.has(companyId)) {
+    companyCountCache.delete(companyId);
+  } else if (companyCountCache.size >= COMPANY_COUNT_CACHE_LIMIT) {
+    const oldestKey = companyCountCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      companyCountCache.delete(oldestKey);
+    }
+  }
+  companyCountCache.set(companyId, count);
+}
+
+function isAbortError(error: unknown, signal?: AbortSignal): boolean {
+  return (
+    signal?.aborted === true ||
+    (error instanceof DOMException && error.name === "AbortError")
+  );
+}
+
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
@@ -28,6 +50,10 @@ function Header() {
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [companySuggestions, setCompanySuggestions] = useState<CompanySuggestion[]>([]);
   const [searchTab, setSearchTab] = useState<"titles" | "companies">("titles");
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const searchTabRef = useRef<"titles" | "companies">(searchTab);
+  const companyQueryRef = useRef("");
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -42,31 +68,79 @@ function Header() {
   ];
 
   useEffect(() => {
+    searchTabRef.current = searchTab;
+  }, [searchTab]);
+
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+      }
+      abortControllerRef.current?.abort();
+      abortControllerRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     let ticking = false;
+    let rafId: number | null = null;
+    let lastScrolled = window.scrollY > 24;
+    if (lastScrolled) {
+      setIsScrolled(true);
+    }
+
     const handleScroll = () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(() => {
-        setIsScrolled(window.scrollY > 24);
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        const next = window.scrollY > 24;
+        if (next !== lastScrolled) {
+          lastScrolled = next;
+          setIsScrolled(next);
+        }
         ticking = false;
       });
     };
 
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      if (rafId !== null) {
+        cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
+
+  const closeSearch = () => {
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    companyQueryRef.current = "";
+    setShowSearch(false);
+    setSearchTerm("");
+    setSuggestions([]);
+    setCompanySuggestions([]);
+    setShowSuggestions(false);
+  };
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchTerm) {
       navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
-      setShowSearch(false);
-      setSearchTerm("");
+      closeSearch();
     }
   };
 
-  const fetchSuggestions = async (input: string) => {
-    if (!input || input.length < 2) {
+  const fetchSuggestions = async (input: string, signal?: AbortSignal) => {
+    const trimmed = input.trim();
+    if (trimmed.length < 2) {
       setSuggestions([]);
       return;
     }
@@ -75,50 +149,90 @@ function Header() {
       const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
       const response = await fetch(
         `https://api.themoviedb.org/3/search/multi?api_key=${API_KEY}&language=en-US&query=${encodeURIComponent(
-          input
-        )}&page=1&include_adult=false`
+          trimmed
+        )}&page=1&include_adult=false`,
+        { signal }
       );
       const data = await response.json();
-      const filteredSuggestions = data.results
-        .filter(
-          (item: SearchResult) =>
-            (item.media_type === "movie" || item.media_type === "tv") &&
-            (item.backdrop_path || item.poster_path)
-        );
+      if (signal?.aborted) return;
+
+      const filteredSuggestions = (data.results || []).filter(
+        (item: SearchResult) =>
+          (item.media_type === "movie" || item.media_type === "tv") &&
+          (item.backdrop_path || item.poster_path)
+      );
       setSuggestions(filteredSuggestions);
     } catch (error) {
+      if (isAbortError(error, signal)) return;
       console.error("Error fetching suggestions:", error);
     }
   };
 
   // Filter out companies with no productions and sort by most productions
-  const getValidCompanySuggestions = async (companies: CompanySuggestion[]) => {
+  const getValidCompanySuggestions = async (
+    companies: CompanySuggestion[],
+    signal?: AbortSignal
+  ): Promise<CompanySuggestion[]> => {
     const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
-    const companyCounts: { company: CompanySuggestion; count: number }[] = [];
-    for (const company of companies) {
-      const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${company.id}&language=en-US&page=1`;
-      try {
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.results && data.results.length > 0) {
-          // Attach movie_count to the company object
-          companyCounts.push({
-            company: {
-              ...company,
-              movie_count: data.total_results || data.results.length,
-            },
-            count: data.total_results || data.results.length,
-          });
+    const resolved = await Promise.all(
+      companies.slice(0, 8).map(
+        async (
+          company
+        ): Promise<{ company: CompanySuggestion; count: number } | null> => {
+          const cachedCount = companyCountCache.get(company.id);
+        if (cachedCount !== undefined) {
+          return cachedCount > 0
+            ? {
+                company: { ...company, movie_count: cachedCount },
+                count: cachedCount,
+              }
+            : null;
         }
-      } catch { /* skip companies that fail to load */ }
-    }
+
+        const url = `https://api.themoviedb.org/3/discover/movie?api_key=${API_KEY}&with_companies=${company.id}&language=en-US&page=1`;
+        try {
+          const response = await fetch(url, { signal });
+          if (!response.ok) return null;
+          const data = await response.json();
+          if (signal?.aborted) return null;
+
+          const count =
+            data.results && data.results.length > 0
+              ? data.total_results || data.results.length
+              : 0;
+          setCachedCompanyCount(company.id, count);
+          if (count > 0) {
+            return {
+              company: { ...company, movie_count: count },
+              count,
+            };
+          }
+        } catch (error) {
+          if (isAbortError(error, signal)) {
+            throw error;
+          }
+          // skip companies that fail to load
+        }
+        return null;
+      })
+    );
+
+    const companyCounts = resolved.filter(
+      (item): item is { company: CompanySuggestion; count: number } =>
+        item !== null
+    );
     // Sort by most productions
     companyCounts.sort((a, b) => b.count - a.count);
     return companyCounts.map((item) => item.company);
   };
 
-  const fetchCompanySuggestions = async (input: string) => {
-    if (!input || input.length < 2) {
+  const fetchCompanySuggestions = async (
+    input: string,
+    signal?: AbortSignal
+  ) => {
+    const trimmed = input.trim();
+    if (trimmed.length < 2) {
+      companyQueryRef.current = "";
       setCompanySuggestions([]);
       return;
     }
@@ -126,16 +240,24 @@ function Header() {
       const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
       const response = await fetch(
         `https://api.themoviedb.org/3/search/company?api_key=${API_KEY}&query=${encodeURIComponent(
-          input
-        )}`
+          trimmed
+        )}`,
+        { signal }
       );
       const data = await response.json();
+      if (signal?.aborted) return;
+
       // Only show companies with at least one production
       const validCompanies = await getValidCompanySuggestions(
-        data.results || []
+        data.results || [],
+        signal
       );
+      if (signal?.aborted) return;
+
+      companyQueryRef.current = trimmed;
       setCompanySuggestions(validCompanies);
-    } catch {
+    } catch (error) {
+      if (isAbortError(error, signal)) return;
       setCompanySuggestions([]);
     }
   };
@@ -143,14 +265,70 @@ function Header() {
   const handleSearchInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setSearchTerm(value);
-    if (value.length >= 2) {
-      fetchSuggestions(value);
-      fetchCompanySuggestions(value);
-      setShowSuggestions(true);
-    } else {
+
+    if (debounceTimerRef.current !== null) {
+      clearTimeout(debounceTimerRef.current);
+      debounceTimerRef.current = null;
+    }
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+
+    const trimmed = value.trim();
+    if (trimmed.length < 2) {
+      companyQueryRef.current = "";
       setSuggestions([]);
       setCompanySuggestions([]);
       setShowSuggestions(false);
+      return;
+    }
+
+    if (searchTabRef.current === "titles") {
+      companyQueryRef.current = "";
+      setCompanySuggestions([]);
+    }
+    setShowSuggestions(true);
+
+    debounceTimerRef.current = setTimeout(() => {
+      debounceTimerRef.current = null;
+      const controller = new AbortController();
+      abortControllerRef.current = controller;
+      fetchSuggestions(trimmed, controller.signal);
+      if (searchTabRef.current === "companies") {
+        fetchCompanySuggestions(trimmed, controller.signal);
+      }
+    }, 300);
+  };
+
+  const handleTabChange = (tab: "titles" | "companies") => {
+    setSearchTab(tab);
+    searchTabRef.current = tab;
+
+    const trimmed = searchTerm.trim();
+    if (
+      tab === "companies" &&
+      trimmed.length >= 2 &&
+      (companySuggestions.length === 0 || companyQueryRef.current !== trimmed)
+    ) {
+      if (debounceTimerRef.current !== null) {
+        clearTimeout(debounceTimerRef.current);
+        debounceTimerRef.current = null;
+        abortControllerRef.current?.abort();
+        const controller = new AbortController();
+        abortControllerRef.current = controller;
+        fetchSuggestions(trimmed, controller.signal);
+        fetchCompanySuggestions(trimmed, controller.signal);
+        return;
+      }
+
+      if (
+        !abortControllerRef.current ||
+        abortControllerRef.current.signal.aborted
+      ) {
+        abortControllerRef.current = new AbortController();
+      }
+      fetchCompanySuggestions(trimmed, abortControllerRef.current.signal);
     }
   };
 
@@ -158,14 +336,16 @@ function Header() {
     const type =
       suggestion.media_type || (suggestion.first_air_date ? "tv" : "movie");
     navigate(`/info/${type}/${suggestion.id}`);
-    setShowSearch(false);
-    setSearchTerm("");
-    setSuggestions([]);
-    setCompanySuggestions([]);
-    setShowSuggestions(false);
+    closeSearch();
   };
 
   const handleCompanyClick = async (company: CompanySuggestion) => {
+    if (typeof company.movie_count === "number" && company.movie_count > 0) {
+      navigate(`/search?company=${company.id}`);
+      closeSearch();
+      return;
+    }
+
     // Check if the company has at least one production
     try {
       const API_KEY = import.meta.env.VITE_TMDB_API_KEY;
@@ -174,25 +354,13 @@ function Header() {
       const data = await response.json();
       if (data.results && data.results.length > 0) {
         navigate(`/search?company=${company.id}`);
-        setShowSearch(false);
-        setSearchTerm("");
-        setSuggestions([]);
-        setCompanySuggestions([]);
-        setShowSuggestions(false);
+        closeSearch();
       } else {
         alert("No productions found for this company.");
       }
     } catch {
       alert("Failed to check company productions.");
     }
-  };
-
-  const closeSearch = () => {
-    setShowSearch(false);
-    setSearchTerm("");
-    setSuggestions([]);
-    setCompanySuggestions([]);
-    setShowSuggestions(false);
   };
 
   const spring = { type: "spring", stiffness: 420, damping: 34, mass: 0.8 } as const;
@@ -335,7 +503,7 @@ function Header() {
                         className={`relative flex-1 rounded-full border-0 bg-transparent px-4 py-2 text-sm font-semibold transition-colors focus:outline-none ${
                           searchTab === tab ? "text-white" : "text-white/50 hover:text-white/80"
                         }`}
-                        onClick={() => setSearchTab(tab)}
+                        onClick={() => handleTabChange(tab)}
                       >
                         {searchTab === tab && (
                           <motion.span

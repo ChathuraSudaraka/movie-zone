@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { 
   Upload, 
   Download, 
@@ -11,11 +11,16 @@ import {
 } from 'lucide-react';
 
 // Browser-compatible translation using Google Translate API
-const translateText = async (text: string, targetLang: string): Promise<string> => {
+const translateText = async (
+  text: string,
+  targetLang: string,
+  signal?: AbortSignal
+): Promise<string> => {
   try {
     // Using Google Translate's free API endpoint
     const response = await fetch(
-      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${encodeURIComponent(targetLang)}&dt=t&q=${encodeURIComponent(text)}`,
+      { signal }
     );
     
     if (!response.ok) {
@@ -31,12 +36,16 @@ const translateText = async (text: string, targetLang: string): Promise<string> 
     
     throw new Error('Invalid response format');
   } catch (error) {
+    if (signal?.aborted) {
+      throw error;
+    }
     console.error('Translation error:', error);
     
     // Fallback to MyMemory API if Google Translate fails
     try {
       const fallbackResponse = await fetch(
-        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`
+        `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=auto|${targetLang}`,
+        { signal }
       );
       
       const fallbackData = await fallbackResponse.json();
@@ -45,6 +54,9 @@ const translateText = async (text: string, targetLang: string): Promise<string> 
         return fallbackData.responseData.translatedText;
       }
     } catch (fallbackError) {
+      if (signal?.aborted) {
+        throw fallbackError;
+      }
       console.error('Fallback translation failed:', fallbackError);
     }
     
@@ -64,6 +76,113 @@ interface TranslationProgress {
   percentage: number;
 }
 
+// Google Translate supported languages
+const SUPPORTED_LANGUAGES: Array<{ code: string; name: string; flag: string }> = [
+  { code: 'af', name: 'Afrikaans', flag: '🇿🇦' },
+  { code: 'sq', name: 'Albanian', flag: '🇦🇱' },
+  { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
+  { code: 'hy', name: 'Armenian', flag: '🇦🇲' },
+  { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
+  { code: 'eu', name: 'Basque', flag: '🏳️' },
+  { code: 'be', name: 'Belarusian', flag: '🇧🇾' },
+  { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
+  { code: 'bs', name: 'Bosnian', flag: '🇧🇦' },
+  { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
+  { code: 'ca', name: 'Catalan', flag: '🇪🇸' },
+  { code: 'ceb', name: 'Cebuano', flag: '🇵🇭' },
+  { code: 'ny', name: 'Chichewa', flag: '🇲🇼' },
+  { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
+  { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼' },
+  { code: 'co', name: 'Corsican', flag: '🇫🇷' },
+  { code: 'hr', name: 'Croatian', flag: '🇭🇷' },
+  { code: 'cs', name: 'Czech', flag: '🇨🇿' },
+  { code: 'da', name: 'Danish', flag: '🇩🇰' },
+  { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
+  { code: 'eo', name: 'Esperanto', flag: '🌐' },
+  { code: 'et', name: 'Estonian', flag: '🇪🇪' },
+  { code: 'tl', name: 'Filipino', flag: '🇵🇭' },
+  { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
+  { code: 'fr', name: 'French', flag: '🇫🇷' },
+  { code: 'fy', name: 'Frisian', flag: '🇳🇱' },
+  { code: 'gl', name: 'Galician', flag: '🇪🇸' },
+  { code: 'ka', name: 'Georgian', flag: '🇬🇪' },
+  { code: 'de', name: 'German', flag: '🇩🇪' },
+  { code: 'el', name: 'Greek', flag: '🇬🇷' },
+  { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
+  { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹' },
+  { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
+  { code: 'haw', name: 'Hawaiian', flag: '🏝️' },
+  { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
+  { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
+  { code: 'hmn', name: 'Hmong', flag: '🇻🇳' },
+  { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
+  { code: 'is', name: 'Icelandic', flag: '🇮🇸' },
+  { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
+  { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
+  { code: 'ga', name: 'Irish', flag: '🇮🇪' },
+  { code: 'it', name: 'Italian', flag: '🇮🇹' },
+  { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
+  { code: 'jw', name: 'Javanese', flag: '🇮🇩' },
+  { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
+  { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
+  { code: 'km', name: 'Khmer', flag: '🇰🇭' },
+  { code: 'ko', name: 'Korean', flag: '🇰🇷' },
+  { code: 'ku', name: 'Kurdish', flag: '🇮🇶' },
+  { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
+  { code: 'lo', name: 'Lao', flag: '🇱🇦' },
+  { code: 'la', name: 'Latin', flag: '⛪' },
+  { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
+  { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
+  { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
+  { code: 'mk', name: 'Macedonian', flag: '🇲🇰' },
+  { code: 'mg', name: 'Malagasy', flag: '🇲🇬' },
+  { code: 'ms', name: 'Malay', flag: '🇲🇾' },
+  { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
+  { code: 'mt', name: 'Maltese', flag: '🇲🇹' },
+  { code: 'mi', name: 'Maori', flag: '🇳🇿' },
+  { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
+  { code: 'mn', name: 'Mongolian', flag: '🇲🇳' },
+  { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲' },
+  { code: 'ne', name: 'Nepali', flag: '🇳🇵' },
+  { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
+  { code: 'ps', name: 'Pashto', flag: '🇦🇫' },
+  { code: 'fa', name: 'Persian', flag: '🇮🇷' },
+  { code: 'pl', name: 'Polish', flag: '🇵🇱' },
+  { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
+  { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
+  { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
+  { code: 'ru', name: 'Russian', flag: '🇷🇺' },
+  { code: 'sm', name: 'Samoan', flag: '🇼🇸' },
+  { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
+  { code: 'sr', name: 'Serbian', flag: '🇷🇸' },
+  { code: 'st', name: 'Sesotho', flag: '🇱🇸' },
+  { code: 'sn', name: 'Shona', flag: '🇿🇼' },
+  { code: 'sd', name: 'Sindhi', flag: '🇵🇰' },
+  { code: 'si', name: 'Sinhala', flag: '🇱🇰' },
+  { code: 'sk', name: 'Slovak', flag: '🇸🇰' },
+  { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
+  { code: 'so', name: 'Somali', flag: '🇸🇴' },
+  { code: 'es', name: 'Spanish', flag: '🇪🇸' },
+  { code: 'su', name: 'Sundanese', flag: '🇮🇩' },
+  { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
+  { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
+  { code: 'tg', name: 'Tajik', flag: '🇹🇯' },
+  { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
+  { code: 'te', name: 'Telugu', flag: '🇮🇳' },
+  { code: 'th', name: 'Thai', flag: '🇹🇭' },
+  { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
+  { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
+  { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
+  { code: 'uz', name: 'Uzbek', flag: '🇺🇿' },
+  { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
+  { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
+  { code: 'xh', name: 'Xhosa', flag: '🇿🇦' },
+  { code: 'yi', name: 'Yiddish', flag: '🕎' },
+  { code: 'yo', name: 'Yoruba', flag: '🇳🇬' },
+  { code: 'zu', name: 'Zulu', flag: '🇿🇦' }
+];
+
 function SubtitlePage() {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [subtitles, setSubtitles] = useState<SubtitleEntry[]>([]);
@@ -78,149 +197,27 @@ function SubtitlePage() {
   });
   const [error, setError] = useState<string>('');
   const [detectedLanguage, setDetectedLanguage] = useState<string>('');
-  const [availableLanguages, setAvailableLanguages] = useState<Array<{code: string, name: string, flag: string}>>([]);
-  const [isLoadingLanguages, setIsLoadingLanguages] = useState(false);
+  const [availableLanguages] = useState<Array<{code: string, name: string, flag: string}>>(SUPPORTED_LANGUAGES);
+  const isMountedRef = useRef(true);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
-  // Load supported languages from Google Translate API
-  const loadSupportedLanguages = async () => {
-    setIsLoadingLanguages(true);
-    try {
-      // Google Translate supported languages
-      const languages = [
-        { code: 'af', name: 'Afrikaans', flag: '🇿🇦' },
-        { code: 'sq', name: 'Albanian', flag: '🇦🇱' },
-        { code: 'ar', name: 'Arabic', flag: '🇸🇦' },
-        { code: 'hy', name: 'Armenian', flag: '🇦🇲' },
-        { code: 'az', name: 'Azerbaijani', flag: '🇦🇿' },
-        { code: 'eu', name: 'Basque', flag: '🏳️' },
-        { code: 'be', name: 'Belarusian', flag: '🇧🇾' },
-        { code: 'bn', name: 'Bengali', flag: '🇧🇩' },
-        { code: 'bs', name: 'Bosnian', flag: '🇧🇦' },
-        { code: 'bg', name: 'Bulgarian', flag: '🇧🇬' },
-        { code: 'ca', name: 'Catalan', flag: '🇪🇸' },
-        { code: 'ceb', name: 'Cebuano', flag: '🇵🇭' },
-        { code: 'ny', name: 'Chichewa', flag: '🇲🇼' },
-        { code: 'zh', name: 'Chinese (Simplified)', flag: '🇨🇳' },
-        { code: 'zh-tw', name: 'Chinese (Traditional)', flag: '🇹🇼' },
-        { code: 'co', name: 'Corsican', flag: '🇫🇷' },
-        { code: 'hr', name: 'Croatian', flag: '🇭�' },
-        { code: 'cs', name: 'Czech', flag: '🇨🇿' },
-        { code: 'da', name: 'Danish', flag: '🇩🇰' },
-        { code: 'nl', name: 'Dutch', flag: '🇳🇱' },
-        { code: 'en', name: 'English', flag: '🇺🇸' },
-        { code: 'eo', name: 'Esperanto', flag: '🌐' },
-        { code: 'et', name: 'Estonian', flag: '�🇪�' },
-        { code: 'tl', name: 'Filipino', flag: '🇵🇭' },
-        { code: 'fi', name: 'Finnish', flag: '🇫🇮' },
-        { code: 'fr', name: 'French', flag: '🇫🇷' },
-        { code: 'fy', name: 'Frisian', flag: '🇳🇱' },
-        { code: 'gl', name: 'Galician', flag: '🇪🇸' },
-        { code: 'ka', name: 'Georgian', flag: '🇬🇪' },
-        { code: 'de', name: 'German', flag: '🇩🇪' },
-        { code: 'el', name: 'Greek', flag: '🇬🇷' },
-        { code: 'gu', name: 'Gujarati', flag: '🇮🇳' },
-        { code: 'ht', name: 'Haitian Creole', flag: '🇭🇹' },
-        { code: 'ha', name: 'Hausa', flag: '🇳🇬' },
-        { code: 'haw', name: 'Hawaiian', flag: '🏝️' },
-        { code: 'he', name: 'Hebrew', flag: '🇮🇱' },
-        { code: 'hi', name: 'Hindi', flag: '🇮🇳' },
-        { code: 'hmn', name: 'Hmong', flag: '🇻🇳' },
-        { code: 'hu', name: 'Hungarian', flag: '🇭🇺' },
-        { code: 'is', name: 'Icelandic', flag: '🇮🇸' },
-        { code: 'ig', name: 'Igbo', flag: '🇳🇬' },
-        { code: 'id', name: 'Indonesian', flag: '🇮🇩' },
-        { code: 'ga', name: 'Irish', flag: '🇮🇪' },
-        { code: 'it', name: 'Italian', flag: '🇮🇹' },
-        { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-        { code: 'jw', name: 'Javanese', flag: '🇮🇩' },
-        { code: 'kn', name: 'Kannada', flag: '🇮🇳' },
-        { code: 'kk', name: 'Kazakh', flag: '🇰🇿' },
-        { code: 'km', name: 'Khmer', flag: '🇰🇭' },
-        { code: 'ko', name: 'Korean', flag: '🇰🇷' },
-        { code: 'ku', name: 'Kurdish', flag: '🇮🇶' },
-        { code: 'ky', name: 'Kyrgyz', flag: '🇰🇬' },
-        { code: 'lo', name: 'Lao', flag: '🇱🇦' },
-        { code: 'la', name: 'Latin', flag: '⛪' },
-        { code: 'lv', name: 'Latvian', flag: '🇱🇻' },
-        { code: 'lt', name: 'Lithuanian', flag: '🇱🇹' },
-        { code: 'lb', name: 'Luxembourgish', flag: '🇱🇺' },
-        { code: 'mk', name: 'Macedonian', flag: '🇲🇰' },
-        { code: 'mg', name: 'Malagasy', flag: '🇲🇬' },
-        { code: 'ms', name: 'Malay', flag: '🇲🇾' },
-        { code: 'ml', name: 'Malayalam', flag: '🇮🇳' },
-        { code: 'mt', name: 'Maltese', flag: '�🇹' },
-        { code: 'mi', name: 'Maori', flag: '🇳🇿' },
-        { code: 'mr', name: 'Marathi', flag: '🇮🇳' },
-        { code: 'mn', name: 'Mongolian', flag: '🇲🇳' },
-        { code: 'my', name: 'Myanmar (Burmese)', flag: '🇲🇲' },
-        { code: 'ne', name: 'Nepali', flag: '🇳🇵' },
-        { code: 'no', name: 'Norwegian', flag: '🇳🇴' },
-        { code: 'ps', name: 'Pashto', flag: '🇦🇫' },
-        { code: 'fa', name: 'Persian', flag: '🇮🇷' },
-        { code: 'pl', name: 'Polish', flag: '�🇱' },
-        { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-        { code: 'pa', name: 'Punjabi', flag: '🇮🇳' },
-        { code: 'ro', name: 'Romanian', flag: '🇷🇴' },
-        { code: 'ru', name: 'Russian', flag: '🇷🇺' },
-        { code: 'sm', name: 'Samoan', flag: '🇼🇸' },
-        { code: 'gd', name: 'Scots Gaelic', flag: '🏴󠁧󠁢󠁳󠁣󠁴󠁿' },
-        { code: 'sr', name: 'Serbian', flag: '🇷🇸' },
-        { code: 'st', name: 'Sesotho', flag: '🇱🇸' },
-        { code: 'sn', name: 'Shona', flag: '🇿🇼' },
-        { code: 'sd', name: 'Sindhi', flag: '🇵🇰' },
-        { code: 'si', name: 'Sinhala', flag: '🇱🇰' },
-        { code: 'sk', name: 'Slovak', flag: '��' },
-        { code: 'sl', name: 'Slovenian', flag: '🇸🇮' },
-        { code: 'so', name: 'Somali', flag: '��' },
-        { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-        { code: 'su', name: 'Sundanese', flag: '��' },
-        { code: 'sw', name: 'Swahili', flag: '🇰🇪' },
-        { code: 'sv', name: 'Swedish', flag: '🇸🇪' },
-        { code: 'tg', name: 'Tajik', flag: '🇹🇯' },
-        { code: 'ta', name: 'Tamil', flag: '🇮🇳' },
-        { code: 'te', name: 'Telugu', flag: '🇮🇳' },
-        { code: 'th', name: 'Thai', flag: '��' },
-        { code: 'tr', name: 'Turkish', flag: '🇹🇷' },
-        { code: 'uk', name: 'Ukrainian', flag: '🇺🇦' },
-        { code: 'ur', name: 'Urdu', flag: '🇵🇰' },
-        { code: 'uz', name: 'Uzbek', flag: '🇺🇿' },
-        { code: 'vi', name: 'Vietnamese', flag: '🇻🇳' },
-        { code: 'cy', name: 'Welsh', flag: '🏴󠁧󠁢󠁷󠁬󠁳󠁿' },
-        { code: 'xh', name: 'Xhosa', flag: '🇿🇦' },
-        { code: 'yi', name: 'Yiddish', flag: '🕎' },
-        { code: 'yo', name: 'Yoruba', flag: '��' },
-        { code: 'zu', name: 'Zulu', flag: '🇿🇦' }
-      ];
-      
-      setAvailableLanguages(languages);
-    } catch (error) {
-      console.error('Error loading languages:', error);
-      // Fallback to basic languages if loading fails
-      setAvailableLanguages([
-        { code: 'es', name: 'Spanish', flag: '🇪🇸' },
-        { code: 'fr', name: 'French', flag: '🇫🇷' },
-        { code: 'de', name: 'German', flag: '🇩🇪' },
-        { code: 'it', name: 'Italian', flag: '🇮🇹' },
-        { code: 'pt', name: 'Portuguese', flag: '🇵🇹' },
-        { code: 'ru', name: 'Russian', flag: '🇷🇺' },
-        { code: 'zh', name: 'Chinese', flag: '�🇳' },
-        { code: 'ja', name: 'Japanese', flag: '🇯🇵' },
-        { code: 'ko', name: 'Korean', flag: '🇰🇷' },
-        { code: 'ar', name: 'Arabic', flag: '�🇸�' }
-      ]);
-    } finally {
-      setIsLoadingLanguages(false);
-    }
-  };
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+      abortControllerRef.current?.abort();
+    };
+  }, []);
 
   // Detect language from subtitle content
-  const detectLanguage = async (text: string): Promise<string> => {
+  const detectLanguage = async (text: string, signal?: AbortSignal): Promise<string> => {
     try {
       // Use a sample of text for detection
       const sampleText = text.substring(0, 500);
       
       const response = await fetch(
-        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(sampleText)}`
+        `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=en&dt=t&q=${encodeURIComponent(sampleText)}`,
+        { signal }
       );
       
       if (!response.ok) {
@@ -238,15 +235,13 @@ function SubtitlePage() {
       
       return 'auto';
     } catch (error) {
+      if (signal?.aborted) {
+        throw error;
+      }
       console.error('Language detection error:', error);
       return 'auto';
     }
   };
-
-  // Load languages on component mount
-  React.useEffect(() => {
-    loadSupportedLanguages();
-  }, []);
 
   // Helper function to get language name by code
   const getLanguageName = (code: string): string => {
@@ -317,6 +312,10 @@ function SubtitlePage() {
   const handleTranslate = async () => {
     if (!selectedLanguage || subtitles.length === 0) return;
 
+    abortControllerRef.current?.abort();
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setIsTranslating(true);
     setTranslationComplete(false);
     setError('');
@@ -326,22 +325,47 @@ function SubtitlePage() {
       // Auto-detect source language if not already detected
       if (!detectedLanguage || detectedLanguage === 'auto') {
         const sampleText = subtitles.slice(0, 10).map(sub => sub.text).join(' ');
-        const detected = await detectLanguage(sampleText);
+        const detected = await detectLanguage(sampleText, controller.signal);
+        if (!isMountedRef.current || controller.signal.aborted) return;
         setDetectedLanguage(detected);
       }
 
       const translated: SubtitleEntry[] = [];
       
       for (let i = 0; i < subtitles.length; i++) {
+        if (!isMountedRef.current || controller.signal.aborted) {
+          return;
+        }
+
         const subtitle = subtitles[i];
         
         try {
           // Add delay to avoid rate limiting (google-translate-api is more reliable)
           if (i > 0) {
-            await new Promise(resolve => setTimeout(resolve, 100)); // Reduced delay since package handles rate limiting better
+            await new Promise<void>((resolve) => {
+              const timer = setTimeout(resolve, 100); // Reduced delay since package handles rate limiting better
+              controller.signal.addEventListener(
+                'abort',
+                () => {
+                  clearTimeout(timer);
+                  resolve();
+                },
+                { once: true }
+              );
+            });
+            if (!isMountedRef.current || controller.signal.aborted) {
+              return;
+            }
           }
           
-          const translatedText = await translateText(subtitle.text, selectedLanguage);
+          const translatedText = await translateText(
+            subtitle.text,
+            selectedLanguage,
+            controller.signal
+          );
+          if (!isMountedRef.current || controller.signal.aborted) {
+            return;
+          }
           
           translated.push({
             ...subtitle,
@@ -349,9 +373,16 @@ function SubtitlePage() {
           });
           
         } catch (err) {
+          if (!isMountedRef.current || controller.signal.aborted) {
+            return;
+          }
           console.error(`Translation failed for entry ${subtitle.id}:`, err);
           // Keep original text if translation fails
           translated.push(subtitle);
+        }
+
+        if (!isMountedRef.current || controller.signal.aborted) {
+          return;
         }
 
         // Update progress
@@ -362,14 +393,26 @@ function SubtitlePage() {
         };
         setTranslationProgress(progress);
       }
+
+      if (!isMountedRef.current || controller.signal.aborted) {
+        return;
+      }
       
       setTranslatedSubtitles(translated);
       setTranslationComplete(true);
       
     } catch (err) {
+      if (!isMountedRef.current || controller.signal.aborted) {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Translation failed');
     } finally {
-      setIsTranslating(false);
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
+      if (isMountedRef.current && !controller.signal.aborted) {
+        setIsTranslating(false);
+      }
     }
   };
 
@@ -485,27 +528,20 @@ function SubtitlePage() {
             </div>
 
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-              {isLoadingLanguages ? (
-                <div className="col-span-full flex items-center justify-center py-8">
-                  <Loader2 className="w-8 h-8 animate-spin text-brand-500" />
-                  <span className="ml-2 text-neutral-400">Loading languages...</span>
-                </div>
-              ) : (
-                availableLanguages.map((lang) => (
-                  <button
-                    key={lang.code}
-                    onClick={() => setSelectedLanguage(lang.code)}
-                    className={`p-4 rounded-lg border transition-all duration-200 ${ 
-                      selectedLanguage === lang.code
-                        ? 'bg-brand-600 border-brand-600 text-white'
-                        : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:border-brand-600'
-                    }`}
-                  >
-                    <div className="text-2xl mb-2">{lang.flag}</div>
-                    <div className="text-sm font-medium">{lang.name}</div>
-                  </button>
-                ))
-              )}
+              {availableLanguages.map((lang) => (
+                <button
+                  key={lang.code}
+                  onClick={() => setSelectedLanguage(lang.code)}
+                  className={`p-4 rounded-lg border transition-all duration-200 ${ 
+                    selectedLanguage === lang.code
+                      ? 'bg-brand-600 border-brand-600 text-white'
+                      : 'bg-neutral-800 border-neutral-700 text-neutral-300 hover:border-brand-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">{lang.flag}</div>
+                  <div className="text-sm font-medium">{lang.name}</div>
+                </button>
+              ))}
             </div>
 
             {selectedLanguage && (

@@ -8,7 +8,7 @@ import Home from "./pages/Home";
 import VideoModal from "./components/common/VideoModal";
 import { VideoModalProvider, useVideoModal } from "./context/VideoModalContext";
 import { AuthProvider } from "./context/AuthContext";
-import { Toaster } from "react-hot-toast";
+import { Toaster, type DefaultToastOptions } from "react-hot-toast";
 
 const Movies = lazy(() => import("./pages/Movies"));
 const TVShows = lazy(() => import("./pages/TVShows"));
@@ -25,6 +25,31 @@ const Contact = lazy(() =>
 const NotFound = lazy(() =>
   import("./pages/NotFound").then((m) => ({ default: m.NotFound }))
 );
+
+const TOAST_OPTIONS: DefaultToastOptions = {
+  style: {
+    background: "rgba(11, 11, 15, 0.82)",
+    backdropFilter: "blur(24px) saturate(150%)",
+    WebkitBackdropFilter: "blur(24px) saturate(150%)",
+    boxShadow:
+      "inset 0 1px 0 rgba(228,232,240,0.2), 0 18px 44px -16px rgba(0,0,0,0.85)",
+    color: "#fff",
+    borderRadius: "999px",
+    border: "1px solid rgba(226, 230, 238, 0.14)",
+  },
+  success: {
+    iconTheme: {
+      primary: "#30D158",
+      secondary: "#fff",
+    },
+  },
+  error: {
+    iconTheme: {
+      primary: "#EF4444",
+      secondary: "#fff",
+    },
+  },
+};
 
 function AppContent() {
   const { isOpen, embedUrl, closeModal } = useVideoModal();
@@ -77,33 +102,7 @@ function App() {
       <AuthProvider>
         <VideoModalProvider>
           <AppContent />
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              style: {
-                background: "rgba(11, 11, 15, 0.82)",
-                backdropFilter: "blur(24px) saturate(150%)",
-                WebkitBackdropFilter: "blur(24px) saturate(150%)",
-                boxShadow:
-                  "inset 0 1px 0 rgba(228,232,240,0.2), 0 18px 44px -16px rgba(0,0,0,0.85)",
-                color: "#fff",
-                borderRadius: "999px",
-                border: "1px solid rgba(226, 230, 238, 0.14)",
-              },
-              success: {
-                iconTheme: {
-                  primary: "#30D158",
-                  secondary: "#fff",
-                },
-              },
-              error: {
-                iconTheme: {
-                  primary: "#EF4444",
-                  secondary: "#fff",
-                },
-              },
-            }}
-          />
+          <Toaster position="top-center" toastOptions={TOAST_OPTIONS} />
         </VideoModalProvider>
       </AuthProvider>
     </HelmetProvider>

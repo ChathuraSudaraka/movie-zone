@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { SlidersHorizontal, Info } from "lucide-react";
 import EpisodeItem from "./EpisodeItem";
 import Pagination from "../common/Pagination";
@@ -29,6 +29,9 @@ const QUALITY_OPTIONS = [
   { value: "480p", label: "480p" },
 ];
 
+const EMPTY_TORRENTS: TorrentInfo[] = [];
+const NOOP = () => {};
+
 const EpisodeList = ({
   episodes,
   selectedSeason,
@@ -51,30 +54,50 @@ const EpisodeList = ({
     }
   }, [selectedSeason, setCurrentPage]);
 
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentEpisodes = episodes.slice(startIndex, endIndex);
+  const currentEpisodes = useMemo(() => {
+    if (!Array.isArray(episodes)) return [];
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return episodes.slice(startIndex, startIndex + itemsPerPage);
+  }, [episodes, currentPage, itemsPerPage]);
 
-  const filterTorrents = (episodeTorrents: TorrentInfo[]) => {
-    if (!episodeTorrents) return [];
+  const loadingTorrentsSet = useMemo(
+    () => new Set(loadingTorrents),
+    [loadingTorrents]
+  );
 
-    if (selectedQuality === "All") {
-      const qualityGroups: { [key: string]: TorrentInfo[] } = {};
-      episodeTorrents.forEach((torrent) => {
-        if (!qualityGroups[torrent.quality]) {
-          qualityGroups[torrent.quality] = [];
+  const filteredTorrentsByEpisode = useMemo(() => {
+    const result: Record<number, TorrentInfo[]> = {};
+    for (const episode of currentEpisodes) {
+      const episodeTorrents = torrents[`${episode.episode_number}`];
+      if (!episodeTorrents || episodeTorrents.length === 0) {
+        result[episode.episode_number] = EMPTY_TORRENTS;
+        continue;
+      }
+
+      if (selectedQuality === "All") {
+        const qualityGroups: Record<string, TorrentInfo> = {};
+        for (const torrent of episodeTorrents) {
+          if (!qualityGroups[torrent.quality]) {
+            qualityGroups[torrent.quality] = torrent;
+          }
         }
-        if (qualityGroups[torrent.quality].length < 1) {
-          qualityGroups[torrent.quality].push(torrent);
-        }
-      });
-      return Object.values(qualityGroups).flat();
+        result[episode.episode_number] = Object.values(qualityGroups);
+      } else {
+        result[episode.episode_number] = episodeTorrents
+          .filter((t) => t.quality === selectedQuality)
+          .slice(0, 3);
+      }
     }
+    return result;
+  }, [currentEpisodes, torrents, selectedQuality]);
 
-    return episodeTorrents
-      .filter((t) => t.quality === selectedQuality)
-      .slice(0, 3);
-  };
+  const watchHandlers = useMemo(() => {
+    const handlers = new Map<number, () => void>();
+    for (const episode of currentEpisodes) {
+      handlers.set(episode.id, () => onWatch(episode));
+    }
+    return handlers;
+  }, [currentEpisodes, onWatch]);
 
   return (
     <div className="space-y-4">
@@ -120,16 +143,15 @@ const EpisodeList = ({
             <EpisodeItem
               key={episode.id}
               episode={episode}
-              onWatch={() => onWatch(episode)}
-              torrents={filterTorrents(
-                torrents[`${episode.episode_number}`] || []
-              )}
+              onWatch={watchHandlers.get(episode.id) ?? NOOP}
+              torrents={
+                filteredTorrentsByEpisode[episode.episode_number] ??
+                EMPTY_TORRENTS
+              }
               selectedQuality={selectedQuality}
               imdbId={imdbId}
               tmdbId={tmdbId}
-              isLoadingTorrents={loadingTorrents.includes(
-                episode.episode_number
-              )}
+              isLoadingTorrents={loadingTorrentsSet.has(episode.episode_number)}
             />
           ))}
         </div>

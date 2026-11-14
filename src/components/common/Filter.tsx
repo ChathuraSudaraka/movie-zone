@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { FiFilter, FiChevronDown, FiRefreshCw } from "react-icons/fi";
 import { MdOutlineCategory, MdLocalFireDepartment } from "react-icons/md";
 import { BsCalendar3, BsStarFill } from "react-icons/bs";
@@ -102,6 +102,22 @@ export default function Filter({
     }
   }, [initialFilters]);
 
+  const yearDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const onFilterChangeRef = useRef(onFilterChange);
+
+  useEffect(() => {
+    onFilterChangeRef.current = onFilterChange;
+  }, [onFilterChange]);
+
+  useEffect(() => {
+    return () => {
+      if (yearDebounceRef.current !== null) {
+        clearTimeout(yearDebounceRef.current);
+        yearDebounceRef.current = null;
+      }
+    };
+  }, []);
+
   React.useEffect(() => {
     saveFilterState(window.location.pathname, filters);
   }, [filters]);
@@ -112,15 +128,30 @@ export default function Filter({
       [key]: value.toLowerCase()
     };
     setFilters(newFilters);
-    
-    // Only call onFilterChange immediately for desktop
+
     if (!isMobile) {
-      onFilterChange(newFilters);
-      saveFilterState(window.location.pathname, newFilters);
+      if (yearDebounceRef.current !== null) {
+        clearTimeout(yearDebounceRef.current);
+        yearDebounceRef.current = null;
+      }
+
+      if (key === "year") {
+        yearDebounceRef.current = setTimeout(() => {
+          yearDebounceRef.current = null;
+          onFilterChangeRef.current(newFilters);
+        }, 180);
+      } else {
+        onFilterChangeRef.current(newFilters);
+      }
     }
   };
 
   const handleReset = () => {
+    if (yearDebounceRef.current !== null) {
+      clearTimeout(yearDebounceRef.current);
+      yearDebounceRef.current = null;
+    }
+
     const defaultFilters = {
       genre: "",
       year: "",
@@ -134,14 +165,11 @@ export default function Filter({
     } else {
       onFilterChange(defaultFilters);
     }
-    
-    saveFilterState(window.location.pathname, defaultFilters);
   };
 
   const handleApply = () => {
     if (isMobile && onApply) {
       onApply(filters); // Pass current filters to parent
-      saveFilterState(window.location.pathname, filters);
     }
   };
 

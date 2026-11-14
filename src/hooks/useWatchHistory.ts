@@ -37,6 +37,31 @@ if (typeof window !== 'undefined') {
   });
 }
 
+export async function addToWatchHistory(item: {
+  id: number;
+  title: string;
+  poster_path: string;
+  media_type: 'movie' | 'tv';
+}): Promise<void> {
+  const entry: WatchItem = {
+    id: String(item.id),
+    title: item.title,
+    posterPath: item.poster_path,
+    mediaType: item.media_type,
+    watchedAt: new Date().toISOString(),
+  };
+  const history = getHistory().filter((h) => h.id !== entry.id);
+  history.unshift(entry);
+  const trimmed = history.slice(0, 100);
+  cachedHistory = trimmed;
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
+  } catch {
+    // Ignore storage errors
+  }
+  notifyHistoryListeners();
+}
+
 export function useWatchHistory() {
   const [watchHistory, setWatchHistory] = useState<WatchItem[]>(() => getHistory());
 
@@ -47,34 +72,6 @@ export function useWatchHistory() {
       historyListeners.delete(listener);
     };
   }, []);
-
-  const addToWatchHistory = useCallback(
-    async (item: {
-      id: number;
-      title: string;
-      poster_path: string;
-      media_type: 'movie' | 'tv';
-    }) => {
-      const entry: WatchItem = {
-        id: String(item.id),
-        title: item.title,
-        posterPath: item.poster_path,
-        mediaType: item.media_type,
-        watchedAt: new Date().toISOString(),
-      };
-      const history = getHistory().filter((h) => h.id !== entry.id);
-      history.unshift(entry);
-      const trimmed = history.slice(0, 100);
-      cachedHistory = trimmed;
-      try {
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(trimmed));
-      } catch {
-        // Ignore storage errors
-      }
-      notifyHistoryListeners();
-    },
-    []
-  );
 
   const clearHistory = useCallback(() => {
     cachedHistory = [];

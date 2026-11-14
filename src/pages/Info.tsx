@@ -10,12 +10,29 @@ import { LoadingSkeleton } from "../components/info/skeleton";
 import { RatingModal } from "../components/RatingModal";
 import { CastSection } from "../components/info/CastSection";
 import { DownloadSection } from "../components/info/DownloadSection";
-import { isInList } from "../utils/localList";
+import { isInList, subscribeToList } from "../utils/localList";
+
+const INFO_CACHE_MAX = 30;
 
 const infoContentCache = new Map<
   string,
   { content: Movie; trailer: string | null }
 >();
+
+function setInfoContentCache(
+  key: string,
+  value: { content: Movie; trailer: string | null }
+) {
+  if (infoContentCache.has(key)) {
+    infoContentCache.delete(key);
+  } else if (infoContentCache.size >= INFO_CACHE_MAX) {
+    const oldestKey = infoContentCache.keys().next().value;
+    if (oldestKey !== undefined) {
+      infoContentCache.delete(oldestKey);
+    }
+  }
+  infoContentCache.set(key, value);
+}
 
 function Info() {
   const { type, id } = useParams();
@@ -94,6 +111,9 @@ function Info() {
 
   // Fetch content details
   useEffect(() => {
+    const controller = new AbortController();
+    let redirectTimer: ReturnType<typeof setTimeout> | undefined;
+
     const fetchContent = async () => {
       if (!id || !type) {
         navigate("/");
@@ -117,7 +137,8 @@ function Info() {
         const response = await fetch(
           `https://api.themoviedb.org/3/${type}/${id}?api_key=${
             import.meta.env.VITE_TMDB_API_KEY
-          }&append_to_response=videos,credits,external_ids,images`
+          }&append_to_response=videos,credits,external_ids,images`,
+          { signal: controller.signal }
         );
 
         if (!response.ok) {
@@ -125,17 +146,24 @@ function Info() {
         }
 
         const data = await response.json();
+        if (controller.signal.aborted) return;
 
-        // Find the best available backdrop image
+        // Find the best available backdrop image in O(N) without mutating
         let bestBackdrop = data.backdrop_path;
 
         // If no main backdrop, try to get from additional images
         if (!bestBackdrop && data.images?.backdrops?.length > 0) {
-          const sortedBackdrops = data.images.backdrops.sort(
-            (a: { vote_average?: number }, b: { vote_average?: number }) =>
-              (b.vote_average || 0) - (a.vote_average || 0)
-          );
-          bestBackdrop = sortedBackdrops[0].file_path;
+          let topBackdrop: { file_path?: string; vote_average?: number } =
+            data.images.backdrops[0];
+          for (let i = 1; i < data.images.backdrops.length; i++) {
+            const candidate = data.images.backdrops[i];
+            if (
+              (candidate.vote_average || 0) > (topBackdrop.vote_average || 0)
+            ) {
+              topBackdrop = candidate;
+            }
+          }
+          bestBackdrop = topBackdrop.file_path;
         }
 
         const transformedContent: Movie = {
@@ -154,31 +182,45 @@ function Info() {
         );
         const trailerKey = foundTrailer ? foundTrailer.key : null;
 
-        infoContentCache.set(key, {
+        setInfoContentCache(key, {
           content: transformedContent,
           trailer: trailerKey,
         });
 
         setContent(transformedContent);
         setTrailer(trailerKey);
-      } catch (error) {
-        console.error("Error fetching content:", error);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        console.error("Error fetching content:", err);
         setError("Failed to load content");
-        setTimeout(() => navigate("/"), 2000);
+        redirectTimer = setTimeout(() => navigate("/"), 2000);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
     };
 
     fetchContent();
+
+    return () => {
+      controller.abort();
+      if (redirectTimer !== undefined) {
+        clearTimeout(redirectTimer);
+      }
+    };
   }, [id, type, navigate]);
 
-  // Check if title is in localStorage watchlist
+  // Check if title is in localStorage watchlist and stay in sync
   useEffect(() => {
-    if (content) {
-      setIsInMyList(isInList(content.id));
-    }
-  }, [content]);
+    const contentId = content?.id;
+    if (contentId == null) return;
+    const syncListState = () => {
+      setIsInMyList(isInList(contentId));
+    };
+    syncListState();
+    return subscribeToList(syncListState);
+  }, [content?.id]);
 
   const videoSourceOptions = useMemo(() => {
     if (!content?.id) return [];

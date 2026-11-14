@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import axios from "../utils/axios";
 import Thumbnail from "./Thumbnail";
 import { Movie } from "../types/movie";
@@ -21,6 +21,11 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
   const [isVisible, setIsVisible] = useState(Boolean(cached));
   const [visibleCount, setVisibleCount] = useState<number>(() =>
     typeof window !== "undefined" && window.innerWidth < 768 ? 10 : 20
+  );
+
+  const visibleMovies = useMemo(
+    () => movies.slice(0, visibleCount),
+    [movies, visibleCount]
   );
 
   const expandVisibleCards = useCallback(() => {
@@ -175,10 +180,10 @@ function Row({ title, fetchUrl, mediaType = "movie" }: Props) {
       <div className="relative overflow-hidden">
         <div
           ref={rowRef}
-          onScroll={expandVisibleCards}
+          onScroll={visibleCount < movies.length ? expandVisibleCards : undefined}
           className="flex gap-4 overflow-x-auto overscroll-x-contain scrollbar-hide scroll-smooth py-4 px-4 md:px-8 lg:px-16"
         >
-          {movies.slice(0, visibleCount).map((movie) => (
+          {visibleMovies.map((movie) => (
             <div
               key={movie.id}
               className="flex-none w-[180px] xs:w-[200px] sm:w-[220px] md:w-[240px] lg:w-[260px] xl:w-[280px]"

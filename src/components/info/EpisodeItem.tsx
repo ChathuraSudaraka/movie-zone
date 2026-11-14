@@ -375,4 +375,4 @@ const EpisodeItem: React.FC<EpisodeItemProps> = ({
   );
 };
 
-export default EpisodeItem;
+export default React.memo(EpisodeItem);

@@ -4,12 +4,15 @@ import { FaPlay, FaPlus, FaCheck } from "react-icons/fa";
 import { XIcon } from "lucide-react";
 import { Movie } from "../types/movie";
 import toast from "react-hot-toast";
-import { useMovieList } from "../hooks/useMovieList";
-import { useWatchHistory } from "../hooks/useWatchHistory";
+import { useIsInMovieList } from "../hooks/useMovieList";
+import { addToWatchHistory } from "../hooks/useWatchHistory";
+import { addToList, removeFromList, isInList } from "../utils/localList";
 import { tmdbImage, posterSrcSet } from "../utils/requests";
 
 const FALLBACK_IMAGE =
   "https://via.placeholder.com/400x600/1e1e1e/ffffff?text=No+Image+Available";
+const CAN_HOVER =
+  typeof window !== "undefined" && window.matchMedia("(hover: hover)").matches;
 
 interface MovieCardProps {
   movie: Movie;
@@ -27,14 +30,13 @@ function MovieCardComponent({
   const [isLoaded, setIsLoaded] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const navigate = useNavigate();
-  const { isInList, addToList, removeFromList } = useMovieList();
-  const { addToWatchHistory } = useWatchHistory();
+  const isInMyList = useIsInMovieList(movie.id);
 
   const mediaType = (movie.media_type ||
     (movie.first_air_date ? "tv" : "movie")) as "movie" | "tv";
   const title = movie.title || movie.name || "Untitled";
 
-  const handleListUpdate = async (e: React.MouseEvent) => {
+  const handleListUpdate = (e: React.MouseEvent) => {
     e.stopPropagation();
 
     try {
@@ -42,10 +44,10 @@ function MovieCardComponent({
       const isCurrentlyInList = isInList(movie.id);
 
       if (isCurrentlyInList) {
-        await removeFromList(movie.id);
+        removeFromList(movie.id);
         toast.success("Removed from list");
       } else {
-        await addToList(movie);
+        addToList(movie);
         toast.success("Added to list");
       }
 
@@ -58,11 +60,11 @@ function MovieCardComponent({
     }
   };
 
-  const handleRemove = async (e: React.MouseEvent) => {
+  const handleRemove = (e: React.MouseEvent) => {
     e.stopPropagation();
     try {
       setIsUpdating(true);
-      await removeFromList(movie.id);
+      removeFromList(movie.id);
       toast.success("Removed from your list");
       onListUpdate?.();
     } catch (error) {
@@ -84,7 +86,6 @@ function MovieCardComponent({
     navigate(`/info/${mediaType}/${movie.id}`);
   };
 
-  const isInMyList = isInList(movie.id);
   const imagePath = movie.poster_path || movie.backdrop_path;
 
   const imageUrl =
@@ -102,7 +103,7 @@ function MovieCardComponent({
                  after:shadow-[inset_0_1px_0_rgba(255,255,255,0.34),inset_0_0_0_1px_rgba(255,255,255,0.12)]
                  [@media(hover:hover)]:hover:z-20 [@media(hover:hover)]:hover:-translate-y-1.5 [@media(hover:hover)]:hover:scale-[1.03] [@media(hover:hover)]:hover:ring-white/40 [@media(hover:hover)]:hover:shadow-[0_20px_44px_-12px_rgba(0,0,0,0.85)]"
       onMouseEnter={() => {
-        if (window.matchMedia("(hover: hover)").matches) {
+        if (CAN_HOVER) {
           setIsHovered(true);
         }
       }}

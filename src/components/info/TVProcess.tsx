@@ -36,10 +36,29 @@ interface EztvTorrent {
   date_released_unix: number;
 }
 
+const EZTV_CACHE_MAX = 30;
+const SEASON_EPISODES_CACHE_MAX = 50;
+
 const eztvShowCache = new Map<
   string,
   { [season: number]: { [ep: number]: TorrentInfo[] } }
 >();
+
+const seasonEpisodesCache = new Map<string, TMDBEpisode[]>();
+
+const EMPTY_SEASON_TORRENTS: { [ep: string]: TorrentInfo[] } = {};
+
+function setBoundedMapEntry<T>(map: Map<string, T>, max: number, key: string, value: T) {
+  if (map.has(key)) {
+    map.delete(key);
+  } else if (map.size >= max) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) {
+      map.delete(oldestKey);
+    }
+  }
+  map.set(key, value);
+}
 
 function parseQuality(title: string): string {
   if (/2160p|4k/i.test(title)) return "2160p";
@@ -64,11 +83,12 @@ export const TVProcess = ({
   const [torrentsBySeason, setTorrentsBySeason] = useState<{
     [season: number]: { [ep: string]: TorrentInfo[] };
   }>({});
+  const torrentsBySeasonRef = useRef<{
+    [season: number]: { [ep: string]: TorrentInfo[] };
+  }>({});
+  const prevContentIdRef = useRef(content?.id);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [episodeCache, setEpisodeCache] = useState<{
-    [season: number]: TMDBEpisode[];
-  }>({});
   const [loadingSeasons, setLoadingSeasons] = useState<number[]>([]);
   const [loadingTorrents, setLoadingTorrents] = useState<number[]>([]);
   const [isSeasonDropdownOpen, setIsSeasonDropdownOpen] = useState(false);
@@ -98,8 +118,21 @@ export const TVProcess = ({
 
   useEffect(() => {
     checkNavigationNeeded();
-    window.addEventListener("resize", checkNavigationNeeded);
-    return () => window.removeEventListener("resize", checkNavigationNeeded);
+    let rafId: number | null = null;
+    const handleResize = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        checkNavigationNeeded();
+      });
+    };
+    window.addEventListener("resize", handleResize, { passive: true });
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, [checkNavigationNeeded, seasons]);
 
   useEffect(() => {
@@ -117,11 +150,22 @@ export const TVProcess = ({
     return () => document.removeEventListener("mousedown", handleOutside);
   }, [isSeasonDropdownOpen]);
 
+  // Reset per-show season torrent/episode state if content.id changes without unmount
+  useEffect(() => {
+    if (prevContentIdRef.current !== content?.id) {
+      prevContentIdRef.current = content?.id;
+      torrentsBySeasonRef.current = {};
+      setTorrentsBySeason({});
+      setEpisodes([]);
+    }
+  }, [content?.id]);
+
   // Fetch seasons (reuse content.seasons when already present from Info.tsx)
   useEffect(() => {
-    const fetchSeasons = async () => {
-      if (!content?.id) return;
+    if (!content?.id) return;
+    const controller = new AbortController();
 
+    const fetchSeasons = async () => {
       const embeddedSeasons = (
         content as Movie & { seasons?: TMDBSeason[] }
       ).seasons;
@@ -139,8 +183,10 @@ export const TVProcess = ({
         const response = await axios.get(
           `https://api.themoviedb.org/3/tv/${content.id}?api_key=${
             import.meta.env.VITE_TMDB_API_KEY
-          }`
+          }`,
+          { signal: controller.signal }
         );
+        if (controller.signal.aborted) return;
         const filteredSeasons = (response.data.seasons || []).filter(
           (season: TMDBSeason) => season.season_number > 0
         );
@@ -149,139 +195,169 @@ export const TVProcess = ({
           setSelectedSeason(filteredSeasons[0].season_number);
         }
       } catch (err) {
+        if (controller.signal.aborted || axios.isCancel(err)) return;
         console.error("Error fetching seasons:", err);
         setError("Failed to load seasons");
       } finally {
-        setIsLoading(false);
+        if (!controller.signal.aborted) {
+          setIsLoading(false);
+        }
       }
     };
     fetchSeasons();
+
+    return () => controller.abort();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [content?.id]);
 
   // Fetch all EZTV torrents for the show once and group by season + episode
-  const fetchShowTorrents = useCallback(async (imdbId: string) => {
-    const numericImdbId = imdbId.replace(/^tt/i, "");
-    if (!numericImdbId) return {};
-    if (eztvShowCache.has(numericImdbId)) {
-      return eztvShowCache.get(numericImdbId)!;
-    }
-
-    try {
-      const response = await axios.get(
-        `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`
-      );
-      const rawTorrents: EztvTorrent[] = response.data?.torrents || [];
-      const grouped: { [season: number]: { [ep: number]: TorrentInfo[] } } = {};
-
-      for (const t of rawTorrents) {
-        const sNum = parseInt(t.season, 10);
-        const eNum = parseInt(t.episode, 10);
-        if (!sNum || !eNum) continue;
-        if (!grouped[sNum]) grouped[sNum] = {};
-        if (!grouped[sNum][eNum]) grouped[sNum][eNum] = [];
-
-        grouped[sNum][eNum].push({
-          url: t.torrent_url,
-          hash: t.hash,
-          quality: parseQuality(t.title),
-          type: "web",
-          seeds: t.seeds || 0,
-          peers: t.peers || 0,
-          size: t.size_bytes
-            ? `${(parseInt(t.size_bytes, 10) / 1073741824).toFixed(2)} GB`
-            : "Unknown",
-          infoHash: t.hash,
-          provider: "EZTV",
-          resolution: parseQuality(t.title),
-          is_main_movie: false,
-          download_url: t.torrent_url,
-          magnetLink: t.magnet_url,
-          trustScore: t.seeds > 50 ? 90 : t.seeds > 10 ? 70 : 50,
-          size_bytes: parseInt(t.size_bytes, 10) || 0,
-          date_uploaded: new Date(
-            t.date_released_unix * 1000
-          ).toISOString(),
-        });
+  const fetchShowTorrents = useCallback(
+    async (
+      imdbId: string,
+      signal?: AbortSignal
+    ): Promise<{ [season: number]: { [ep: number]: TorrentInfo[] } } | null> => {
+      const numericImdbId = imdbId.replace(/^tt/i, "");
+      if (!numericImdbId) return {};
+      if (eztvShowCache.has(numericImdbId)) {
+        return eztvShowCache.get(numericImdbId)!;
       }
 
-      for (const sKey of Object.keys(grouped)) {
-        const sMap = grouped[Number(sKey)];
-        for (const eKey of Object.keys(sMap)) {
-          sMap[Number(eKey)].sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
+      try {
+        const response = await axios.get(
+          `${EZTV_BASE_URL}/get-torrents?imdb_id=${numericImdbId}&limit=100`,
+          { signal }
+        );
+        if (signal?.aborted) return null;
+        const rawTorrents: EztvTorrent[] = response.data?.torrents || [];
+        const grouped: { [season: number]: { [ep: number]: TorrentInfo[] } } =
+          {};
+
+        for (const t of rawTorrents) {
+          const sNum = parseInt(t.season, 10);
+          const eNum = parseInt(t.episode, 10);
+          if (!sNum || !eNum) continue;
+          if (!grouped[sNum]) grouped[sNum] = {};
+          if (!grouped[sNum][eNum]) grouped[sNum][eNum] = [];
+
+          grouped[sNum][eNum].push({
+            url: t.torrent_url,
+            hash: t.hash,
+            quality: parseQuality(t.title),
+            type: "web",
+            seeds: t.seeds || 0,
+            peers: t.peers || 0,
+            size: t.size_bytes
+              ? `${(parseInt(t.size_bytes, 10) / 1073741824).toFixed(2)} GB`
+              : "Unknown",
+            infoHash: t.hash,
+            provider: "EZTV",
+            resolution: parseQuality(t.title),
+            is_main_movie: false,
+            download_url: t.torrent_url,
+            magnetLink: t.magnet_url,
+            trustScore: t.seeds > 50 ? 90 : t.seeds > 10 ? 70 : 50,
+            size_bytes: parseInt(t.size_bytes, 10) || 0,
+            date_uploaded: new Date(
+              t.date_released_unix * 1000
+            ).toISOString(),
+          });
         }
+
+        for (const sKey of Object.keys(grouped)) {
+          const sMap = grouped[Number(sKey)];
+          for (const eKey of Object.keys(sMap)) {
+            sMap[Number(eKey)].sort((a, b) => (b.seeds || 0) - (a.seeds || 0));
+          }
+        }
+
+        setBoundedMapEntry(eztvShowCache, EZTV_CACHE_MAX, numericImdbId, grouped);
+        return grouped;
+      } catch (err) {
+        if (signal?.aborted || axios.isCancel(err)) return null;
+        console.error("Error fetching EZTV show torrents:", err);
+        return {};
       }
+    },
+    []
+  );
 
-      eztvShowCache.set(numericImdbId, grouped);
-      return grouped;
-    } catch (err) {
-      console.error("Error fetching EZTV show torrents:", err);
-      return {};
-    }
-  }, []);
-
-  // Fetch episodes + their torrents for a season in parallel
+  // Fetch episodes + their torrents for a season
   const fetchEpisodesForSeason = useCallback(
-    async (seasonNumber: number) => {
+    async (seasonNumber: number, signal?: AbortSignal) => {
       if (!content?.id) return;
 
-      let eps = episodeCache[seasonNumber];
+      const cacheKey = `${content.id}:${seasonNumber}`;
+      let eps = seasonEpisodesCache.get(cacheKey);
       if (!eps) {
-        setLoadingSeasons((prev) => [...prev, seasonNumber]);
+        setLoadingSeasons((prev) =>
+          prev.includes(seasonNumber) ? prev : [...prev, seasonNumber]
+        );
         try {
           const episodesResponse = await axios.get(
             `https://api.themoviedb.org/3/tv/${
               content.id
             }/season/${seasonNumber}?api_key=${
               import.meta.env.VITE_TMDB_API_KEY
-            }`
+            }`,
+            { signal }
           );
-          eps = episodesResponse.data.episodes || [];
-          setEpisodeCache((prev) => ({ ...prev, [seasonNumber]: eps }));
+          if (signal?.aborted) return;
+          const fetchedEps: TMDBEpisode[] =
+            episodesResponse.data.episodes || [];
+          eps = fetchedEps;
+          setBoundedMapEntry(
+            seasonEpisodesCache,
+            SEASON_EPISODES_CACHE_MAX,
+            cacheKey,
+            fetchedEps
+          );
         } catch (err) {
+          if (signal?.aborted || axios.isCancel(err)) return;
           console.error(
             `Error fetching episodes for season ${seasonNumber}:`,
             err
           );
-          setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
           return;
+        } finally {
+          setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
         }
-        setLoadingSeasons((prev) => prev.filter((s) => s !== seasonNumber));
       }
 
-      if (seasonNumber === selectedSeason) {
-        setEpisodes(eps);
+      if (signal?.aborted) return;
+      setEpisodes(eps);
 
-        if (content.imdb_id && !torrentsBySeason[seasonNumber]) {
-          const allGrouped = await fetchShowTorrents(content.imdb_id);
-          setTorrentsBySeason((prev) => ({
-            ...prev,
-            ...allGrouped,
-            [seasonNumber]: allGrouped[seasonNumber] || {},
-          }));
-          setLoadingTorrents([]);
-        }
+      if (content.imdb_id && !torrentsBySeasonRef.current[seasonNumber]) {
+        const allGrouped = await fetchShowTorrents(content.imdb_id, signal);
+        if (signal?.aborted || !allGrouped) return;
+        const nextTorrents = {
+          ...torrentsBySeasonRef.current,
+          ...allGrouped,
+          [seasonNumber]: allGrouped[seasonNumber] || {},
+        };
+        torrentsBySeasonRef.current = nextTorrents;
+        setTorrentsBySeason(nextTorrents);
+        setLoadingTorrents([]);
       }
     },
-    [
-      content?.id,
-      content?.imdb_id,
-      selectedSeason,
-      episodeCache,
-      torrentsBySeason,
-      fetchShowTorrents,
-    ]
+    [content?.id, content?.imdb_id, fetchShowTorrents]
   );
 
   useEffect(() => {
-    if (selectedSeason) {
-      fetchEpisodesForSeason(selectedSeason);
-    }
+    if (!selectedSeason) return;
+    const controller = new AbortController();
+    fetchEpisodesForSeason(selectedSeason, controller.signal);
+    return () => controller.abort();
   }, [selectedSeason, fetchEpisodesForSeason]);
+
+  const handleWatchEpisode = useCallback((episode: TMDBEpisode) => {
+    console.log("Watch episode:", episode);
+  }, []);
 
   if (error) return <ErrorMessage message={error} />;
   if (isLoading) return <LoadingIndicator />;
 
-  const currentTorrents = torrentsBySeason[selectedSeason] || {};
+  const currentTorrents =
+    torrentsBySeason[selectedSeason] || EMPTY_SEASON_TORRENTS;
   const activeSeasonMeta = seasons.find(
     (s) => s.season_number === selectedSeason
   );
@@ -447,9 +523,7 @@ export const TVProcess = ({
         <EpisodeList
           episodes={episodes}
           selectedSeason={selectedSeason}
-          onWatch={(episode) => {
-            console.log("Watch episode:", episode);
-          }}
+          onWatch={handleWatchEpisode}
           torrents={currentTorrents}
           selectedQuality={selectedQuality}
           setSelectedQuality={setSelectedQuality}

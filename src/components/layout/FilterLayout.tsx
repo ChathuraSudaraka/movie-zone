@@ -21,12 +21,31 @@ const FilterLayout: React.FC<FilterLayoutProps> = ({ children, initialFilters, o
 
   // Handle scroll effects
   useEffect(() => {
+    let rafId: number | null = null;
+    let lastScrolled = window.scrollY > 50;
+    if (lastScrolled) {
+      setIsScrolled(true);
+    }
+
     const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        const nextScrolled = window.scrollY > 50;
+        if (nextScrolled !== lastScrolled) {
+          lastScrolled = nextScrolled;
+          setIsScrolled(nextScrolled);
+        }
+      });
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   // Handle body scroll lock

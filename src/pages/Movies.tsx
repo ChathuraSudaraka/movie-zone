@@ -162,8 +162,11 @@ function Movies() {
     );
   }, [searchParams]);
 
-  const initialQuery = buildMoviesQuery(currentPage, activeFilters);
-  const initialCached = moviesQueryCache.get(initialQuery.cacheKey);
+  const query = useMemo(
+    () => buildMoviesQuery(currentPage, activeFilters),
+    [currentPage, activeFilters]
+  );
+  const initialCached = moviesQueryCache.get(query.cacheKey);
 
   const [movies, setMovies] = useState<Movie[]>(
     () => initialCached?.results ?? []
@@ -231,12 +234,10 @@ function Movies() {
   useEffect(() => {
     document.title = "Movies - MovieZone";
     let cancelled = false;
+    const controller = new AbortController();
 
     async function fetchMovies() {
-      const { endpoint, params, cacheKey } = buildMoviesQuery(
-        currentPage,
-        activeFilters
-      );
+      const { endpoint, params, cacheKey } = query;
 
       const cached = moviesQueryCache.get(cacheKey);
       if (cached) {
@@ -250,8 +251,11 @@ function Movies() {
 
       setLoading(true);
       try {
-        const response = await axios.get(endpoint, { params });
-        if (cancelled) return;
+        const response = await axios.get(endpoint, {
+          params,
+          signal: controller.signal,
+        });
+        if (cancelled || controller.signal.aborted) return;
 
         const apiTotalPages = Math.min(response.data.total_pages || 1, 500);
         const processedMovies = (response.data.results || [])
@@ -274,7 +278,14 @@ function Movies() {
         setTotalResults(computedTotalResults);
         setError(null);
       } catch (err: unknown) {
-        if (cancelled) return;
+        if (
+          cancelled ||
+          controller.signal.aborted ||
+          (err as { code?: string; name?: string })?.code === "ERR_CANCELED" ||
+          (err as { name?: string })?.name === "CanceledError"
+        ) {
+          return;
+        }
         const axiosError = err as { response?: { status: number } };
         setError(
           axiosError.response?.status === 400
@@ -285,7 +296,7 @@ function Movies() {
           syncParams({ page: 1 }, true);
         }
       } finally {
-        if (!cancelled) {
+        if (!cancelled && !controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -294,8 +305,9 @@ function Movies() {
     fetchMovies();
     return () => {
       cancelled = true;
+      controller.abort();
     };
-  }, [currentPage, activeFilters, syncParams]);
+  }, [query, syncParams]);
 
   const handleViewModeChange = (mode: "grid" | "list") => {
     syncParams({ view: mode }, true);
